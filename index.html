@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PORTFOLIO MANAGER | Premium Investment Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/app.css?v=3">
+    <link rel="stylesheet" href="static/animations.css?v=3">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E💎%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>PORTFOLIO MANAGER</h1>
+            <div class="header-actions">
+                <select id="selectorHoja" class="selector-hoja">
+                    <option value="Diario STD">Diario STD</option>
+                    <option value="Diario VIP">Diario VIP</option>
+                    <option value="Diario WIND" selected>Diario WIND</option>
+                </select>
+                <select id="selectorMes" class="selector-mes">
+                    <option value="">-- Mes --</option>
+                </select>
+                <div class="mes-nav">
+                    <button id="btnMesAnterior" class="btn btn-secondary btn-mes">Mes anterior</button>
+                    <button id="btnMesSiguiente" class="btn btn-secondary btn-mes">Mes siguiente</button>
+                </div>
+                <select id="selectorCliente" class="selector-cliente">
+                    <option value="">-- Selecciona un Cliente --</option>
+                </select>
+                <button id="btnUndo" class="btn btn-secondary" title="Deshacer (Ctrl+Z)">↩ Atrás</button>
+                <button id="btnRedo" class="btn btn-secondary" title="Rehacer (Ctrl+Y)">↪ Rehacer</button>
+                <button id="btnActualizarTodo" class="btn btn-accent" title="Recalcular todas las casillas">⟳ Actualizar</button>
+                <button id="btnGuardar" class="btn btn-primary">Guardar Cambios</button>
+                <button id="btnExportar" class="btn btn-secondary">Exportar JSON</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- Panel de navegación -->
+            <aside class="sidebar">
+                <h2>Navegación</h2>
+                <div class="nav-menu">
+                    <button class="nav-btn active" data-vista="general" id="btnVistaGeneral">
+                        Vista General
+                    </button>
+                    <button class="nav-btn" data-vista="clientes" id="btnVistaClientes">
+                        Clientes
+                    </button>
+                    <button class="nav-btn" data-vista="infoClientes" id="btnVistaInfoClientes">
+                        Info Clientes
+                    </button>
+                    <button class="nav-btn" data-vista="comision" id="btnVistaComision">
+                        Comisión
+                    </button>
+                </div>
+                
+                <!-- Búsqueda de clientes (solo visible en vista clientes) -->
+                <div class="search-box" id="busquedaClientes" style="display: none;">
+                    <input type="text" id="buscarClienteSidebar" placeholder="🔍 Buscar cliente...">
+                </div>
+                <div class="client-list" id="listaClientes" style="display: none;">
+                    <!-- Se llenará dinámicamente -->
+                </div>
+            </aside>
+
+            <!-- Área principal -->
+            <main class="content-area">
+                <!-- Vista General -->
+                <div id="vistaGeneral" class="view active">
+                    <div class="view-header-premium">
+                        <h2>Resumen del Portafolio</h2>
+                        <div class="filters-bar">
+                            <div class="filter-group">
+                                <label>Desde:</label>
+                                <input type="date" id="fechaDesde" class="date-filter">
+                            </div>
+                            <div class="filter-group">
+                                <label>Hasta:</label>
+                                <input type="date" id="fechaHasta" class="date-filter">
+                            </div>
+                            <button id="btnAplicarFiltro" class="btn btn-primary">Aplicar Filtro</button>
+                            <button id="btnLimpiarFiltro" class="btn btn-secondary">Limpiar</button>
+                            <button id="btnToggleVista" class="btn btn-secondary">Ver Resumen</button>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-cards-premium" id="summaryCards">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                    
+                    <div class="table-container-premium" id="tablaGeneralContainer">
+                        <table id="tablaGeneral" class="data-table">
+                            <thead id="theadGeneral">
+                                <!-- Se llenará dinámicamente -->
+                            </thead>
+                            <tbody id="tbodyGeneral">
+                                <!-- Se llenará dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Vista Clientes (Lista) -->
+                <div id="vistaClientes" class="view">
+                    <div class="view-header">
+                        <button id="btnVolverGeneralDesdeClientes" class="btn btn-primary">🏠 Vista General</button>
+                        <h2>Lista de Clientes</h2>
+                    </div>
+                    <div class="clientes-toolbar">
+                        <div class="clientes-toolbar-left">
+                            <select id="selectorPlantillaCliente" class="selector-cliente">
+                                <option value="">Plantilla: último cliente</option>
+                            </select>
+                            <button id="btnAgregarCliente" class="btn btn-accent">＋ Agregar nuevo cliente</button>
+                            <input id="buscarCliente" class="selector-cliente clientes-search-input" type="text" placeholder="Buscar cliente...">
+                        </div>
+                        <div class="clientes-toolbar-right">
+                            <label for="ordenClientes" class="stat-label">Ordenar</label>
+                            <select id="ordenClientes" class="selector-cliente">
+                                <option value="saldo_desc">Saldo: Mayor a menor</option>
+                                <option value="saldo_asc">Saldo: Menor a mayor</option>
+                                <option value="comision_desc">Comisión (si retira): Mayor a menor</option>
+                                <option value="comision_asc">Comisión (si retira): Menor a mayor</option>
+                                <option value="garantia_desc">Garantía: Mayor a menor</option>
+                                <option value="garantia_asc">Garantía: Menor a mayor</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="stats-bar">
+                        <div class="stat">
+                            <span class="stat-label">Total Clientes:</span>
+                            <span class="stat-value" id="totalClientes">0</span>
+                        </div>
+                    </div>
+                    <div class="summary-cards-premium" id="clientesKpis"></div>
+                    <div class="clientes-cards-grid" id="clientesCards"></div>
+                </div>
+
+                <!-- Vista Detalle Cliente -->
+                <div id="vistaDetalle" class="view">
+                    <div class="view-header">
+                        <button id="btnVolver" class="btn btn-back">← Volver</button>
+                        <button id="btnVolverGeneral" class="btn btn-primary" style="margin-left: 10px;">🏠 Vista General</button>
+                        <button id="btnEliminarCliente" class="btn btn-danger" style="margin-left: 10px;">🗑 Eliminar cliente</button>
+                        <h2 id="tituloCliente">Cliente <span id="numeroCliente">1</span></h2>
+                    </div>
+                    
+                    <!-- Resumen de cálculos del cliente (oculto por defecto) -->
+                    <div class="client-summary" id="resumenCliente" style="display: none;">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                    
+                    <!-- Tabla con datos editables -->
+                    <div class="table-container table-container-scroll">
+                        <table id="tablaDetalle" class="data-table editable-table">
+                            <thead id="theadDetalle">
+                                <!-- Se llenará dinámicamente -->
+                            </thead>
+                            <tbody id="tbodyDetalle">
+                                <!-- Se llenará dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Vista Info Clientes -->
+                <div id="vistaInfoClientes" class="view">
+                    <div class="view-header-premium">
+                        <h2>Información de Clientes</h2>
+                        <div class="info-clientes-controls">
+                            <input type="text" id="buscarInfoCliente" placeholder="🔍 Buscar cliente..." class="search-input">
+                            <div class="tabs-container">
+                                <button class="tab-btn active" data-hoja="Diario STD" id="tabSTD">Diario STD</button>
+                                <button class="tab-btn" data-hoja="Diario VIP" id="tabVIP">Diario VIP</button>
+                                <button class="tab-btn" data-hoja="Diario WIND" id="tabWIND">Diario WIND</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-clientes-container" id="infoClientesContainer">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- Vista Comisión -->
+                <div id="vistaComision" class="view">
+                    <div class="view-header-premium">
+                        <div class="view-header-left">
+                            <h2>Comisiones</h2>
+                            <input type="text" id="buscarComision" placeholder="🔍 Buscar cliente..." class="search-input">
+                        </div>
+                        <div class="tabs-container">
+                            <button class="tab-btn active" data-hoja="Diario STD" id="tabSTDComision">Diario STD</button>
+                            <button class="tab-btn" data-hoja="Diario VIP" id="tabVIPComision">Diario VIP</button>
+                            <button class="tab-btn" data-hoja="Diario WIND" id="tabWINDComision">Diario WIND</button>
+                        </div>
+                    </div>
+                    
+                    <div class="comision-container" id="comisionContainer">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Modal de confirmación -->
+        <div id="modalConfirmacion" class="modal">
+            <div class="modal-content">
+                <h3>Confirmar Cambios</h3>
+                <p>¿Estás seguro de que quieres guardar los cambios?</p>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" id="confirmarGuardar">Sí, Guardar</button>
+                    <button class="btn btn-secondary" id="cancelarGuardar">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notificación -->
+        <div id="notificacion" class="notificacion"></div>
+    </div>
+
+    <script src="app.js"></script>
+    <script src="test_recalculo.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: invertcursor
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    autoDeploy: true
+    envVars:
+      - key: DATA_DIR
+        value: /var/data
+      - key: EDITADOS_PATH
+        value: /var/data/datos_editados.json
+    disks:
+      - name: data
+        mountPath: /var/data
+        sizeGB: 1

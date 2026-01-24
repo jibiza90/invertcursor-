@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+*.log
+
+# Local env
+.venv/
+venv/
+.env
+
+# Editor/OS
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local saved data / backups
+backup_*/
+backup_formulas_*/
+backup_wind_cleanup_*/
+datos_editados.json
+wind_validation_report.txt
