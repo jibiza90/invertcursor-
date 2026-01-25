@@ -6002,17 +6002,14 @@ async function recalcularFormulasGeneralesDesdeFila(filaInicio, hoja, skipImpFin
                     }
                 }
             }
-            // CASO: Filas SIN fórmula - calcular imp_inicial = último imp_final (o imp_inicial) + FA
+            // CASO: Filas SIN fórmula - calcular imp_inicial = último imp_final + FA
             else if (fila > 15 && filaData.fecha) {
-                // Buscar el ÚLTIMO imp_final disponible, o usar imp_inicial si no hay imp_final
+                // Buscar el ÚLTIMO imp_final disponible (NO usar imp_inicial para evitar duplicación)
                 let baseCalculo = 0;
                 const datosOrdenados = [...datosDiarios].filter(d => d.fila < fila && d.fila >= 15).sort((a, b) => a.fila - b.fila);
                 for (const f of datosOrdenados) {
                     if (typeof f.imp_final === 'number') {
                         baseCalculo = f.imp_final;
-                    } else if (typeof f.imp_inicial === 'number' && f.imp_inicial > 0) {
-                        // Si no hay imp_final, usar imp_inicial como base
-                        baseCalculo = f.imp_inicial;
                     }
                 }
                 
