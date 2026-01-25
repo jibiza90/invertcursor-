@@ -1358,13 +1358,17 @@ function obtenerMesAnteriorDeHoja(nombreHoja, mes) {
 }
 
 function obtenerSaldoFinalClienteDeMes(cliente) {
-    // Buscar último saldo_diario válido en datos_diarios
+    // Buscar último saldo_diario válido en datos_diarios CON FECHA ESCRITA
     const datos = (cliente?.datos_diarios || [])
-        .filter(d => d && d.fila >= 15 && d.fila <= 1120 && typeof d.saldo_diario === 'number')
+        .filter(d => d && d.fila >= 15 && d.fila <= 1120 && 
+                d.fecha && d.fecha !== 'FECHA' && // Solo filas con fecha escrita
+                typeof d.saldo_diario === 'number')
         .sort((a, b) => (a.fila || 0) - (b.fila || 0));
     
     if (datos.length > 0) {
-        return datos[datos.length - 1].saldo_diario;
+        const ultimo = datos[datos.length - 1];
+        console.log(`   - Cliente saldo final: ${ultimo.saldo_diario} (fila ${ultimo.fila}, fecha ${ultimo.fecha})`);
+        return ultimo.saldo_diario;
     }
     
     // Si no hay datos_diarios con saldo, usar saldo_actual del cliente
@@ -1443,10 +1447,12 @@ async function aplicarArrastreAnualAlCargar(nombreHoja, mes, dataMes) {
 
             const prevInc = prev && typeof prev.incrementos_total === 'number' ? prev.incrementos_total : 0;
             const prevDec = prev && typeof prev.decrementos_total === 'number' ? prev.decrementos_total : 0;
+            console.log(`📊 Cliente ${idx + 1} - Calculando saldo_inicial_mes desde mes anterior:`);
             const prevSaldo = prev ? obtenerSaldoFinalClienteDeMes(prev) : 0;
             c._acumPrevInc = prevInc;
             c._acumPrevDec = prevDec;
             c.saldo_inicial_mes = prevSaldo;
+            console.log(`   -> saldo_inicial_mes asignado: ${prevSaldo}`);
 
             c.numero_cliente = typeof c.numero_cliente === 'number' ? c.numero_cliente : (idx + 1);
             c.columna_inicio = 11 + (idx * 8);
@@ -7380,11 +7386,12 @@ function cargarInfoClienteDetalle(index, container, hojaParaUsar) {
     const invertido = cliente.incrementos_total || 0;
     const retirado = cliente.decrementos_total || 0;
     
-    // Calcular saldo actual: último valor de saldo_diario numérico (incluye 0), dentro del rango 15-1120)
+    // Calcular saldo actual: último valor de saldo_diario numérico con FECHA ESCRITA
     let saldoActual = null;
     let saldoActualFila = null;
     const datosDiariosValidos = (cliente.datos_diarios || []).filter(d =>
         d.fila >= 15 && d.fila <= 1120 &&
+        d.fecha && d.fecha !== 'FECHA' && // Solo filas con fecha escrita
         d.saldo_diario !== null && d.saldo_diario !== undefined &&
         typeof d.saldo_diario === 'number'
     );
