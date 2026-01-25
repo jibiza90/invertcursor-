@@ -72,7 +72,14 @@ def sincronizar_clientes_startup():
                         datos_diarios = cliente_anterior.get('datos_diarios', [])
                         saldos = [d.get('saldo_diario') for d in datos_diarios 
                                  if isinstance(d.get('saldo_diario'), (int, float))]
-                        saldo_final_anterior = saldos[-1] if saldos else 0
+                        
+                        if saldos:
+                            saldo_final_anterior = saldos[-1]
+                        elif isinstance(cliente_anterior.get('saldo_actual'), (int, float)):
+                            # Si no hay datos_diarios con saldo, usar saldo_actual
+                            saldo_final_anterior = cliente_anterior.get('saldo_actual')
+                        else:
+                            saldo_final_anterior = 0
                         
                         # Actualizar saldo_inicial_mes si es diferente
                         if cliente.get('saldo_inicial_mes') != saldo_final_anterior:
@@ -334,7 +341,14 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                                 datos_diarios = cliente_actual.get('datos_diarios', [])
                                 saldos = [d.get('saldo_diario') for d in datos_diarios 
                                          if isinstance(d.get('saldo_diario'), (int, float))]
-                                saldo_final = saldos[-1] if saldos else 0
+                                
+                                if saldos:
+                                    saldo_final = saldos[-1]
+                                elif isinstance(cliente_actual.get('saldo_actual'), (int, float)):
+                                    # Si no hay datos_diarios con saldo, usar saldo_actual
+                                    saldo_final = cliente_actual.get('saldo_actual')
+                                else:
+                                    saldo_final = 0
                                 
                                 # Actualizar saldo_inicial_mes del mes siguiente
                                 cliente_siguiente = data_siguiente['clientes'][idx]

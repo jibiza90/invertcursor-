@@ -1326,10 +1326,20 @@ function obtenerMesAnteriorDeHoja(nombreHoja, mes) {
 }
 
 function obtenerSaldoFinalClienteDeMes(cliente) {
+    // Buscar último saldo_diario válido en datos_diarios
     const datos = (cliente?.datos_diarios || [])
         .filter(d => d && d.fila >= 15 && d.fila <= 1120 && typeof d.saldo_diario === 'number')
         .sort((a, b) => (a.fila || 0) - (b.fila || 0));
-    if (datos.length > 0) return datos[datos.length - 1].saldo_diario;
+    
+    if (datos.length > 0) {
+        return datos[datos.length - 1].saldo_diario;
+    }
+    
+    // Si no hay datos_diarios con saldo, usar saldo_actual del cliente
+    if (typeof cliente?.saldo_actual === 'number') {
+        return cliente.saldo_actual;
+    }
+    
     return 0;
 }
 
