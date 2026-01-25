@@ -5693,13 +5693,19 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
     });
     const ultimaFilaMostrar = ultimaFilaActividad > 0
         ? Math.max(ultimaFilaActividad, ultimaFilaImpFinalGeneral)
-        : 0;
+        : ultimaFilaImpFinalGeneral; // Si no hay actividad pero hay imp_final, mostrar hasta ahí
+
+    // CRÍTICO: Si el cliente tiene saldo_inicial_mes, debe mostrar valores aunque no tenga movimientos
+    const tieneSaldoInicial = cliente.saldo_inicial_mes && 
+        typeof cliente.saldo_inicial_mes === 'number' && 
+        cliente.saldo_inicial_mes > 0;
 
     let haEmpezado = false;
     gruposOrdenados.forEach(g => {
         if (!haEmpezado && g.hayActividad) haEmpezado = true;
         const dentroRangoActividad = ultimaFilaMostrar > 0 && (g.filaCalculo?.fila || 0) <= ultimaFilaMostrar;
-        const mostrarValores = haEmpezado && dentroRangoActividad;
+        // Mostrar valores si: (ha empezado con movimientos) O (tiene saldo inicial y está dentro del rango)
+        const mostrarValores = (haEmpezado && dentroRangoActividad) || (tieneSaldoInicial && dentroRangoActividad);
         const calcRow = g.filaCalculo;
 
         g.rows.forEach(dato => {
