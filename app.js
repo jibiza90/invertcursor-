@@ -1387,8 +1387,9 @@ async function cargarDatos() {
         
         console.log(`✅ Datos cargados: ${totalClientes} clientes, ${totalDiarios} días`);
         
-        // Recalcular todos los clientes después de cargar para asegurar que se calculen correctamente
-        // Esto es especialmente importante para clientes con saldo_inicial_mes pero sin movimientos
+        // DESACTIVADO TEMPORALMENTE: Recálculo automático causa problemas de carga
+        // TODO: Revisar y optimizar el recálculo automático
+        /*
         console.log(`🔄 Recalculando todos los clientes...`);
         const hoja = datosEditados.hojas[hojaActual];
         if (hoja && hoja.clientes) {
@@ -1406,6 +1407,7 @@ async function cargarDatos() {
             });
         }
         console.log(`✅ Recálculo completado`);
+        */
         
         mostrarNotificacion(`${hojaActual} ${mesActual} | ${totalClientes} clientes`, 'success');
         
@@ -1950,10 +1952,13 @@ function mostrarVistaGeneral() {
     recalcularImpInicialSync(hoja);
     requiereRecalculoImpInicial = false;
     
-    // VALIDACIÓN AUTOMÁTICA PARA DIARIO WIND
+    // VALIDACIÓN AUTOMÁTICA PARA DIARIO WIND - DESACTIVADA TEMPORALMENTE
+    // TODO: Revisar y optimizar la validación para que no bloquee la carga
+    /*
     if (hojaActual === 'Diario WIND') {
         validarYCorregirAutomaticoWIND(hoja);
     }
+    */
     
     // Mostrar tarjetas de resumen premium
     mostrarTarjetasResumen(datosGenerales, datosDiarios);
