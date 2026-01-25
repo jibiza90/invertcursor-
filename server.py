@@ -142,6 +142,8 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             return self.diagnostico_arrastre()
         if parsed.path == '/api/diagnostico_enero':
             return self.diagnostico_enero()
+        if parsed.path == '/api/diagnostico_enero_general':
+            return self.diagnostico_enero_general()
         if parsed.path.startswith('/api/datos/'):
             match = re.match(r'/api/datos/([^/]+)/(\d{4}-\d{2})', parsed.path)
             if match:
@@ -290,6 +292,49 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                         'ultimo_dia': dias_con_saldo[-1] if dias_con_saldo else None,
                         'todos_los_dias': dias_con_saldo
                     })
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(resultado, ensure_ascii=False, indent=2).encode('utf-8'))
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
+    
+    def diagnostico_enero_general(self):
+        try:
+            resultado = {
+                'datos_generales': []
+            }
+            
+            # Cargar enero
+            archivo_enero = f"{DIRECTORIO_DATOS}/Diario_WIND_2026-01.json"
+            if not os.path.exists(archivo_enero):
+                resultado['error'] = 'Archivo de enero no encontrado'
+            else:
+                with open(archivo_enero, 'r', encoding='utf-8') as f:
+                    enero = json.load(f)
+                
+                # Obtener datos generales
+                datos_generales = enero.get('datos_diarios_generales', [])
+                
+                # Filtrar solo días 28, 29, 30, 31 (filas 42-45)
+                for d in datos_generales:
+                    fila = d.get('fila')
+                    if fila in [42, 43, 44, 45]:
+                        resultado['datos_generales'].append({
+                            'fila': fila,
+                            'fecha': d.get('fecha'),
+                            'imp_inicial': d.get('imp_inicial'),
+                            'imp_final': d.get('imp_final'),
+                            'benef_euro': d.get('benef_euro'),
+                            'benef_porcentaje': d.get('benef_porcentaje')
+                        })
+                
+                # Ordenar por fila
+                resultado['datos_generales'].sort(key=lambda x: x.get('fila', 0))
             
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
