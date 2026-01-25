@@ -9,9 +9,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="static/app.css?v=3">
     <link rel="stylesheet" href="static/animations.css?v=3">
+    <link rel="stylesheet" href="static/loading.css">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E💎%3C/text%3E%3C/svg%3E">
 </head>
 <body>
+    <!-- Indicador de carga global -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner-ring"></div>
+            <div class="spinner-ring"></div>
+            <div class="spinner-ring"></div>
+            <div class="loading-text">Cargando Portfolio Manager...</div>
+        </div>
+    </div>
+
     <div class="container">
         <header>
             <h1>PORTFOLIO MANAGER</h1>

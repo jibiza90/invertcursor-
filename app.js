@@ -607,6 +607,34 @@ async function cargarClientesAnuales() {
     }
 }
 
+// Ocultar loading overlay
+function ocultarLoadingOverlay() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.classList.add('hidden');
+        // Remover del DOM después de la animación
+        setTimeout(() => {
+            overlay.remove();
+        }, 400);
+    }
+}
+
+// Ocultar sidebar automáticamente en móviles
+function ocultarSidebarEnMovil() {
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar && window.innerWidth <= 768) {
+        sidebar.classList.add('collapsed');
+    }
+}
+
+// Ocultar sidebar al navegar (para todas las pantallas)
+function ocultarSidebarAlNavegar() {
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+        sidebar.classList.add('collapsed');
+    }
+}
+
 // Inicialización
 async function inicializarApp() {
     try {
@@ -622,30 +650,39 @@ async function inicializarApp() {
         await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'init' });
         mostrarVistaGeneral();
         console.log('✅ Vista general mostrada');
+        
+        // Ocultar loading y sidebar en móvil
+        ocultarLoadingOverlay();
+        ocultarSidebarEnMovil();
     } catch (error) {
         console.error('❌ Error en inicialización:', error);
         mostrarNotificacion('Error al iniciar la aplicación. Recarga la página.', 'error');
+        ocultarLoadingOverlay();
     }
 }
 
 async function mostrarVistaGeneralAuto() {
     await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_general' });
     mostrarVistaGeneral();
+    ocultarSidebarAlNavegar();
 }
 
 async function mostrarVistaClientesAuto() {
     await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_clientes' });
     mostrarVistaClientes();
+    ocultarSidebarAlNavegar();
 }
 
 async function mostrarVistaInfoClientesAuto() {
     await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_infoClientes' });
     mostrarVistaInfoClientes();
+    ocultarSidebarAlNavegar();
 }
 
 async function mostrarVistaComisionAuto() {
     await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_comision' });
     mostrarVistaComision();
+    ocultarSidebarAlNavegar();
 }
 
 async function autoActualizarVistaActual() {
@@ -4348,6 +4385,9 @@ function renderVistaClientes() {
         clientes = hoja.clientes || [];
     }
 
+    // Obtener hoja para cálculos de proporción
+    const hoja = datosEditados?.hojas?.[hojaActual];
+
     const selectorPlantilla = document.getElementById('selectorPlantillaCliente');
     if (selectorPlantilla) {
         const prev = selectorPlantilla.value;
@@ -6747,6 +6787,8 @@ function mostrarInfoClientes() {
     
     const q = (document.getElementById('buscarInfoCliente')?.value || '').trim().toLowerCase();
 
+    // Obtener hoja para cálculos de proporción
+    const hoja = datosEditados?.hojas?.[hojaParaMostrar];
     const fechaObjetivoProporcion = hoja ? obtenerUltimaFechaImpFinalManual(hoja) : null;
     const totalSaldosProporcion = (hoja && fechaObjetivoProporcion)
         ? obtenerTotalSaldosClientesEnFecha(hoja, fechaObjetivoProporcion)
