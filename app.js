@@ -2411,39 +2411,40 @@ function agregarCeldasFilaGeneral(tr, filaData) {
         
         document.body.appendChild(tooltip);
         
-        // Posicionar tooltip (arriba o abajo según espacio disponible)
+        // Usar position fixed para mejor control
+        tooltip.style.position = 'fixed';
+        
+        // Obtener posición de la celda en viewport (sin scroll)
         const rect = e.target.getBoundingClientRect();
         const tooltipRect = tooltip.getBoundingClientRect();
         
-        // Calcular espacio disponible en todas las direcciones
+        // Calcular espacio disponible
         const espacioAbajo = window.innerHeight - rect.bottom;
         const espacioArriba = rect.top;
-        const espacioDerecha = window.innerWidth - rect.right;
-        const espacioIzquierda = rect.left;
         
-        let left = rect.left + window.scrollX;
-        let top = rect.bottom + window.scrollY + 5;
+        let left = rect.left;
+        let top;
         
-        // Decidir posición vertical (arriba o abajo)
-        if (espacioAbajo >= tooltipRect.height + 10) {
-            // Mostrar abajo
-            top = rect.bottom + window.scrollY + 5;
-        } else if (espacioArriba >= tooltipRect.height + 10) {
-            // Mostrar arriba
-            top = rect.top + window.scrollY - tooltipRect.height - 5;
+        // PRIMERO intentar arriba si estamos en la mitad inferior de la pantalla
+        // o si no hay espacio abajo
+        if (rect.top > window.innerHeight / 2 || espacioAbajo < tooltipRect.height + 20) {
+            // Mostrar ARRIBA
+            top = rect.top - tooltipRect.height - 10;
+            // Si se sale por arriba, mostrar abajo
+            if (top < 10) {
+                top = rect.bottom + 10;
+            }
         } else {
-            // Si no cabe ni arriba ni abajo, centrar verticalmente en viewport
-            top = window.scrollY + (window.innerHeight - tooltipRect.height) / 2;
+            // Mostrar abajo
+            top = rect.bottom + 10;
         }
         
-        // Ajustar posición horizontal para que no se salga de la pantalla
-        if (left + tooltipRect.width > window.innerWidth + window.scrollX) {
-            // Se sale por la derecha, alinear a la derecha
-            left = window.innerWidth + window.scrollX - tooltipRect.width - 10;
+        // Ajustar horizontal para que no se salga
+        if (left + tooltipRect.width > window.innerWidth - 10) {
+            left = window.innerWidth - tooltipRect.width - 10;
         }
-        if (left < window.scrollX) {
-            // Se sale por la izquierda, alinear a la izquierda
-            left = window.scrollX + 10;
+        if (left < 10) {
+            left = 10;
         }
         
         tooltip.style.left = left + 'px';
@@ -2593,6 +2594,23 @@ function recalcularImpInicialSync(hoja) {
             if (nuevoImpInicial !== 0 || filaData.imp_inicial !== null) {
                 filaData.imp_inicial = nuevoImpInicial;
             }
+            
+            // COPIAR imp_final del viernes al sábado/domingo si no hay movimientos
+            const fechaFila = parsearFechaValor(filaData.fecha);
+            if (fechaFila && ultimoImpFinal > 0) {
+                const diaSemana = fechaFila.getDay(); // 0=domingo, 6=sábado
+                const esFinDeSemana = diaSemana === 0 || diaSemana === 6;
+                const sinMovimientos = fa === 0;
+                
+                if (esFinDeSemana && sinMovimientos) {
+                    // Copiar imp_final del día anterior si no existe o es null
+                    if (filaData.imp_final === null || filaData.imp_final === undefined) {
+                        console.log(`  Fila ${fila} (${diaSemana === 0 ? 'domingo' : 'sábado'}): copiando imp_final ${ultimoImpFinal} del día anterior`);
+                        filaData.imp_final = ultimoImpFinal;
+                    }
+                }
+            }
+            
             if (typeof filaData.imp_final === 'number') {
                 ultimoImpFinal = filaData.imp_final;
             }
