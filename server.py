@@ -138,6 +138,8 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             return self.enviar_clientes_anuales()
         if parsed.path == '/api/diagnostico_arrastre':
             return self.diagnostico_arrastre()
+        if parsed.path == '/api/diagnostico_enero':
+            return self.diagnostico_enero()
         if parsed.path.startswith('/api/datos/'):
             match = re.match(r'/api/datos/([^/]+)/(\d{4}-\d{2})', parsed.path)
             if match:
@@ -233,6 +235,64 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps(resultado, ensure_ascii=False).encode('utf-8'))
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
+    
+    def diagnostico_enero(self):
+        try:
+            resultado = {
+                'clientes': []
+            }
+            
+            # Cargar enero
+            archivo_enero = f"{DIRECTORIO_DATOS}/Diario_WIND_2026-01.json"
+            if not os.path.exists(archivo_enero):
+                resultado['error'] = 'Archivo de enero no encontrado'
+            else:
+                with open(archivo_enero, 'r', encoding='utf-8') as f:
+                    enero = json.load(f)
+                
+                # Analizar cada cliente
+                for idx, cliente in enumerate(enero.get('clientes', [])):
+                    datos = cliente.get('datos', {})
+                    nombre = datos.get('NOMBRE', {}).get('valor', '') if isinstance(datos.get('NOMBRE'), dict) else ''
+                    apellidos = datos.get('APELLIDOS', {}).get('valor', '') if isinstance(datos.get('APELLIDOS'), dict) else ''
+                    nombre_completo = f"{nombre} {apellidos}".strip() or f"Cliente {idx+1}"
+                    
+                    # Obtener todos los días con saldo
+                    datos_diarios = cliente.get('datos_diarios', [])
+                    dias_con_saldo = []
+                    for d in datos_diarios:
+                        if isinstance(d.get('saldo_diario'), (int, float)):
+                            dias_con_saldo.append({
+                                'fila': d.get('fila'),
+                                'fecha': d.get('fecha'),
+                                'incremento': d.get('incremento'),
+                                'decremento': d.get('decremento'),
+                                'saldo_diario': d.get('saldo_diario')
+                            })
+                    
+                    # Ordenar por fila
+                    dias_con_saldo.sort(key=lambda x: x.get('fila', 0))
+                    
+                    resultado['clientes'].append({
+                        'numero_cliente': cliente.get('numero_cliente'),
+                        'nombre': nombre_completo,
+                        'saldo_actual': cliente.get('saldo_actual'),
+                        'saldo_inicial_mes': cliente.get('saldo_inicial_mes'),
+                        'total_dias_con_saldo': len(dias_con_saldo),
+                        'primer_dia': dias_con_saldo[0] if dias_con_saldo else None,
+                        'ultimo_dia': dias_con_saldo[-1] if dias_con_saldo else None,
+                        'todos_los_dias': dias_con_saldo
+                    })
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(resultado, ensure_ascii=False, indent=2).encode('utf-8'))
         except Exception as e:
             self.send_response(500)
             self.send_header('Content-type', 'application/json')
