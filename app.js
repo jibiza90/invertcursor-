@@ -1348,10 +1348,18 @@ async function aplicarArrastreAnualAlCargar(nombreHoja, mes, dataMes) {
             if (!c) return;
             const prev = prevClientes[idx];
             
-            // SIEMPRE copiar datos del cliente desde el mes anterior si existen
-            // Esto asegura que nombre, apellidos, etc. se arrastren entre meses
-            if (prev && prev.datos) {
-                c.datos = JSON.parse(JSON.stringify(prev.datos));
+            // CRÍTICO: NUNCA sobrescribir datos de clientes que ya existen
+            // Solo copiar si el cliente actual NO tiene datos (nombre/apellidos vacíos)
+            if (prev && prev.datos && (!c.datos || Object.keys(c.datos).length === 0)) {
+                // Solo copiar si realmente no hay datos
+                const datosActuales = c.datos || {};
+                const nombreActual = datosActuales['NOMBRE']?.valor || datosActuales['nombre'] || '';
+                const apellidosActual = datosActuales['APELLIDOS']?.valor || datosActuales['apellidos'] || '';
+                
+                // Solo copiar si NO tiene nombre ni apellidos
+                if (!nombreActual && !apellidosActual) {
+                    c.datos = JSON.parse(JSON.stringify(prev.datos));
+                }
             }
 
             const prevInc = prev && typeof prev.incrementos_total === 'number' ? prev.incrementos_total : 0;
