@@ -1117,13 +1117,20 @@ async function cambiarMesAnterior() {
     const meses = mesesDisponibles[hojaActual] || [];
     const idx = meses.indexOf(mesActual);
     if (idx > 0) {
+        // Guardar vista y cliente actual ANTES de cambiar
+        const vistaAnterior = vistaActual;
+        const clienteAnterior = clienteActual;
+        
         mesActual = meses[idx - 1];
         const selectorMes = document.getElementById('selectorMes');
         if (selectorMes) selectorMes.value = mesActual;
         await cargarDatos();
         requiereRecalculoImpInicial = true;
         actualizarNavegacionMes();
-        mostrarVistaGeneral();
+        await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'cambiarMesAnterior' });
+        
+        // Restaurar la vista anterior
+        restaurarVistaAnterior(vistaAnterior, clienteAnterior);
     }
 }
 
@@ -1131,12 +1138,34 @@ async function cambiarMesSiguiente() {
     const meses = mesesDisponibles[hojaActual] || [];
     const idx = meses.indexOf(mesActual);
     if (idx !== -1 && idx < meses.length - 1) {
+        // Guardar vista y cliente actual ANTES de cambiar
+        const vistaAnterior = vistaActual;
+        const clienteAnterior = clienteActual;
+        
         mesActual = meses[idx + 1];
         const selectorMes = document.getElementById('selectorMes');
         if (selectorMes) selectorMes.value = mesActual;
         await cargarDatos();
         requiereRecalculoImpInicial = true;
         actualizarNavegacionMes();
+        await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'cambiarMesSiguiente' });
+        
+        // Restaurar la vista anterior
+        restaurarVistaAnterior(vistaAnterior, clienteAnterior);
+    }
+}
+
+// Función auxiliar para restaurar la vista después de cambiar de mes
+function restaurarVistaAnterior(vistaAnterior, clienteAnterior) {
+    if (vistaAnterior === 'detalle' && clienteAnterior !== null) {
+        renderDetalleCliente(clienteAnterior);
+    } else if (vistaAnterior === 'clientes') {
+        mostrarVistaClientes();
+    } else if (vistaAnterior === 'info') {
+        mostrarVistaInfoClientes();
+    } else if (vistaAnterior === 'comision') {
+        mostrarVistaComision();
+    } else {
         mostrarVistaGeneral();
     }
 }
@@ -1781,14 +1810,18 @@ async function cambiarMes() {
     try {
         const selectorMes = document.getElementById('selectorMes');
         mesActual = selectorMes ? selectorMes.value : mesActual;
-        clienteActual = null;
-        const selectorCliente = document.getElementById('selectorCliente');
-        if (selectorCliente) selectorCliente.value = '';
+        
+        // Guardar vista y cliente actual ANTES de cambiar
+        const vistaAnterior = vistaActual;
+        const clienteAnterior = clienteActual;
+        
         await cargarDatos();
         requiereRecalculoImpInicial = true;
         actualizarNavegacionMes();
         await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'cambiarMes' });
-        mostrarVistaGeneral();
+        
+        // Restaurar la vista anterior en lugar de siempre ir a general
+        restaurarVistaAnterior(vistaAnterior, clienteAnterior);
         
         // Scroll al día 1 (fila 15)
         setTimeout(() => {
