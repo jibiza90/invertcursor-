@@ -372,14 +372,24 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
         if ((diaSemana === 0 || diaSemana === 6) && !tieneMovimientos) {
             // Buscar el último saldo válido anterior
             let saldoAnteriorValido = null;
+            
+            // CRÍTICO: Si no hay filas anteriores en este mes (primer día del mes),
+            // usar saldo_inicial_mes en lugar de buscar en rows
+            let hayFilasAnteriores = false;
             for (let j = i - 1; j >= 0; j--) {
                 if (rows[j] && typeof rows[j].saldo_diario === 'number') {
                     saldoAnteriorValido = rows[j].saldo_diario;
+                    hayFilasAnteriores = true;
                     break;
                 }
             }
             
-            // Si encontramos un saldo anterior, copiarlo SIEMPRE
+            // Si no hay filas anteriores con saldo, usar saldo_inicial_mes
+            if (!hayFilasAnteriores && typeof cliente.saldo_inicial_mes === 'number') {
+                saldoAnteriorValido = cliente.saldo_inicial_mes;
+            }
+            
+            // Si encontramos un saldo anterior, copiarlo
             if (saldoAnteriorValido !== null) {
                 d.saldo_diario = saldoAnteriorValido;
                 d.base = saldoAnteriorValido;
