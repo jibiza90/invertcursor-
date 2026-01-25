@@ -135,26 +135,31 @@ def sincronizar_clientes_startup():
         print(f"⚠️  Error sincronizando: {e}")
 
 def seed_datos_if_empty():
-    """If DATA_DIR points to a persistent disk and it's empty, seed it from the repo's datos_mensuales."""
+    """Copiar archivos faltantes de datos_mensuales a DATA_DIR y sincronizar."""
     try:
         target = Path(DIRECTORIO_DATOS)
         target.mkdir(parents=True, exist_ok=True)
-        has_json = any(p.suffix.lower() == '.json' for p in target.glob('*.json'))
-        if has_json:
-            # Si ya hay datos, sincronizar clientes
-            sincronizar_clientes_startup()
-            return
-
+        
         source = Path(__file__).resolve().parent / 'datos_mensuales'
         if not source.exists() or not source.is_dir():
+            print("⚠️  No se encontró carpeta datos_mensuales en el repo")
             return
 
+        # Copiar TODOS los archivos que falten (no solo si está vacío)
+        archivos_copiados = 0
         for p in source.glob('*.json'):
             if not p.is_file():
                 continue
-            shutil.copy2(p, target / p.name)
+            target_file = target / p.name
+            if not target_file.exists():
+                print(f"📋 Copiando archivo faltante: {p.name}")
+                shutil.copy2(p, target_file)
+                archivos_copiados += 1
         
-        # Después de copiar, sincronizar
+        if archivos_copiados > 0:
+            print(f"✅ {archivos_copiados} archivos copiados a {target}")
+        
+        # Sincronizar clientes después de copiar
         sincronizar_clientes_startup()
     except Exception as e:
         print(f"⚠️  No se pudo inicializar DATA_DIR: {e}")
