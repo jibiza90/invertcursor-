@@ -20,6 +20,50 @@ ARCHIVO_DATOS_EDITADOS = os.environ.get('EDITADOS_PATH', 'datos_editados.json')
 
 os.makedirs(DIRECTORIO_DATOS, exist_ok=True)
 
+def sincronizar_clientes_startup():
+    """Sincronizar datos de clientes en todos los meses al iniciar el servidor."""
+    try:
+        target = Path(DIRECTORIO_DATOS)
+        archivos_wind = sorted(target.glob('Diario_WIND_2026-*.json'))
+        
+        if len(archivos_wind) == 0:
+            return
+        
+        print("🔄 Sincronizando datos de clientes en todos los meses...")
+        
+        # Recopilar datos de clientes
+        clientes_por_indice = {}
+        for archivo in archivos_wind:
+            with open(archivo, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            for idx, cliente in enumerate(data.get('clientes', [])):
+                if idx not in clientes_por_indice:
+                    datos = cliente.get('datos', {})
+                    if datos:
+                        clientes_por_indice[idx] = datos
+        
+        # Aplicar a todos los meses
+        for archivo in archivos_wind:
+            with open(archivo, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            modificado = False
+            for idx, datos_correctos in clientes_por_indice.items():
+                if idx < len(data.get('clientes', [])):
+                    cliente = data['clientes'][idx]
+                    if cliente.get('datos') != datos_correctos:
+                        cliente['datos'] = datos_correctos.copy()
+                        modificado = True
+            
+            if modificado:
+                with open(archivo, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, ensure_ascii=False, separators=(',', ':'))
+        
+        print(f"✅ Sincronización completada: {len(clientes_por_indice)} clientes")
+    except Exception as e:
+        print(f"⚠️  Error sincronizando clientes: {e}")
+
 def seed_datos_if_empty():
     """If DATA_DIR points to a persistent disk and it's empty, seed it from the repo's datos_mensuales."""
     try:
@@ -27,6 +71,8 @@ def seed_datos_if_empty():
         target.mkdir(parents=True, exist_ok=True)
         has_json = any(p.suffix.lower() == '.json' for p in target.glob('*.json'))
         if has_json:
+            # Si ya hay datos, sincronizar clientes
+            sincronizar_clientes_startup()
             return
 
         source = Path(__file__).resolve().parent / 'datos_mensuales'
@@ -37,6 +83,9 @@ def seed_datos_if_empty():
             if not p.is_file():
                 continue
             shutil.copy2(p, target / p.name)
+        
+        # Después de copiar, sincronizar
+        sincronizar_clientes_startup()
     except Exception as e:
         print(f"⚠️  No se pudo inicializar DATA_DIR: {e}")
 
