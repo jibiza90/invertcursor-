@@ -1349,6 +1349,16 @@ async function guardarDatosAutomatico(numFormulasGenerales = 0, numFormulasClien
         console.warn('⚠️ No se puede guardar: hoja no encontrada en datosEditados');
         return;
     }
+
+    // CRÍTICO: Antes de guardar, recalcular generales para persistir imp_inicial/beneficios coherentes.
+    // Evita que un mes quede guardado con base 0 (y contamine cálculos de clientes).
+    try {
+        recalcularTotalesGenerales(hoja);
+        recalcularImpInicialSync(hoja);
+        recalcularBeneficiosGeneralesDesdeFila(15, hoja);
+    } catch (e) {
+        console.warn('⚠️ Error recalculando generales antes de guardar:', e);
+    }
     
     // Debug: verificar que los datos del cliente están actualizados
     if (hoja.clientes && hoja.clientes[0]) {
@@ -1599,15 +1609,34 @@ function obtenerUltimoImpFinalDeDatosGenerales(datosGen) {
     const datosOrdenados = datosGen
         .filter(d => d && d.fila >= 15 && d.fila <= 1120 && d.fecha && d.fecha !== 'FECHA')
         .sort((a, b) => (b.fila || 0) - (a.fila || 0)); // Ordenar descendente por fila
-    
+
+    // 1) Último imp_final numérico (incluye fines de semana bloqueados) => candidato a "cierre"
+    let ultimoAny = null;
     for (const d of datosOrdenados) {
-        // CRÍTICO: Para arrastre entre meses, solo usar imp_final manual (editable). Ignorar bloqueados.
-        if (esCeldaManualGeneral(d, 'imp_final') && typeof d.imp_final === 'number' && isFinite(d.imp_final) && d.imp_final > 0) {
-            return d.imp_final;
+        if (typeof d.imp_final === 'number' && isFinite(d.imp_final) && d.imp_final > 0) {
+            ultimoAny = d.imp_final;
+            break;
         }
     }
-    
-    return null;
+
+    // 2) Último imp_final manual (editable) => referencia humana
+    let ultimoManual = null;
+    for (const d of datosOrdenados) {
+        if (esCeldaManualGeneral(d, 'imp_final') && typeof d.imp_final === 'number' && isFinite(d.imp_final) && d.imp_final > 0) {
+            ultimoManual = d.imp_final;
+            break;
+        }
+    }
+
+    // Regla:
+    // - Si hay manual, y el último "any" coincide (fin de semana que repite) => usar any.
+    // - Si hay manual pero el último any es distinto (valor bloqueado basura) => usar manual.
+    // - Si no hay manual, usar any.
+    if (typeof ultimoManual === 'number') {
+        if (typeof ultimoAny === 'number' && Math.abs(ultimoAny - ultimoManual) < 0.01) return ultimoAny;
+        return ultimoManual;
+    }
+    return ultimoAny;
 }
 
 // Obtener el último beneficio € acumulado del mes
