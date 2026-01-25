@@ -343,6 +343,34 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
         saldoAnterior = saldo;
     }
 
+    // COPIAR saldo a fines de semana (sábado y domingo)
+    // Recorrer TODAS las filas y copiar el saldo del día anterior si es fin de semana
+    for (let i = 0; i < rows.length; i++) {
+        const d = rows[i];
+        if (!d || !d.fecha) continue;
+        
+        const fecha = new Date(d.fecha);
+        const diaSemana = fecha.getDay(); // 0=domingo, 6=sábado
+        
+        // Si es sábado (6) o domingo (0) y no tiene saldo_diario
+        if ((diaSemana === 0 || diaSemana === 6) && (d.saldo_diario === null || d.saldo_diario === undefined)) {
+            // Buscar el último saldo válido anterior
+            let saldoAnteriorValido = null;
+            for (let j = i - 1; j >= 0; j--) {
+                if (rows[j] && typeof rows[j].saldo_diario === 'number') {
+                    saldoAnteriorValido = rows[j].saldo_diario;
+                    break;
+                }
+            }
+            
+            // Si encontramos un saldo anterior, copiarlo
+            if (saldoAnteriorValido !== null) {
+                d.saldo_diario = saldoAnteriorValido;
+                d.base = saldoAnteriorValido;
+            }
+        }
+    }
+
     // Limpiar todo lo que quede después de la última actividad
     for (const d of rows) {
         if (d.fila <= last) continue;
