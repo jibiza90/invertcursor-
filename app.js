@@ -1292,7 +1292,10 @@ async function aplicarArrastreAnualAlCargar(nombreHoja, mes, dataMes) {
         dataMes.clientes.forEach((c, idx) => {
             if (!c) return;
             const prev = prevClientes[idx];
-            if (prev && prev.datos && (!c.datos || Object.keys(c.datos).length === 0)) {
+            
+            // SIEMPRE copiar datos del cliente desde el mes anterior si existen
+            // Esto asegura que nombre, apellidos, etc. se arrastren entre meses
+            if (prev && prev.datos) {
                 c.datos = JSON.parse(JSON.stringify(prev.datos));
             }
 
