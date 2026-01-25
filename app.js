@@ -2298,11 +2298,20 @@ function agregarCeldasFilaGeneral(tr, filaData) {
                 // Formatear antes de actualizar
                 formatearInputNumero(e.target);
                 
-                let nuevoValor = e.target.dataset.valorNumerico !== '' ? parseFloat(e.target.dataset.valorNumerico) : null;
-                if (isNaN(nuevoValor)) nuevoValor = null;
-                if (esPorcentaje && nuevoValor !== null) {
-                    nuevoValor = nuevoValor / 100; // Convertir de porcentaje a decimal
+                // CRÍTICO: Si el usuario borra el contenido (input vacío), establecer valor a null
+                const inputVacio = e.target.value.trim() === '';
+                let nuevoValor = null;
+                
+                if (!inputVacio) {
+                    nuevoValor = e.target.dataset.valorNumerico !== '' ? parseFloat(e.target.dataset.valorNumerico) : null;
+                    if (isNaN(nuevoValor)) nuevoValor = null;
+                    if (esPorcentaje && nuevoValor !== null) {
+                        nuevoValor = nuevoValor / 100; // Convertir de porcentaje a decimal
+                    }
                 }
+                
+                console.log(`🗑️ Borrado detectado en ${columna} fila ${filaData.fila}: inputVacio=${inputVacio}, nuevoValor=${nuevoValor}`);
+                
                 // Actualizar el dato y recalcular fórmulas automáticamente
                 await actualizarDatoGeneral(filaData.fila, columna, nuevoValor);
                 e.target.classList.add('cell-modified');
@@ -2402,10 +2411,27 @@ function agregarCeldasFilaGeneral(tr, filaData) {
         
         document.body.appendChild(tooltip);
         
-        // Posicionar tooltip
+        // Posicionar tooltip (arriba o abajo según espacio disponible)
         const rect = e.target.getBoundingClientRect();
-        tooltip.style.left = (rect.left + window.scrollX) + 'px';
-        tooltip.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+        const tooltipRect = tooltip.getBoundingClientRect();
+        
+        // Calcular si cabe abajo
+        const espacioAbajo = window.innerHeight - rect.bottom;
+        const espacioArriba = rect.top;
+        
+        if (espacioAbajo >= tooltipRect.height + 10) {
+            // Mostrar abajo
+            tooltip.style.left = (rect.left + window.scrollX) + 'px';
+            tooltip.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+        } else if (espacioArriba >= tooltipRect.height + 10) {
+            // Mostrar arriba
+            tooltip.style.left = (rect.left + window.scrollX) + 'px';
+            tooltip.style.top = (rect.top + window.scrollY - tooltipRect.height - 5) + 'px';
+        } else {
+            // Mostrar al lado derecho si no cabe ni arriba ni abajo
+            tooltip.style.left = (rect.right + window.scrollX + 10) + 'px';
+            tooltip.style.top = (rect.top + window.scrollY) + 'px';
+        }
         
         // Guardar referencia para eliminar después
         tdImpInicial._tooltip = tooltip;
@@ -4022,6 +4048,7 @@ async function actualizarDatoGeneral(filaIdx, columna, nuevoValor) {
         }
         
         // Actualizar el valor
+        console.log(`📝 Actualizando ${columna} en fila ${filaIdx}: ${valorAnterior} -> ${nuevoValor}`);
         filaData[columna] = nuevoValor;
         
         // Restaurar bloqueadas y fórmulas después de actualizar
