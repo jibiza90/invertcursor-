@@ -272,13 +272,19 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
         }
     });
 
-    // Si el cliente no tiene movimientos (inc/dec), limpiar todo.
-    // Si ha empezado, extender el rango de cálculo hasta el último imp_final de la hoja general.
+    // Si el cliente no tiene movimientos (inc/dec), verificar si tiene saldo_inicial_mes
+    // Si tiene saldo inicial > 0, calcular hasta el último imp_final para mostrar arrastre
+    const tieneSaldoInicial = cliente.saldo_inicial_mes && typeof cliente.saldo_inicial_mes === 'number' && cliente.saldo_inicial_mes > 0;
+    
     if (hayMovimientosCliente) {
         last = Math.max(lastMovimientoFila, ultimaFilaImpFinal);
+    } else if (tieneSaldoInicial && ultimaFilaImpFinal > 0) {
+        // Cliente sin movimientos pero con saldo inicial: calcular hasta última fila con imp_final
+        last = ultimaFilaImpFinal;
+        console.log(`  Cliente sin movimientos pero con saldo_inicial_mes=${cliente.saldo_inicial_mes}, calculando hasta fila ${last}`);
     }
 
-    // Si no hay actividad, limpiar cualquier arrastre (evita "fantasmas" en clientes nuevos)
+    // Si no hay actividad ni saldo inicial, limpiar cualquier arrastre (evita "fantasmas" en clientes nuevos)
     if (last === 0) {
         for (const d of rows) {
             const campos = ['base', 'saldo_diario', 'beneficio_diario', 'beneficio_diario_pct', 'beneficio_acumulado', 'beneficio_acumulado_pct'];
@@ -1380,6 +1386,27 @@ async function cargarDatos() {
         const totalDiarios = data?.datos_diarios_generales?.length || 0;
         
         console.log(`✅ Datos cargados: ${totalClientes} clientes, ${totalDiarios} días`);
+        
+        // Recalcular todos los clientes después de cargar para asegurar que se calculen correctamente
+        // Esto es especialmente importante para clientes con saldo_inicial_mes pero sin movimientos
+        console.log(`🔄 Recalculando todos los clientes...`);
+        const hoja = datosEditados.hojas[hojaActual];
+        if (hoja && hoja.clientes) {
+            hoja.clientes.forEach((cliente, idx) => {
+                if (cliente) {
+                    recalcularClienteCompleto(
+                        cliente,
+                        hoja,
+                        hoja.datos_generales,
+                        hoja.datos_diarios_generales,
+                        null,
+                        hojaActual
+                    );
+                }
+            });
+        }
+        console.log(`✅ Recálculo completado`);
+        
         mostrarNotificacion(`${hojaActual} ${mesActual} | ${totalClientes} clientes`, 'success');
         
         actualizarSelectorClientes();
