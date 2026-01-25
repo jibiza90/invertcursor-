@@ -2200,17 +2200,29 @@ function mostrarTablaCompleta(datosDiarios) {
         // Forzar copia de imp_final en fines de semana si falta (ej: día 31)
         let ultimoImpFinalGeneral = null;
         datosFiltrados.forEach(filaData => {
+            // Primero actualizar el último imp_final conocido
             if (typeof filaData.imp_final === 'number' && isFinite(filaData.imp_final)) {
                 ultimoImpFinalGeneral = filaData.imp_final;
-                return;
             }
+            
             const fechaFila = parsearFechaValor(filaData.fecha);
             if (!fechaFila) return;
             const diaSemana = fechaFila.getDay();
             const esFinDeSemana = diaSemana === 0 || diaSemana === 6;
+            
+            // Si es fin de semana y no tiene imp_final, copiar del último conocido
             if (esFinDeSemana && (filaData.imp_final === null || filaData.imp_final === undefined) && typeof ultimoImpFinalGeneral === 'number') {
+                console.log(`🔧 Forzando imp_final en fila ${filaData.fila} (${filaData.fecha}): ${ultimoImpFinalGeneral}`);
                 filaData.imp_final = ultimoImpFinalGeneral;
                 filaData._impFinalSource = 'auto_weekend';
+                
+                // TAMBIÉN copiar imp_inicial si no tiene (para consistencia)
+                if (filaData.imp_inicial === null || filaData.imp_inicial === undefined) {
+                    filaData.imp_inicial = ultimoImpFinalGeneral;
+                }
+                
+                // Actualizar el último conocido
+                ultimoImpFinalGeneral = filaData.imp_final;
             }
         });
         datosFiltrados.forEach((filaData, index) => {
@@ -2251,7 +2263,10 @@ function agregarCeldasFilaGeneral(tr, filaData) {
         // Respetar exactamente lo que dice el JSON (ya está correcto según Excel)
         const tieneFormula = filaData.formulas && filaData.formulas[columna] && filaData.formulas[columna].trim() !== '';
         const estaMarcadaBloqueada = filaData.bloqueadas && filaData.bloqueadas[columna] === true;
-        const bloqueado = tieneFormula || estaMarcadaBloqueada;
+        
+        // EXCEPCIÓN: Si es fin de semana con valor auto_weekend, NO bloquear para que muestre el valor
+        const esAutoWeekend = filaData._impFinalSource === 'auto_weekend' && columna === 'imp_final';
+        const bloqueado = (tieneFormula || estaMarcadaBloqueada) && !esAutoWeekend;
         
         // IMPORTANTE: Tratar 0 como vacío si la casilla no tiene valor real
         // Un valor es "vacío" si es null, undefined, o 0 en casillas calculadas
@@ -2491,11 +2506,13 @@ function agregarCeldasFilaGeneral(tr, filaData) {
     
     tr.appendChild(tdImpInicial);
     
-    // Importe Final - Solo mostrar valor en filas manuales
-    const impFinalVisible = esCeldaManualGeneral(filaData, 'imp_final') ? filaData.imp_final : null;
+    // Importe Final - Mostrar valor si es manual O si es fin de semana con valor copiado
+    const esManual = esCeldaManualGeneral(filaData, 'imp_final');
+    const tieneValorAutoWeekend = filaData._impFinalSource === 'auto_weekend' && typeof filaData.imp_final === 'number';
+    const impFinalVisible = (esManual || tieneValorAutoWeekend) ? filaData.imp_final : null;
     // Normalizar origen del imp_final para el tooltip
     if (impFinalVisible === null || impFinalVisible === undefined) {
-        filaData._impFinalSource = 'empty';
+        if (!filaData._impFinalSource) filaData._impFinalSource = 'empty';
     } else if (!filaData._impFinalSource) {
         filaData._impFinalSource = 'user';
     }
