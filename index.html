@@ -72,7 +72,10 @@
                 <!-- Vista General -->
                 <div id="vistaGeneral" class="view active">
                     <div class="view-header-premium">
-                        <h2>Resumen del Portafolio</h2>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <h2>Resumen del Portafolio</h2>
+                            <button id="btnLimpiarFiltro" class="btn btn-secondary">Limpiar datos</button>
+                        </div>
                         <div class="filters-bar">
                             <div class="filter-group">
                                 <label>Desde:</label>
@@ -83,7 +86,6 @@
                                 <input type="date" id="fechaHasta" class="date-filter">
                             </div>
                             <button id="btnAplicarFiltro" class="btn btn-primary">Aplicar Filtro</button>
-                            <button id="btnLimpiarFiltro" class="btn btn-secondary">Limpiar datos</button>
                             <button id="btnLimpiarFiltroFechas" class="btn btn-secondary">Limpiar filtro</button>
                             <button id="btnToggleVista" class="btn btn-secondary">Ver Resumen</button>
                         </div>
