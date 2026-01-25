@@ -2865,6 +2865,13 @@ function recalcularImpInicialSync(hoja) {
         const fila = filaData.fila;
         const fa = calcularFA(fila, hoja);
         
+        // CRÍTICO: Solo calcular imp_inicial hasta la última fila con imp_final
+        if (hojaActual === 'Diario WIND' && ultimaFilaImpFinalManual > 0 && fila > ultimaFilaImpFinalManual) {
+            // Limpiar imp_inicial después de la última fecha con imp_final
+            filaData.imp_inicial = null;
+            continue;
+        }
+        
         if (fila === 15) {
             // Primera fila: imp_inicial = imp_final_mes_anterior + FA (o solo FA si no hay mes anterior)
             const nuevoImpInicial = impFinalMesAnterior + fa;
