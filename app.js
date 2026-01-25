@@ -288,6 +288,7 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
     }
 
     // Recalcular solo filas de CÁLCULO (última fila del día), aplicando inc(1ª fila) y dec(2ª fila)
+    // Usar saldo_inicial_mes que debería estar actualizado por aplicarArrastreAnualAlCargar
     let saldoAnterior = (typeof cliente.saldo_inicial_mes === 'number' && isFinite(cliente.saldo_inicial_mes)) ? cliente.saldo_inicial_mes : 0;
     let benefAcumAnterior = 0;
     let inversionAcum = 0;

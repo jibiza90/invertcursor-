@@ -136,6 +136,8 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             return self.enviar_lista_meses()
         if parsed.path == '/api/clientes_anuales':
             return self.enviar_clientes_anuales()
+        if parsed.path == '/api/diagnostico_arrastre':
+            return self.diagnostico_arrastre()
         if parsed.path.startswith('/api/datos/'):
             match = re.match(r'/api/datos/([^/]+)/(\d{4}-\d{2})', parsed.path)
             if match:
@@ -166,14 +168,71 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(404)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                self.wfile.write(json.dumps({'error': 'No hay clientes anuales'}).encode('utf-8'))
+                self.wfile.write(json.dumps({'error': 'No encontrado'}).encode('utf-8'))
                 return
             with open(archivo, 'r', encoding='utf-8') as f:
-                datos = json.load(f)
+                data = json.load(f)
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps(datos).encode('utf-8'))
+            self.wfile.write(json.dumps(data, ensure_ascii=False).encode('utf-8'))
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
+    
+    def diagnostico_arrastre(self):
+        try:
+            resultado = {
+                'enero': {},
+                'febrero': {},
+                'diagnostico': []
+            }
+            
+            # Cargar enero
+            archivo_enero = f"{DIRECTORIO_DATOS}/Diario_WIND_2026-01.json"
+            if os.path.exists(archivo_enero):
+                with open(archivo_enero, 'r', encoding='utf-8') as f:
+                    enero = json.load(f)
+                
+                cliente1_enero = enero['clientes'][0] if len(enero.get('clientes', [])) > 0 else None
+                if cliente1_enero:
+                    datos_diarios = cliente1_enero.get('datos_diarios', [])
+                    saldos = [d.get('saldo_diario') for d in datos_diarios if isinstance(d.get('saldo_diario'), (int, float))]
+                    resultado['enero'] = {
+                        'saldo_actual': cliente1_enero.get('saldo_actual'),
+                        'ultimo_saldo_diario': saldos[-1] if saldos else None,
+                        'total_saldos': len(saldos)
+                    }
+            
+            # Cargar febrero
+            archivo_febrero = f"{DIRECTORIO_DATOS}/Diario_WIND_2026-02.json"
+            if os.path.exists(archivo_febrero):
+                with open(archivo_febrero, 'r', encoding='utf-8') as f:
+                    febrero = json.load(f)
+                
+                cliente1_febrero = febrero['clientes'][0] if len(febrero.get('clientes', [])) > 0 else None
+                if cliente1_febrero:
+                    resultado['febrero'] = {
+                        'saldo_inicial_mes': cliente1_febrero.get('saldo_inicial_mes'),
+                        'saldo_actual': cliente1_febrero.get('saldo_actual')
+                    }
+            
+            # Diagnóstico
+            if resultado['enero'] and resultado['febrero']:
+                saldo_esperado = resultado['enero'].get('ultimo_saldo_diario') or resultado['enero'].get('saldo_actual') or 0
+                saldo_real = resultado['febrero'].get('saldo_inicial_mes', 0)
+                
+                if saldo_esperado == saldo_real:
+                    resultado['diagnostico'].append('✅ Arrastre correcto')
+                else:
+                    resultado['diagnostico'].append(f'❌ ERROR: Esperado {saldo_esperado}, Real {saldo_real}')
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(resultado, ensure_ascii=False).encode('utf-8'))
         except Exception as e:
             self.send_response(500)
             self.send_header('Content-type', 'application/json')
