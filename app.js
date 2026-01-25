@@ -1321,6 +1321,23 @@ async function guardarDatosAutomatico(numFormulasGenerales = 0, numFormulasClien
         }
     }
     
+    // CRÍTICO: Asegurar que saldo_inicial_mes se persista para el arrastre entre meses
+    if (hoja.clientes) {
+        hoja.clientes.forEach((cliente, idx) => {
+            if (!cliente) return;
+            
+            // Si saldo_inicial_mes no está definido pero el cliente tiene datos, calcularlo
+            if (cliente.saldo_inicial_mes === undefined || cliente.saldo_inicial_mes === null) {
+                // Para el primer mes del año, saldo_inicial_mes = 0
+                // Para meses posteriores, debería haberse calculado en aplicarArrastreAnualAlCargar
+                // Si no se calculó, usar 0 como fallback
+                cliente.saldo_inicial_mes = 0;
+            }
+            
+            console.log(`   Cliente ${idx + 1}: saldo_inicial_mes=${cliente.saldo_inicial_mes}`);
+        });
+    }
+    
     const url = `/api/guardar/${hojaActual.replace(/\s/g, '_')}/${mesActual}`;
     console.log('   URL:', url);
     
