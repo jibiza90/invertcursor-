@@ -1387,28 +1387,6 @@ async function cargarDatos() {
         
         console.log(`✅ Datos cargados: ${totalClientes} clientes, ${totalDiarios} días`);
         
-        // DESACTIVADO TEMPORALMENTE: Recálculo automático causa problemas de carga
-        // TODO: Revisar y optimizar el recálculo automático
-        /*
-        console.log(`🔄 Recalculando todos los clientes...`);
-        const hoja = datosEditados.hojas[hojaActual];
-        if (hoja && hoja.clientes) {
-            hoja.clientes.forEach((cliente, idx) => {
-                if (cliente) {
-                    recalcularClienteCompleto(
-                        cliente,
-                        hoja,
-                        hoja.datos_generales,
-                        hoja.datos_diarios_generales,
-                        null,
-                        hojaActual
-                    );
-                }
-            });
-        }
-        console.log(`✅ Recálculo completado`);
-        */
-        
         mostrarNotificacion(`${hojaActual} ${mesActual} | ${totalClientes} clientes`, 'success');
         
         actualizarSelectorClientes();
@@ -1952,13 +1930,11 @@ function mostrarVistaGeneral() {
     recalcularImpInicialSync(hoja);
     requiereRecalculoImpInicial = false;
     
-    // VALIDACIÓN AUTOMÁTICA PARA DIARIO WIND - DESACTIVADA TEMPORALMENTE
-    // TODO: Revisar y optimizar la validación para que no bloquee la carga
-    /*
+    // REDISTRIBUCIÓN AUTOMÁTICA PARA DIARIO WIND
+    // Mantiene imp_final del general fijo y redistribuye saldos proporcionalmente entre clientes
     if (hojaActual === 'Diario WIND') {
-        validarYCorregirAutomaticoWIND(hoja);
+        setTimeout(() => redistribuirSaldosClientesWIND(hoja), 100);
     }
-    */
     
     // Mostrar tarjetas de resumen premium
     mostrarTarjetasResumen(datosGenerales, datosDiarios);
@@ -9347,10 +9323,149 @@ window.ignorarYSiguiente = function(indice) {
 };
 
 // ============================================================================
-// VALIDACIÓN AUTOMÁTICA PARA DIARIO WIND
+// REDISTRIBUCIÓN AUTOMÁTICA PARA DIARIO WIND
 // ============================================================================
 
-function validarYCorregirAutomaticoWIND(hoja) {
+function redistribuirSaldosClientesWIND(hoja) {
+    if (!hoja || !hoja.clientes) return;
+    
+    console.log('🔄 WIND: Iniciando redistribución automática de saldos...');
+    
+    const datosGen = hoja.datos_diarios_generales || [];
+    let recalculosRealizados = 0;
+    let redistribucionesRealizadas = 0;
+    
+    // 1. RECALCULAR CLIENTES CON SALDO INICIAL PERO SIN DATOS
+    hoja.clientes.forEach((cliente, idx) => {
+        if (!cliente) return;
+        
+        const tieneSaldoInicial = cliente.saldo_inicial_mes && 
+            typeof cliente.saldo_inicial_mes === 'number' && 
+            cliente.saldo_inicial_mes > 0;
+        
+        if (!tieneSaldoInicial) return;
+        
+        const datosDiarios = cliente.datos_diarios || [];
+        const datosConSaldo = datosDiarios.filter(d => 
+            d && typeof d.saldo_diario === 'number' && isFinite(d.saldo_diario)
+        );
+        
+        if (datosConSaldo.length === 0) {
+            console.log(`🔧 Recalculando cliente ${cliente.numero_cliente || (idx + 1)} con saldo inicial ${cliente.saldo_inicial_mes.toFixed(2)}€`);
+            recalcularClienteCompleto(
+                cliente,
+                hoja,
+                hoja.datos_generales,
+                hoja.datos_diarios_generales,
+                null,
+                'Diario WIND'
+            );
+            recalculosRealizados++;
+        }
+    });
+    
+    // 2. REDISTRIBUIR SALDOS PARA MANTENER IMP_FINAL FIJO
+    // Por cada fila con imp_final, verificar que la suma de saldos de clientes = imp_final
+    const datosConImpFinal = datosGen.filter(d => 
+        d && d.fila >= 15 && d.fila <= 1120 && 
+        d.fecha && d.fecha !== 'FECHA' &&
+        typeof d.imp_final === 'number' && isFinite(d.imp_final) && d.imp_final > 0
+    );
+    
+    datosConImpFinal.forEach(datoGen => {
+        const fila = datoGen.fila;
+        const impFinalGeneral = datoGen.imp_final;
+        
+        // Recopilar clientes activos en esta fila
+        const clientesActivos = [];
+        hoja.clientes.forEach((cliente, idx) => {
+            if (!cliente || !cliente.datos_diarios) return;
+            
+            const datoCliente = cliente.datos_diarios.find(d => d && d.fila === fila);
+            if (datoCliente) {
+                // Calcular base del cliente (saldo anterior + inc - dec)
+                const inc = typeof datoCliente.incremento === 'number' ? datoCliente.incremento : 0;
+                const dec = typeof datoCliente.decremento === 'number' ? datoCliente.decremento : 0;
+                
+                // Obtener saldo anterior (del día anterior o saldo_inicial_mes)
+                const datosOrdenados = cliente.datos_diarios
+                    .filter(d => d && d.fila < fila && typeof d.saldo_diario === 'number')
+                    .sort((a, b) => b.fila - a.fila);
+                const saldoAnterior = datosOrdenados.length > 0 
+                    ? datosOrdenados[0].saldo_diario 
+                    : (cliente.saldo_inicial_mes || 0);
+                
+                const base = saldoAnterior + inc - dec;
+                
+                clientesActivos.push({
+                    cliente,
+                    datoCliente,
+                    base,
+                    idx
+                });
+            }
+        });
+        
+        if (clientesActivos.length === 0) return;
+        
+        // Calcular suma de bases (sin beneficios)
+        const sumaBase = clientesActivos.reduce((sum, c) => sum + c.base, 0);
+        
+        // El beneficio total a repartir es: imp_final - suma_base
+        const beneficioTotal = impFinalGeneral - sumaBase;
+        
+        // Redistribuir beneficio proporcionalmente según la base de cada cliente
+        if (sumaBase > 0 && Math.abs(beneficioTotal) > 0.01) {
+            clientesActivos.forEach(({ cliente, datoCliente, base }) => {
+                const proporcion = base / sumaBase;
+                const beneficioCliente = beneficioTotal * proporcion;
+                const beneficioPct = base > 0 ? (beneficioCliente / base) : 0;
+                
+                // Actualizar datos del cliente
+                datoCliente.beneficio_diario = beneficioCliente;
+                datoCliente.beneficio_diario_pct = beneficioPct;
+                datoCliente.saldo_diario = base + beneficioCliente;
+                
+                // Actualizar beneficio acumulado
+                const datosAnteriores = cliente.datos_diarios
+                    .filter(d => d && d.fila < fila && typeof d.beneficio_diario === 'number')
+                    .reduce((sum, d) => sum + d.beneficio_diario, 0);
+                datoCliente.beneficio_acumulado = datosAnteriores + beneficioCliente;
+                
+                // Calcular inversión acumulada para beneficio % acumulado
+                const inversionAcum = cliente.datos_diarios
+                    .filter(d => d && d.fila <= fila)
+                    .reduce((sum, d) => {
+                        const inc = typeof d.incremento === 'number' ? d.incremento : 0;
+                        return sum + inc;
+                    }, cliente.saldo_inicial_mes || 0);
+                
+                datoCliente.beneficio_acumulado_pct = inversionAcum > 0 
+                    ? (datoCliente.beneficio_acumulado / inversionAcum) 
+                    : 0;
+            });
+            
+            redistribucionesRealizadas++;
+        }
+    });
+    
+    if (recalculosRealizados > 0 || redistribucionesRealizadas > 0) {
+        console.log(`✅ WIND: ${recalculosRealizados} cliente(s) recalculado(s), ${redistribucionesRealizadas} fila(s) redistribuida(s)`);
+        
+        // Refrescar vista si estamos en vista de cliente
+        if (vistaActual === 'detalle' && clienteActual !== null) {
+            const hoja = datosEditados.hojas[hojaActual];
+            if (hoja && hoja.clientes && hoja.clientes[clienteActual]) {
+                mostrarDetalleCliente(clienteActual);
+            }
+        }
+    } else {
+        console.log('✅ WIND: No se requirieron ajustes');
+    }
+}
+
+// FUNCIÓN ANTIGUA DE VALIDACIÓN (MANTENIDA PARA REFERENCIA)
+function validarYCorregirAutomaticoWIND_OLD(hoja) {
     if (!hoja || !hoja.clientes) return;
     
     const problemas = [];
