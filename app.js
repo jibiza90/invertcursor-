@@ -2197,6 +2197,22 @@ function mostrarTablaCompleta(datosDiarios) {
         tr.appendChild(td);
         tbody.appendChild(tr);
     } else {
+        // Forzar copia de imp_final en fines de semana si falta (ej: día 31)
+        let ultimoImpFinalGeneral = null;
+        datosFiltrados.forEach(filaData => {
+            if (typeof filaData.imp_final === 'number' && isFinite(filaData.imp_final)) {
+                ultimoImpFinalGeneral = filaData.imp_final;
+                return;
+            }
+            const fechaFila = parsearFechaValor(filaData.fecha);
+            if (!fechaFila) return;
+            const diaSemana = fechaFila.getDay();
+            const esFinDeSemana = diaSemana === 0 || diaSemana === 6;
+            if (esFinDeSemana && (filaData.imp_final === null || filaData.imp_final === undefined) && typeof ultimoImpFinalGeneral === 'number') {
+                filaData.imp_final = ultimoImpFinalGeneral;
+                filaData._impFinalSource = 'auto_weekend';
+            }
+        });
         datosFiltrados.forEach((filaData, index) => {
             const tr = document.createElement('tr');
             tr.className = 'animate-slide-in';
