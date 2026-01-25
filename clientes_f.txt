@@ -1,0 +1,27 @@
+================================================================================
+VERIFICANDO SI LOS CLIENTES DEPENDEN DE F (imp_final) DE LA VISTA GENERAL
+================================================================================
+
+Cliente 1:
+  Fórmulas que referencian F:
+    Fila 17, base: =IF(F17<>0,K15-L16,0)
+    Fila 17, beneficio_diario_pct: =IF(M17<>0,H17,0)
+    Fila 17, saldo_diario: =IF(M17<>0,M17+O17,0)
+    Fila 17, beneficio_acumulado: =IF(N17<>0,O17,0)
+    Fila 17, beneficio_acumulado_pct: =IF(Q17<>0,Q17/L3,0)
+
+Cliente 2:
+  Fórmulas que referencian F:
+    Fila 17, base: =IF(N17<>0,S15-T16,0)
+    Fila 17, beneficio_diario_pct: =IF(U17<>0,P17,0)
+    Fila 17, saldo_diario: =IF(U17<>0,U17+W17,0)
+    Fila 17, beneficio_acumulado: =IF(V17<>0,W17,0)
+    Fila 17, beneficio_acumulado_pct: =IF(Y17<>0,Y17/T3,0)
+
+Cliente 3:
+  Fórmulas que referencian F:
+    Fila 17, base: =IF(V17<>0,AA15-AB16,0)
+    Fila 17, beneficio_diario: =AC17*AF17
+    Fila 17, beneficio_diario_pct: =IF(AC17<>0,X17,0)
+    Fila 17, saldo_diario: =IF(AC17<>0,AC17+AE17,0)
+    Fila 17, beneficio_acumulado: =IF(AD17<>0,AE17,0)

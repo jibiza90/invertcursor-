@@ -1,0 +1,20 @@
+Cargando Excel...
+Cargando JSON...
+
+Verificando incremento/decremento de clientes...
+
+================================================================================
+ESTADÍSTICAS
+================================================================================
+Total de celdas verificadas (incremento + decremento): 37230
+Celdas con fórmula en Excel: 0
+Celdas bloqueadas en JSON: 0
+Celdas con fórmula Y bloqueadas: 0
+Celdas con fórmula Y NO bloqueadas: 0
+
+================================================================================
+RESULTADOS
+================================================================================
+Total de errores encontrados: 0
+
+✅ No se encontraron errores

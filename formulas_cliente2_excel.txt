@@ -1,0 +1,30 @@
+Hoja encontrada: Diario STD
+================================================================================
+FÓRMULAS DEL CLIENTE 2 EN EXCEL - FILA 17
+================================================================================
+
+Fila 17:
+  S17: None
+  T17: None
+  U17 (=IF(N17<>0,S15-T16,0)): =IF(N17<>0,S15-T16,0)
+  V17 (=IF(U17<>0,U17+W17,0)): =IF(U17<>0,U17+W17,0)
+  W17 (=U17*X17): =U17*X17
+  X17 (=IF(U17<>0,P17,0)): =IF(U17<>0,P17,0)
+  Y17 (=IF(V17<>0,W17,0)): =IF(V17<>0,W17,0)
+  Z17 (=IF(Y17<>0,Y17/T3,0)): =IF(Y17<>0,Y17/T3,0)
+
+Columnas generales (E-J) en fila 17:
+  E17: None
+  F17: None
+  G17: =IF(F17<>0,F17-E15,0)
+  H17: =IF(G17<>0,((G17/E15)/1),0)
+  I17: =IF(F17<>0,G17,0)
+  J17: =IF(F17<>0,(I17/F3),0)
+
+Fórmula de base (U17): =IF(N17<>0,S15-T16,0)
+  Referencias encontradas: ['N17', 'S15', 'T16']
+Traceback (most recent call last):
+  File "C:\Users\Jordi\Desktop\InvertCursor\verificar_formulas_cliente2_excel.py", line 73, in <module>
+    fila_num = int(re.match(r'\d+', ref).group())
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'group'

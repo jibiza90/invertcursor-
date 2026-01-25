@@ -1,0 +1,578 @@
+======================================================================
+ANÁLISIS COMPLETO DEL SISTEMA DE INVERSIONES
+======================================================================
+
+📋 HOJAS DISPONIBLES:
+   Diario STD: 100 clientes, 1108 filas generales
+   Diario VIP: 17 clientes, 1108 filas generales
+⚠️ Diario WIND NO EXISTE en los datos - esto explica el error "No hay datos disponibles"
+
+======================================================================
+HOJA: Diario STD
+======================================================================
+
+Clientes: 100
+Filas generales: 1108
+
+--- A. Verificando fila 15 (día 1) ---
+   imp_inicial: 240
+   FA (suma incrementos): 240
+✅ Fila 15: imp_inicial = FA
+
+--- B. Verificando cascada de imp_inicial ---
+✅ Fila 18: imp_inicial=1140.00 correcto
+✅ Fila 21: imp_inicial=1050.00 correcto
+❌ ERROR: Diario STD Fila 24: imp_inicial=0.00, esperado=1050.00 (imp_final_ant=1050 + FA=0)
+❌ ERROR: Diario STD Fila 27: imp_inicial=0.00, esperado=1050.00 (imp_final_ant=1050 + FA=0)
+❌ ERROR: Diario STD Fila 30: imp_inicial=0.00, esperado=1050.00 (imp_final_ant=1050 + FA=0)
+❌ ERROR: Diario STD Fila 33: imp_inicial=0.00, esperado=1050.00 (imp_final_ant=1050 + FA=0)
+❌ ERROR: Diario STD Fila 36: imp_inicial=0.00, esperado=1050.00 (imp_final_ant=1050 + FA=0)
+❌ ERROR: Diario STD Fila 39: imp_inicial=0.00, esperado=1050.00 (imp_final_ant=1050 + FA=0)
+❌ ERROR: Diario STD Fila 42: imp_inicial=0.00, esperado=1050.00 (imp_final_ant=1050 + FA=0)
+
+   Filas con imp_final: 17, 20
+
+--- C. Verificando beneficios (solo si hay imp_final) ---
+✅ Beneficios solo existen donde hay imp_final
+
+--- D. Verificando clientes ---
+   Última fila con movimientos: 1133
+   Última fila con imp_final: 1144
+   Límite de cálculo: 1144
+
+   Cliente 1:
+      Filas con movimientos: 15
+✅ Cliente 1: sin errores
+
+   Cliente 2:
+      Filas con movimientos: 15, 18
+✅ Cliente 2: sin errores
+
+   Cliente 3:
+      Filas con movimientos: ninguna
+✅ Cliente 3: sin errores
+
+   Cliente 4:
+      Filas con movimientos: ninguna
+✅ Cliente 4: sin errores
+
+   Cliente 5:
+      Filas con movimientos: ninguna
+✅ Cliente 5: sin errores
+
+   Cliente 6:
+      Filas con movimientos: ninguna
+✅ Cliente 6: sin errores
+
+   Cliente 7:
+      Filas con movimientos: ninguna
+✅ Cliente 7: sin errores
+
+   Cliente 8:
+      Filas con movimientos: ninguna
+✅ Cliente 8: sin errores
+
+   Cliente 9:
+      Filas con movimientos: ninguna
+✅ Cliente 9: sin errores
+
+   Cliente 10:
+      Filas con movimientos: ninguna
+✅ Cliente 10: sin errores
+
+   Cliente 11:
+      Filas con movimientos: ninguna
+✅ Cliente 11: sin errores
+
+   Cliente 12:
+      Filas con movimientos: ninguna
+✅ Cliente 12: sin errores
+
+   Cliente 13:
+      Filas con movimientos: ninguna
+✅ Cliente 13: sin errores
+
+   Cliente 14:
+      Filas con movimientos: ninguna
+✅ Cliente 14: sin errores
+
+   Cliente 15:
+      Filas con movimientos: ninguna
+✅ Cliente 15: sin errores
+
+   Cliente 16:
+      Filas con movimientos: ninguna
+✅ Cliente 16: sin errores
+
+   Cliente 17:
+      Filas con movimientos: ninguna
+✅ Cliente 17: sin errores
+
+   Cliente 18:
+      Filas con movimientos: ninguna
+✅ Cliente 18: sin errores
+
+   Cliente 19:
+      Filas con movimientos: ninguna
+✅ Cliente 19: sin errores
+
+   Cliente 20:
+      Filas con movimientos: ninguna
+✅ Cliente 20: sin errores
+
+   Cliente 21:
+      Filas con movimientos: ninguna
+✅ Cliente 21: sin errores
+
+   Cliente 22:
+      Filas con movimientos: ninguna
+✅ Cliente 22: sin errores
+
+   Cliente 23:
+      Filas con movimientos: ninguna
+✅ Cliente 23: sin errores
+
+   Cliente 24:
+      Filas con movimientos: ninguna
+✅ Cliente 24: sin errores
+
+   Cliente 25:
+      Filas con movimientos: ninguna
+✅ Cliente 25: sin errores
+
+   Cliente 26:
+      Filas con movimientos: ninguna
+✅ Cliente 26: sin errores
+
+   Cliente 27:
+      Filas con movimientos: ninguna
+✅ Cliente 27: sin errores
+
+   Cliente 28:
+      Filas con movimientos: ninguna
+✅ Cliente 28: sin errores
+
+   Cliente 29:
+      Filas con movimientos: ninguna
+✅ Cliente 29: sin errores
+
+   Cliente 30:
+      Filas con movimientos: ninguna
+✅ Cliente 30: sin errores
+
+   Cliente 31:
+      Filas con movimientos: ninguna
+✅ Cliente 31: sin errores
+
+   Cliente 32:
+      Filas con movimientos: ninguna
+✅ Cliente 32: sin errores
+
+   Cliente 33:
+      Filas con movimientos: ninguna
+✅ Cliente 33: sin errores
+
+   Cliente 34:
+      Filas con movimientos: ninguna
+✅ Cliente 34: sin errores
+
+   Cliente 35:
+      Filas con movimientos: ninguna
+✅ Cliente 35: sin errores
+
+   Cliente 36:
+      Filas con movimientos: ninguna
+✅ Cliente 36: sin errores
+
+   Cliente 37:
+      Filas con movimientos: ninguna
+✅ Cliente 37: sin errores
+
+   Cliente 38:
+      Filas con movimientos: ninguna
+✅ Cliente 38: sin errores
+
+   Cliente 39:
+      Filas con movimientos: ninguna
+✅ Cliente 39: sin errores
+
+   Cliente 40:
+      Filas con movimientos: ninguna
+✅ Cliente 40: sin errores
+
+   Cliente 41:
+      Filas con movimientos: ninguna
+✅ Cliente 41: sin errores
+
+   Cliente 42:
+      Filas con movimientos: ninguna
+✅ Cliente 42: sin errores
+
+   Cliente 43:
+      Filas con movimientos: ninguna
+✅ Cliente 43: sin errores
+
+   Cliente 44:
+      Filas con movimientos: ninguna
+✅ Cliente 44: sin errores
+
+   Cliente 45:
+      Filas con movimientos: ninguna
+✅ Cliente 45: sin errores
+
+   Cliente 46:
+      Filas con movimientos: ninguna
+✅ Cliente 46: sin errores
+
+   Cliente 47:
+      Filas con movimientos: ninguna
+✅ Cliente 47: sin errores
+
+   Cliente 48:
+      Filas con movimientos: ninguna
+✅ Cliente 48: sin errores
+
+   Cliente 49:
+      Filas con movimientos: ninguna
+✅ Cliente 49: sin errores
+
+   Cliente 50:
+      Filas con movimientos: ninguna
+✅ Cliente 50: sin errores
+
+   Cliente 51:
+      Filas con movimientos: ninguna
+✅ Cliente 51: sin errores
+
+   Cliente 52:
+      Filas con movimientos: ninguna
+✅ Cliente 52: sin errores
+
+   Cliente 53:
+      Filas con movimientos: ninguna
+✅ Cliente 53: sin errores
+
+   Cliente 54:
+      Filas con movimientos: ninguna
+✅ Cliente 54: sin errores
+
+   Cliente 55:
+      Filas con movimientos: ninguna
+✅ Cliente 55: sin errores
+
+   Cliente 56:
+      Filas con movimientos: ninguna
+✅ Cliente 56: sin errores
+
+   Cliente 57:
+      Filas con movimientos: ninguna
+✅ Cliente 57: sin errores
+
+   Cliente 58:
+      Filas con movimientos: ninguna
+✅ Cliente 58: sin errores
+
+   Cliente 59:
+      Filas con movimientos: ninguna
+✅ Cliente 59: sin errores
+
+   Cliente 60:
+      Filas con movimientos: ninguna
+✅ Cliente 60: sin errores
+
+   Cliente 61:
+      Filas con movimientos: ninguna
+✅ Cliente 61: sin errores
+
+   Cliente 62:
+      Filas con movimientos: ninguna
+✅ Cliente 62: sin errores
+
+   Cliente 63:
+      Filas con movimientos: ninguna
+✅ Cliente 63: sin errores
+
+   Cliente 64:
+      Filas con movimientos: ninguna
+✅ Cliente 64: sin errores
+
+   Cliente 65:
+      Filas con movimientos: ninguna
+✅ Cliente 65: sin errores
+
+   Cliente 66:
+      Filas con movimientos: ninguna
+✅ Cliente 66: sin errores
+
+   Cliente 67:
+      Filas con movimientos: ninguna
+✅ Cliente 67: sin errores
+
+   Cliente 68:
+      Filas con movimientos: ninguna
+✅ Cliente 68: sin errores
+
+   Cliente 69:
+      Filas con movimientos: ninguna
+✅ Cliente 69: sin errores
+
+   Cliente 70:
+      Filas con movimientos: ninguna
+✅ Cliente 70: sin errores
+
+   Cliente 71:
+      Filas con movimientos: ninguna
+✅ Cliente 71: sin errores
+
+   Cliente 72:
+      Filas con movimientos: ninguna
+✅ Cliente 72: sin errores
+
+   Cliente 73:
+      Filas con movimientos: ninguna
+✅ Cliente 73: sin errores
+
+   Cliente 74:
+      Filas con movimientos: ninguna
+✅ Cliente 74: sin errores
+
+   Cliente 75:
+      Filas con movimientos: ninguna
+✅ Cliente 75: sin errores
+
+   Cliente 76:
+      Filas con movimientos: ninguna
+✅ Cliente 76: sin errores
+
+   Cliente 77:
+      Filas con movimientos: ninguna
+✅ Cliente 77: sin errores
+
+   Cliente 78:
+      Filas con movimientos: ninguna
+✅ Cliente 78: sin errores
+
+   Cliente 79:
+      Filas con movimientos: ninguna
+✅ Cliente 79: sin errores
+
+   Cliente 80:
+      Filas con movimientos: ninguna
+✅ Cliente 80: sin errores
+
+   Cliente 81:
+      Filas con movimientos: ninguna
+✅ Cliente 81: sin errores
+
+   Cliente 82:
+      Filas con movimientos: ninguna
+✅ Cliente 82: sin errores
+
+   Cliente 83:
+      Filas con movimientos: ninguna
+✅ Cliente 83: sin errores
+
+   Cliente 84:
+      Filas con movimientos: ninguna
+✅ Cliente 84: sin errores
+
+   Cliente 85:
+      Filas con movimientos: ninguna
+✅ Cliente 85: sin errores
+
+   Cliente 86:
+      Filas con movimientos: ninguna
+✅ Cliente 86: sin errores
+
+   Cliente 87:
+      Filas con movimientos: ninguna
+✅ Cliente 87: sin errores
+
+   Cliente 88:
+      Filas con movimientos: ninguna
+✅ Cliente 88: sin errores
+
+   Cliente 89:
+      Filas con movimientos: ninguna
+✅ Cliente 89: sin errores
+
+   Cliente 90:
+      Filas con movimientos: ninguna
+✅ Cliente 90: sin errores
+
+   Cliente 91:
+      Filas con movimientos: ninguna
+✅ Cliente 91: sin errores
+
+   Cliente 92:
+      Filas con movimientos: ninguna
+✅ Cliente 92: sin errores
+
+   Cliente 93:
+      Filas con movimientos: ninguna
+✅ Cliente 93: sin errores
+
+   Cliente 94:
+      Filas con movimientos: ninguna
+✅ Cliente 94: sin errores
+
+   Cliente 95:
+      Filas con movimientos: ninguna
+✅ Cliente 95: sin errores
+
+   Cliente 96:
+      Filas con movimientos: ninguna
+✅ Cliente 96: sin errores
+
+   Cliente 97:
+      Filas con movimientos: ninguna
+✅ Cliente 97: sin errores
+
+   Cliente 98:
+      Filas con movimientos: ninguna
+✅ Cliente 98: sin errores
+
+   Cliente 99:
+      Filas con movimientos: ninguna
+✅ Cliente 99: sin errores
+
+   Cliente 100:
+      Filas con movimientos: ninguna
+✅ Cliente 100: sin errores
+
+======================================================================
+HOJA: Diario VIP
+======================================================================
+
+Clientes: 17
+Filas generales: 1108
+
+--- A. Verificando fila 15 (día 1) ---
+   imp_inicial: 2764513.45
+   FA (suma incrementos): 2764513.45
+✅ Fila 15: imp_inicial = FA
+
+--- B. Verificando cascada de imp_inicial ---
+✅ Fila 18: imp_inicial=2764513.45 correcto
+✅ Fila 21: imp_inicial=2764513.45 correcto
+✅ Fila 24: imp_inicial=2764513.45 correcto
+✅ Fila 27: imp_inicial=2764513.45 correcto
+✅ Fila 30: imp_inicial=2764513.45 correcto
+✅ Fila 33: imp_inicial=2764513.45 correcto
+✅ Fila 36: imp_inicial=2764513.45 correcto
+✅ Fila 39: imp_inicial=2766488.18 correcto
+✅ Fila 42: imp_inicial=2769813.88 correcto
+
+   Filas con imp_final: 17, 20, 23, 26, 29, 32, 35, 38, 41, 44
+
+--- C. Verificando beneficios (solo si hay imp_final) ---
+✅ Beneficios solo existen donde hay imp_final
+
+--- D. Verificando clientes ---
+   Última fila con movimientos: 1133
+   Última fila con imp_final: 1144
+   Límite de cálculo: 1144
+
+   Cliente 1:
+      Filas con movimientos: 15, 55, 58, 60
+✅ Cliente 1: sin errores
+
+   Cliente 2:
+      Filas con movimientos: 15, 55
+✅ Cliente 2: sin errores
+
+   Cliente 3:
+      Filas con movimientos: 15, 55
+✅ Cliente 3: sin errores
+
+   Cliente 4:
+      Filas con movimientos: 15
+✅ Cliente 4: sin errores
+
+   Cliente 5:
+      Filas con movimientos: 15
+✅ Cliente 5: sin errores
+
+   Cliente 6:
+      Filas con movimientos: 15
+✅ Cliente 6: sin errores
+
+   Cliente 7:
+      Filas con movimientos: ninguna
+✅ Cliente 7: sin errores
+
+   Cliente 8:
+      Filas con movimientos: ninguna
+✅ Cliente 8: sin errores
+
+   Cliente 9:
+      Filas con movimientos: ninguna
+✅ Cliente 9: sin errores
+
+   Cliente 10:
+      Filas con movimientos: ninguna
+✅ Cliente 10: sin errores
+
+   Cliente 11:
+      Filas con movimientos: ninguna
+✅ Cliente 11: sin errores
+
+   Cliente 12:
+      Filas con movimientos: ninguna
+✅ Cliente 12: sin errores
+
+   Cliente 13:
+      Filas con movimientos: ninguna
+✅ Cliente 13: sin errores
+
+   Cliente 14:
+      Filas con movimientos: ninguna
+✅ Cliente 14: sin errores
+
+   Cliente 15:
+      Filas con movimientos: ninguna
+✅ Cliente 15: sin errores
+
+   Cliente 16:
+      Filas con movimientos: ninguna
+✅ Cliente 16: sin errores
+
+   Cliente 17:
+      Filas con movimientos: ninguna
+✅ Cliente 17: sin errores
+
+======================================================================
+SIMULACIÓN DE MES COMPLETO
+======================================================================
+
+Escenario simulado:
+  Día 1: Cliente1 +5000€, Cliente2 +2000€, rentabilidad +2%
+  Día 2: Sin movimientos, rentabilidad -1%
+  Día 5: Cliente2 +1000€, rentabilidad +1.5%
+  Día 10: Cliente1 -1000€, rentabilidad +0.5%
+
+📅 Día 1:
+   General: imp_inicial=7000, imp_final=7140.00
+   Cliente1: base=5000, beneficio=100.00, saldo=5100.00
+   Cliente2: base=2000, beneficio=40.00, saldo=2040.00
+   Suma saldos: 7140.00 vs imp_final=7140.00
+✅ Simulación Día 1: suma saldos = imp_final ✓
+
+📅 Día 2:
+   General: imp_inicial=7140.00, imp_final=7068.60
+   Cliente1: base=5100.00, saldo=5049.00
+   Cliente2: base=2040.00, saldo=2019.60
+✅ Simulación Día 2: suma saldos = imp_final ✓
+
+======================================================================
+RESUMEN FINAL
+======================================================================
+
+⛔ SE ENCONTRARON 7 ERRORES:
+   1. Diario STD Fila 24: imp_inicial=0.00, esperado=1050.00 (imp_final_ant=1050 + FA=0)
+   2. Diario STD Fila 27: imp_inicial=0.00, esperado=1050.00 (imp_final_ant=1050 + FA=0)
+   3. Diario STD Fila 30: imp_inicial=0.00, esperado=1050.00 (imp_final_ant=1050 + FA=0)
+   4. Diario STD Fila 33: imp_inicial=0.00, esperado=1050.00 (imp_final_ant=1050 + FA=0)
+   5. Diario STD Fila 36: imp_inicial=0.00, esperado=1050.00 (imp_final_ant=1050 + FA=0)
+   6. Diario STD Fila 39: imp_inicial=0.00, esperado=1050.00 (imp_final_ant=1050 + FA=0)
+   7. Diario STD Fila 42: imp_inicial=0.00, esperado=1050.00 (imp_final_ant=1050 + FA=0)

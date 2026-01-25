@@ -1,0 +1,41 @@
+================================================================================
+SIMULACION: PONER INCREMENTO EN CLIENTE 2
+================================================================================
+
+PASO 1: Poner incremento=1000 en fila 15
+Valor anterior: None
+Incremento actualizado: 1000
+
+PASO 2: Recalcular formulas fila 17
+Formulas:
+  base: =IF(N17<>0,S15-T16,0)
+  beneficio_diario: =U17*X17
+  beneficio_diario_pct: =IF(U17<>0,P17,0)
+  saldo_diario: =IF(U17<>0,U17+W17,0)
+  beneficio_acumulado: =IF(V17<>0,W17,0)
+  beneficio_acumulado_pct: =IF(Y17<>0,Y17/T3,0)
+
+PASO 3: Obtener valores necesarios
+N17 (saldo_diario Cliente 1): 0
+S15 (incremento Cliente 2): 1000
+T16 (decremento Cliente 2): None
+P17 (beneficio_diario_pct Cliente 1): 0
+H17 (benef_porcentaje general): 0
+
+PASO 4: Calcular formulas
+base = IF(0<>0, 1000-0, 0) = 0
+beneficio_diario_pct = IF(0<>0, 0, 0) = 0
+beneficio_diario = 0 * 0 = 0
+saldo_diario = IF(0<>0, 0+0, 0) = 0
+beneficio_acumulado = IF(0<>0, 0, 0) = 0
+
+RESULTADO FINAL:
+  base: 0
+  saldo_diario: 0
+  beneficio_diario: 0
+  beneficio_diario_pct: 0
+  beneficio_acumulado: 0
+
+DIAGNOSTICO:
+PROBLEMA: N17 es 0, por eso base siempre sera 0
+SOLUCION: Cliente 1 debe tener saldo_diario != 0 en fila 17

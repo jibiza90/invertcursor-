@@ -287,7 +287,7 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
     }
 
     // Recalcular solo filas de CÁLCULO (última fila del día), aplicando inc(1ª fila) y dec(2ª fila)
-    let saldoAnterior = 0;
+    let saldoAnterior = (typeof cliente.saldo_inicial_mes === 'number' && isFinite(cliente.saldo_inicial_mes)) ? cliente.saldo_inicial_mes : 0;
     let benefAcumAnterior = 0;
     let inversionAcum = 0;
     const gruposOrdenados = Array.from(gruposPorFecha.values())
@@ -443,7 +443,7 @@ function inicializarInspectorCeldas() {
         const actual = rows.find(d => d.fila === fila) || null;
         if (!actual) return null;
 
-        let saldoAnterior = 0;
+        let saldoAnterior = (cliente && typeof cliente.saldo_inicial_mes === 'number' && isFinite(cliente.saldo_inicial_mes)) ? cliente.saldo_inicial_mes : 0;
         for (const d of rows) {
             if (d.fila >= fila) break;
             if (typeof d.saldo_diario === 'number') saldoAnterior = d.saldo_diario;
@@ -1201,6 +1201,8 @@ async function cargarDatos() {
         }
         
         const data = await response.json();
+
+        await aplicarArrastreAnualAlCargar(hojaActual, mesActual, data);
         
         // Inicializar estructuras si no existen
         if (!datosCompletos) datosCompletos = { hojas: {} };
@@ -1221,6 +1223,91 @@ async function cargarDatos() {
     } catch (error) {
         console.error('❌ Error al cargar datos:', error);
         mostrarNotificacion('Error al cargar los datos: ' + error.message, 'error');
+    }
+}
+
+function obtenerMesAnteriorDeHoja(nombreHoja, mes) {
+    const lista = mesesDisponibles?.[nombreHoja] || [];
+    const idx = lista.indexOf(mes);
+    if (idx <= 0) return null;
+    return lista[idx - 1] || null;
+}
+
+function obtenerSaldoFinalClienteDeMes(cliente) {
+    const datos = (cliente?.datos_diarios || [])
+        .filter(d => d && d.fila >= 15 && d.fila <= 1120 && typeof d.saldo_diario === 'number')
+        .sort((a, b) => (a.fila || 0) - (b.fila || 0));
+    if (datos.length > 0) return datos[datos.length - 1].saldo_diario;
+    return 0;
+}
+
+async function aplicarArrastreAnualAlCargar(nombreHoja, mes, dataMes) {
+    if (!dataMes || !Array.isArray(dataMes.clientes)) return;
+    const mesAnterior = obtenerMesAnteriorDeHoja(nombreHoja, mes);
+    if (!mesAnterior) {
+        (dataMes.clientes || []).forEach((c, idx) => {
+            if (!c) return;
+            c._acumPrevInc = 0;
+            c._acumPrevDec = 0;
+            c.saldo_inicial_mes = 0;
+            c.numero_cliente = typeof c.numero_cliente === 'number' ? c.numero_cliente : (idx + 1);
+            c.columna_inicio = 11 + (idx * 8);
+        });
+        return;
+    }
+
+    try {
+        const respPrev = await fetch(`/api/datos/${nombreHoja.replace(/\s/g, '_')}/${mesAnterior}`, { cache: 'no-store' });
+        if (!respPrev.ok) {
+            return;
+        }
+        const dataPrev = await respPrev.json();
+        const prevClientes = Array.isArray(dataPrev?.clientes) ? dataPrev.clientes : [];
+
+        // Asegurar clientes de todo el año: si faltan clientes en este mes, copiarlos del mes anterior
+        if (prevClientes.length > dataMes.clientes.length) {
+            for (let i = dataMes.clientes.length; i < prevClientes.length; i++) {
+                const base = prevClientes[i];
+                if (!base) continue;
+                const nuevo = JSON.parse(JSON.stringify(base));
+                if (nuevo.datos_diarios && Array.isArray(nuevo.datos_diarios)) {
+                    nuevo.datos_diarios.forEach(filaData => {
+                        if (!filaData) return;
+                        if (typeof filaData.incremento === 'number') filaData.incremento = null;
+                        if (typeof filaData.decremento === 'number') filaData.decremento = null;
+                        ['base', 'saldo_diario', 'beneficio_diario', 'beneficio_diario_pct', 'beneficio_acumulado', 'beneficio_acumulado_pct']
+                            .forEach(campo => {
+                                if (filaData[campo] !== null && filaData[campo] !== undefined) filaData[campo] = null;
+                            });
+                    });
+                }
+                nuevo.incrementos_total = 0;
+                nuevo.decrementos_total = 0;
+                nuevo.saldo_actual = 0;
+                dataMes.clientes.push(nuevo);
+            }
+        }
+
+        // Arrastre de info y acumulados/saldo desde mes anterior
+        dataMes.clientes.forEach((c, idx) => {
+            if (!c) return;
+            const prev = prevClientes[idx];
+            if (prev && prev.datos && (!c.datos || Object.keys(c.datos).length === 0)) {
+                c.datos = JSON.parse(JSON.stringify(prev.datos));
+            }
+
+            const prevInc = prev && typeof prev.incrementos_total === 'number' ? prev.incrementos_total : 0;
+            const prevDec = prev && typeof prev.decrementos_total === 'number' ? prev.decrementos_total : 0;
+            const prevSaldo = prev ? obtenerSaldoFinalClienteDeMes(prev) : 0;
+            c._acumPrevInc = prevInc;
+            c._acumPrevDec = prevDec;
+            c.saldo_inicial_mes = prevSaldo;
+
+            c.numero_cliente = typeof c.numero_cliente === 'number' ? c.numero_cliente : (idx + 1);
+            c.columna_inicio = 11 + (idx * 8);
+        });
+    } catch (e) {
+        console.warn('⚠️ No se pudo aplicar arrastre anual:', e);
     }
 }
 
@@ -1322,7 +1409,11 @@ function inicializarEventos() {
     
     // Filtros de fecha
     document.getElementById('btnAplicarFiltro').addEventListener('click', aplicarFiltroFechas);
-    document.getElementById('btnLimpiarFiltro').addEventListener('click', limpiarFiltroFechas);
+    document.getElementById('btnLimpiarFiltro').addEventListener('click', limpiarDatosUsuarioMesActualConConfirmacion);
+    const btnLimpiarFiltroFechas = document.getElementById('btnLimpiarFiltroFechas');
+    if (btnLimpiarFiltroFechas) {
+        btnLimpiarFiltroFechas.addEventListener('click', limpiarFiltroFechas);
+    }
     document.getElementById('btnToggleVista').addEventListener('click', toggleVistaResumen);
     
     inicializarInspectorCeldas();
@@ -3232,7 +3323,7 @@ function calcularSaldoActualCliente(cliente) {
         .sort((a, b) => (a.fila || 0) - (b.fila || 0));
     
     if (datosOrdenados.length === 0) {
-        return 0;
+        return (cliente && typeof cliente.saldo_inicial_mes === 'number') ? cliente.saldo_inicial_mes : 0;
     }
     
     // MÉTODO 1: Buscar el último saldo_diario válido
@@ -3247,9 +3338,9 @@ function calcularSaldoActualCliente(cliente) {
     }
     
     // MÉTODO 2: Calcular saldo manualmente si no hay saldo_diario guardado
-    // Saldo = suma(incrementos) - suma(decrementos) + suma(beneficios)
-    let sumaIncrementos = 0;
-    let sumaDecrementos = 0;
+    // Saldo = saldo_inicial_mes + (inc_acum - dec_acum) + beneficios
+    let sumaIncrementos = typeof cliente._acumPrevInc === 'number' ? cliente._acumPrevInc : 0;
+    let sumaDecrementos = typeof cliente._acumPrevDec === 'number' ? cliente._acumPrevDec : 0;
     let sumaBeneficios = 0;
     
     datosOrdenados.forEach(d => {
@@ -3258,7 +3349,8 @@ function calcularSaldoActualCliente(cliente) {
         if (typeof d.beneficio_diario === 'number') sumaBeneficios += d.beneficio_diario;
     });
     
-    const saldoCalculado = sumaIncrementos - sumaDecrementos + sumaBeneficios;
+    const saldoInicial = (cliente && typeof cliente.saldo_inicial_mes === 'number') ? cliente.saldo_inicial_mes : 0;
+    const saldoCalculado = saldoInicial + (sumaIncrementos - sumaDecrementos) + sumaBeneficios;
     console.log(`💰 Saldo cliente (calculado): inc=${sumaIncrementos}, dec=${sumaDecrementos}, benef=${sumaBeneficios} => ${saldoCalculado}`);
     return saldoCalculado;
 }
@@ -3268,8 +3360,8 @@ function calcularSaldoActualCliente(cliente) {
 function calcularComisionDeDecrementoEnFila(cliente, filaObjetivo, overrideDecremento = undefined) {
     if (!cliente || !cliente.datos_diarios) return 0;
 
-    let acumuladoIncrementos = 0;
-    let acumuladoDecrementos = 0;
+    let acumuladoIncrementos = typeof cliente._acumPrevInc === 'number' ? cliente._acumPrevInc : 0;
+    let acumuladoDecrementos = typeof cliente._acumPrevDec === 'number' ? cliente._acumPrevDec : 0;
     let comisionFila = 0;
     const primeraFilaPorFecha = obtenerPrimeraFilaPorFechaCliente(cliente);
 
@@ -3832,10 +3924,10 @@ async function actualizarDatoGeneral(filaIdx, columna, nuevoValor) {
                             // Buscar saldo del día anterior
                             const datosDiariosOrdenados = [...datosDiariosCliente].sort((a, b) => (a.fila || 0) - (b.fila || 0));
                             const idxActual = datosDiariosOrdenados.findIndex(d => d.fila === filaIdx);
-                            let saldoAnterior = 0;
+                            let saldoAnterior = (typeof cliente.saldo_inicial_mes === 'number' && isFinite(cliente.saldo_inicial_mes)) ? cliente.saldo_inicial_mes : 0;
                             
                             for (let i = idxActual - 1; i >= 0; i--) {
-                                if (typeof datosDiariosOrdenados[i].saldo_diario === 'number' && datosDiariosOrdenados[i].saldo_diario !== 0) {
+                                if (typeof datosDiariosOrdenados[i].saldo_diario === 'number') {
                                     saldoAnterior = datosDiariosOrdenados[i].saldo_diario;
                                     break;
                                 }
@@ -4131,17 +4223,11 @@ function obtenerSaldoActualClienteSinLogs(cliente) {
     const datos = (cliente?.datos_diarios || [])
         .filter(d => d && d.fila >= 15 && d.fila <= 1120 && typeof d.saldo_diario === 'number')
         .sort((a, b) => (a.fila || 0) - (b.fila || 0));
-    if (datos.length > 0) return datos[datos.length - 1].saldo_diario;
 
-    let sumaInc = 0;
-    let sumaDec = 0;
-    let sumaBen = 0;
-    (cliente?.datos_diarios || []).forEach(d => {
-        if (typeof d.incremento === 'number') sumaInc += d.incremento;
-        if (typeof d.decremento === 'number') sumaDec += d.decremento;
-        if (typeof d.beneficio_diario === 'number') sumaBen += d.beneficio_diario;
-    });
-    return sumaInc - sumaDec + sumaBen;
+    if (datos.length === 0) {
+        return (cliente && typeof cliente.saldo_inicial_mes === 'number') ? cliente.saldo_inicial_mes : 0;
+    }
+    return datos[datos.length - 1].saldo_diario;
 }
 
 function obtenerGarantiaActualCliente(cliente) {
@@ -4172,8 +4258,8 @@ function calcularDetalleComisionesCobradas(cliente) {
         recalcularTotalesCliente(cliente);
     }
 
-    let acumuladoIncrementos = 0;
-    let acumuladoDecrementos = 0;
+    let acumuladoIncrementos = typeof cliente._acumPrevInc === 'number' ? cliente._acumPrevInc : 0;
+    let acumuladoDecrementos = typeof cliente._acumPrevDec === 'number' ? cliente._acumPrevDec : 0;
     const eventos = [];
 
     const datosOrdenados = [...(cliente.datos_diarios || [])]
@@ -4266,6 +4352,8 @@ function renderVistaClientes() {
     }
 
     items.sort((a, b) => {
+        const aNum = typeof a.cliente?.numero_cliente === 'number' ? a.cliente.numero_cliente : (a.idx + 1);
+        const bNum = typeof b.cliente?.numero_cliente === 'number' ? b.cliente.numero_cliente : (b.idx + 1);
         const aSaldo = typeof a.saldo === 'number' ? a.saldo : 0;
         const bSaldo = typeof b.saldo === 'number' ? b.saldo : 0;
         const aCom = typeof a.comisionSiRetira === 'number' ? a.comisionSiRetira : 0;
@@ -4274,6 +4362,10 @@ function renderVistaClientes() {
         const bGar = typeof b.garantiaPendiente === 'number' ? b.garantiaPendiente : 0;
 
         switch (orden) {
+            case 'numero_asc':
+                return aNum - bNum;
+            case 'numero_desc':
+                return bNum - aNum;
             case 'saldo_asc':
                 return aSaldo - bSaldo;
             case 'saldo_desc':
@@ -5293,8 +5385,8 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
 function recalcularTotalesCliente(cliente) {
     if (!cliente.datos_diarios) return;
     
-    let sumaIncrementos = 0;
-    let sumaDecrementos = 0;
+    let sumaIncrementos = typeof cliente._acumPrevInc === 'number' ? cliente._acumPrevInc : 0;
+    let sumaDecrementos = typeof cliente._acumPrevDec === 'number' ? cliente._acumPrevDec : 0;
     const primeraFilaPorFecha = obtenerPrimeraFilaPorFechaCliente(cliente);
     
     cliente.datos_diarios.forEach(dato => {
@@ -5418,7 +5510,7 @@ async function recalcularFormulasPorCambioClienteInterno(clienteIdx, filaIdx, ca
             // (en WIND también hay % diario por hoja general, así que deben verse beneficios y saldo propagado).
             const limiteCalculo = Math.max(ultimaFilaConMovimiento, ultimaFilaConImpFinal);
             
-            let saldoAnterior = 0;
+            let saldoAnterior = (typeof clienteItem.saldo_inicial_mes === 'number' && isFinite(clienteItem.saldo_inicial_mes)) ? clienteItem.saldo_inicial_mes : 0;
             let benefAcumAnterior = 0;
             let inversionAcum = 0;
             
@@ -6355,36 +6447,130 @@ function formatearFecha(valor) {
 
 // Guardar cambios
 function guardarCambios() {
-    document.getElementById('modalConfirmacion').classList.add('active');
-}
-
-// Confirmar guardar
-function confirmarGuardar() {
-    try {
-        // Los cambios se guardan en el servidor
-        guardarDatosAutomatico(0, 0);
-        mostrarNotificacion('Todos los cambios guardados correctamente', 'success');
-        cerrarModal();
-        
-        // Actualizar la vista para reflejar cambios
-        if (vistaActual === 'general') {
-            mostrarVistaGeneral();
-        } else if (vistaActual === 'detalle' && clienteActual !== null) {
-            const hoja = datosEditados.hojas[hojaActual];
-            const cliente = hoja.clientes && hoja.clientes[clienteActual] ? hoja.clientes[clienteActual] : null;
-            if (cliente) {
-                mostrarTablaEditableCliente(cliente, hoja, clienteActual);
+    abrirModalConfirmacion({
+        title: 'Confirmar Cambios',
+        message: '¿Estás seguro de que quieres guardar los cambios?',
+        confirmText: 'Sí, Guardar',
+        onConfirm: async () => {
+            try {
+                await guardarDatosAutomatico(0, 0);
+                mostrarNotificacion('Todos los cambios guardados correctamente', 'success');
+                if (vistaActual === 'general') {
+                    mostrarVistaGeneral();
+                } else if (vistaActual === 'detalle' && clienteActual !== null) {
+                    const hoja = datosEditados.hojas[hojaActual];
+                    const cliente = hoja.clientes && hoja.clientes[clienteActual] ? hoja.clientes[clienteActual] : null;
+                    if (cliente) {
+                        mostrarTablaEditableCliente(cliente, hoja, clienteActual);
+                    }
+                }
+            } catch (error) {
+                console.error('Error al guardar:', error);
+                mostrarNotificacion('Error al guardar los cambios', 'error');
             }
         }
-    } catch (error) {
-        console.error('Error al guardar:', error);
-        mostrarNotificacion('Error al guardar los cambios', 'error');
+    });
+}
+
+let __modalConfirmCallback = null;
+
+function abrirModalConfirmacion({ title, message, confirmText, onConfirm }) {
+    const modal = document.getElementById('modalConfirmacion');
+    if (!modal) return;
+    const h3 = modal.querySelector('h3');
+    const p = modal.querySelector('p');
+    const btn = document.getElementById('confirmarGuardar');
+    if (h3) h3.textContent = title || 'Confirmar';
+    if (p) p.textContent = message || '¿Estás seguro?';
+    if (btn) btn.textContent = confirmText || 'Confirmar';
+    __modalConfirmCallback = typeof onConfirm === 'function' ? onConfirm : null;
+    modal.classList.add('active');
+}
+
+// Confirmar (genérico)
+function confirmarGuardar() {
+    const cb = __modalConfirmCallback;
+    cerrarModal();
+    if (cb) {
+        void cb();
+        return;
     }
 }
 
 // Cerrar modal
 function cerrarModal() {
-    document.getElementById('modalConfirmacion').classList.remove('active');
+    const modal = document.getElementById('modalConfirmacion');
+    if (modal) modal.classList.remove('active');
+    __modalConfirmCallback = null;
+}
+
+async function limpiarDatosUsuarioMesActualConConfirmacion() {
+    abrirModalConfirmacion({
+        title: 'Confirmar limpieza',
+        message: '¿Estás seguro? Esto borrará TODOS los datos introducidos por ti en este mes (incrementos, decrementos, importes finales, etc.). Las fórmulas NO se borrarán.',
+        confirmText: 'Sí, Limpiar',
+        onConfirm: limpiarDatosUsuarioMesActual
+    });
+}
+
+async function limpiarDatosUsuarioMesActual() {
+    const hoja = datosEditados?.hojas?.[hojaActual];
+    if (!hoja) return;
+
+    // 1) Limpiar datos generales / diarios: solo celdas manuales del usuario, pero también limpiar caches calculadas.
+    const colsGen = ['imp_inicial', 'imp_final', 'benef_euro', 'benef_porcentaje', 'benef_euro_acum', 'benef_porcentaje_acum'];
+
+    const limpiarRow = (row) => {
+        if (!row) return;
+        colsGen.forEach(col => {
+            // Si el usuario puede escribir aquí (no fórmula y no bloqueada) => borrar
+            if (esCeldaManualGeneral(row, col)) {
+                if (row[col] !== null && row[col] !== undefined) row[col] = null;
+                return;
+            }
+            // Si es calculada, dejarla vacía para evitar valores fantasma (se recalcula)
+            if (row[col] !== null && row[col] !== undefined) {
+                row[col] = null;
+            }
+        });
+    };
+
+    (hoja.datos_generales || []).forEach(limpiarRow);
+    (hoja.datos_diarios_generales || []).forEach(limpiarRow);
+
+    // 2) Limpiar clientes: borrar incrementos/decrementos (entradas del usuario) y limpiar campos calculados.
+    const colsCalcCliente = ['base', 'saldo_diario', 'beneficio_diario', 'beneficio_diario_pct', 'beneficio_acumulado', 'beneficio_acumulado_pct'];
+    (hoja.clientes || []).forEach(c => {
+        (c.datos_diarios || []).forEach(d => {
+            if (!d) return;
+            if (typeof d.incremento === 'number') d.incremento = null;
+            if (typeof d.decremento === 'number') d.decremento = null;
+            colsCalcCliente.forEach(k => {
+                if (d[k] !== null && d[k] !== undefined) d[k] = null;
+            });
+        });
+        c.incrementos_total = 0;
+        c.decrementos_total = 0;
+        c.saldo_actual = 0;
+        c._acumPrevInc = 0;
+        c._acumPrevDec = 0;
+        c.saldo_inicial_mes = 0;
+    });
+
+    requiereRecalculoImpInicial = true;
+    await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'limpiar_datos_mes' });
+    await guardarDatosAutomatico(0, 0);
+
+    if (vistaActual === 'general') {
+        mostrarVistaGeneral();
+    } else if (vistaActual === 'clientes') {
+        renderVistaClientes();
+    } else if (vistaActual === 'detalle' && clienteActual !== null && clienteActual !== undefined) {
+        const idx = parseInt(clienteActual);
+        if (!isNaN(idx)) renderDetalleCliente(idx);
+    }
+
+    mostrarNotificacion('Datos del mes limpiados', 'success');
 }
 
 // Exportar JSON
@@ -7439,7 +7625,7 @@ function validarHojaCompleta(nombreHoja, hoja) {
             .filter(d => d.fila >= 15)
             .sort((a, b) => a.fila - b.fila);
         
-        let saldoAnterior = 0;
+        let saldoAnterior = (cliente && typeof cliente.saldo_inicial_mes === 'number' && isFinite(cliente.saldo_inicial_mes)) ? cliente.saldo_inicial_mes : 0;
         
         for (const d of datosCliente) {
             const fila = d.fila;
@@ -8085,7 +8271,7 @@ async function actualizarTodoElDiario(opts = {}) {
                     .filter(d => d && d.fila >= 15 && d.fila <= 1120)
                     .sort((a, b) => (a.fila || 0) - (b.fila || 0));
 
-                let saldoAnterior = 0;
+                let saldoAnterior = (cliente && typeof cliente.saldo_inicial_mes === 'number' && isFinite(cliente.saldo_inicial_mes)) ? cliente.saldo_inicial_mes : 0;
                 let benefAcumAnterior = 0;
                 let inversionAcum = 0;
 

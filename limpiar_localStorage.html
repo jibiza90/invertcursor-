@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Limpiar localStorage</title>
+</head>
+<body>
+    <h1>Limpiar localStorage</h1>
+    <button onclick="limpiarLocalStorage()">Limpiar localStorage</button>
+    <div id="resultado"></div>
+    
+    <script>
+        function limpiarLocalStorage() {
+            try {
+                localStorage.clear();
+                document.getElementById('resultado').innerHTML = 
+                    '<p style="color: green;">✓ localStorage limpiado correctamente</p>';
+                console.log('localStorage limpiado correctamente');
+            } catch (error) {
+                document.getElementById('resultado').innerHTML = 
+                    '<p style="color: red;">✗ Error: ' + error.message + '</p>';
+                console.error('Error al limpiar localStorage:', error);
+            }
+        }
+        
+        // Mostrar tamaño actual
+        window.onload = function() {
+            try {
+                let totalSize = 0;
+                for (let key in localStorage) {
+                    if (localStorage.hasOwnProperty(key)) {
+                        totalSize += localStorage[key].length;
+                    }
+                }
+                const sizeKB = (totalSize / 1024).toFixed(2);
+                document.getElementById('resultado').innerHTML = 
+                    '<p>Tamaño actual de localStorage: ' + sizeKB + ' KB</p>';
+            } catch (e) {
+                console.error('Error al calcular tamaño:', e);
+            }
+        };
+    </script>
+</body>
+</html>

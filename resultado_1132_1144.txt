@@ -1,0 +1,191 @@
+Cargando Excel...
+Cargando JSON...
+
+Verificando filas 1132-1144 del Cliente 1...
+
+Fila 1132 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =K14
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1132 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =L14
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1133 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K15:K107)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1133 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L15:L107)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1134 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K109:K192)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1134 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L109:L192)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1135 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K194:K286)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1135 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L194:L286)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1136 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K288:K377)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1136 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L288:L377)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1137 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K379:K471)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1137 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L379:L471)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1138 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K473:K562)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1138 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L473:L562)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1139 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K564:K656)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1139 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L564:L656)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1140 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K658:K750)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1140 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L658:L750)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1141 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K752:K841)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1141 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L752:L841)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1142 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K843:K935)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1142 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L843:L935)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1143 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K937:K1026)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1143 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L937:L1026)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1144 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K1028:K1120)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+Fila 1144 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L1028:L1120)
+  JSON - bloqueada: False
+  Tiene fórmula Excel: True
+  ❌ ERROR: Tiene fórmula pero NO está bloqueada
+
+================================================================================
+Total de errores encontrados: 26
+
+ERRORES:
+  Fila 1132, Col K (incremento): =K14
+  Fila 1132, Col L (decremento): =L14
+  Fila 1133, Col K (incremento): =SUM(K15:K107)
+  Fila 1133, Col L (decremento): =SUM(L15:L107)
+  Fila 1134, Col K (incremento): =SUM(K109:K192)
+  Fila 1134, Col L (decremento): =SUM(L109:L192)
+  Fila 1135, Col K (incremento): =SUM(K194:K286)
+  Fila 1135, Col L (decremento): =SUM(L194:L286)
+  Fila 1136, Col K (incremento): =SUM(K288:K377)
+  Fila 1136, Col L (decremento): =SUM(L288:L377)
+  Fila 1137, Col K (incremento): =SUM(K379:K471)
+  Fila 1137, Col L (decremento): =SUM(L379:L471)
+  Fila 1138, Col K (incremento): =SUM(K473:K562)
+  Fila 1138, Col L (decremento): =SUM(L473:L562)
+  Fila 1139, Col K (incremento): =SUM(K564:K656)
+  Fila 1139, Col L (decremento): =SUM(L564:L656)
+  Fila 1140, Col K (incremento): =SUM(K658:K750)
+  Fila 1140, Col L (decremento): =SUM(L658:L750)
+  Fila 1141, Col K (incremento): =SUM(K752:K841)
+  Fila 1141, Col L (decremento): =SUM(L752:L841)
+  Fila 1142, Col K (incremento): =SUM(K843:K935)
+  Fila 1142, Col L (decremento): =SUM(L843:L935)
+  Fila 1143, Col K (incremento): =SUM(K937:K1026)
+  Fila 1143, Col L (decremento): =SUM(L937:L1026)
+  Fila 1144, Col K (incremento): =SUM(K1028:K1120)
+  Fila 1144, Col L (decremento): =SUM(L1028:L1120)

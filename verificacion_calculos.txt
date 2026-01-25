@@ -1,0 +1,29 @@
+Hoja encontrada: Diario STD
+================================================================================
+VERIFICACIÓN DE CÁLCULOS EN DIARIO STD
+================================================================================
+
+FILA 17 (Día 1, tercera fila):
+================================================================================
+
+Valores en Excel:
+  E15 (imp_inicial día 1): 0
+  F17 (imp_final día 1): None
+  G17 (benef_euro): 0
+  H17 (benef_porcentaje): 0
+
+Fórmulas en Excel:
+  G17: =IF(F17<>0,F17-E15,0)
+  H17: =IF(G17<>0,((G17/E15)/1),0)
+
+Valores calculados manualmente según fórmulas:
+  benef_euro = IF(F17<>0,F17-E15,0)
+    = IF(None<>0,None-0,0)
+    = 0
+  benef_porcentaje = IF(G17<>0,((G17/E15)/1),0)
+    = IF(0<>0,((0/0)/1),0)
+    = 0
+
+Comparación:
+  benef_euro Excel: 0, Calculado: 0, ¿Coinciden? True
+  benef_porcentaje Excel: 0, Calculado: 0, ¿Coinciden? True

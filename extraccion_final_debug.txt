@@ -1,0 +1,8 @@
+================================================================================
+EXTRACCION DEFINITIVA CON DETECCION DE FORMULAS
+================================================================================
+
+Procesando datos generales de Diario STD...
+  Datos generales: 4 filas
+
+Extrayendo datos diarios generales...

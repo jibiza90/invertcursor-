@@ -1,0 +1,43 @@
+Traceback (most recent call last):
+  File "C:\Users\Jordi\Desktop\InvertCursor\verificar_bloqueadas_100.py", line 420, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\Jordi\Desktop\InvertCursor\verificar_bloqueadas_100.py", line 385, in main
+    verificar_clientes(ws, hoja_vip, errores)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jordi\Desktop\InvertCursor\verificar_bloqueadas_100.py", line 320, in verificar_clientes
+    if ejemplos_formulas:
+       ^^^^^^^^^^^^^^^^^
+NameError: name 'ejemplos_formulas' is not defined
+================================================================================
+VERIFICACIÓN 100% DE CELDAS BLOQUEADAS/DESBLOQUEADAS
+================================================================================
+
+📂 Cargando archivo Excel...
+✅ Excel cargado correctamente
+
+📂 Cargando archivo JSON...
+✅ JSON cargado correctamente
+
+================================================================================
+VERIFICANDO DATOS GENERALES
+================================================================================
+Total de filas en datos generales: 4
+
+✅ Verificadas 24 celdas en datos generales
+❌ Encontrados 0 errores
+
+================================================================================
+VERIFICANDO DATOS DIARIOS GENERALES
+================================================================================
+
+✅ Verificadas 6570 celdas en datos diarios generales
+❌ Encontrados 0 errores
+
+================================================================================
+VERIFICANDO DATOS DE CLIENTES
+================================================================================
+
+✅ Verificadas 148920 celdas en datos de clientes
+❌ Encontrados 0 errores
+❌ Error: name 'ejemplos_formulas' is not defined

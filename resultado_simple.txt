@@ -1,0 +1,11 @@
+Cargando Excel...
+Cargando JSON...
+
+Verificando incremento/decremento de clientes...
+
+================================================================================
+RESULTADOS
+================================================================================
+Total de errores encontrados: 0
+
+✅ No se encontraron errores

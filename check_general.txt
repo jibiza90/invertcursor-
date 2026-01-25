@@ -1,0 +1,61 @@
+================================================================================
+VERIFICANDO VISTA GENERAL - FILAS 15-20
+================================================================================
+
+Fila 15 (Fecha: 2026-01-01 00:00:00):
+  E (imp_inicial): 🔒 BLOQUEADA (fórmula)
+    Fórmula: =FA16
+  F (imp_final): ✏️ EDITABLE
+  G (benef_euro): ✏️ EDITABLE
+  H (benef_porcentaje): ✏️ EDITABLE
+  I (benef_euro_acum): ✏️ EDITABLE
+  J (benef_porcentaje_acum): ✏️ EDITABLE
+
+Fila 16 (Fecha: =D15):
+  E (imp_inicial): ✏️ EDITABLE
+  F (imp_final): ✏️ EDITABLE
+  G (benef_euro): ✏️ EDITABLE
+  H (benef_porcentaje): ✏️ EDITABLE
+  I (benef_euro_acum): ✏️ EDITABLE
+  J (benef_porcentaje_acum): ✏️ EDITABLE
+
+Fila 17 (Fecha: =D16):
+  E (imp_inicial): ✏️ EDITABLE
+  F (imp_final): ✏️ EDITABLE
+  G (benef_euro): 🔒 BLOQUEADA (fórmula)
+    Fórmula: =IF(F17<>0,F17-E15,0)
+  H (benef_porcentaje): 🔒 BLOQUEADA (fórmula)
+    Fórmula: =IF(G17<>0,((G17/E15)/1),0)
+  I (benef_euro_acum): 🔒 BLOQUEADA (fórmula)
+    Fórmula: =IF(F17<>0,G17,0)
+  J (benef_porcentaje_acum): 🔒 BLOQUEADA (fórmula)
+    Fórmula: =IF(F17<>0,(I17/F3),0)
+
+Fila 18 (Fecha: =D16+1):
+  E (imp_inicial): 🔒 BLOQUEADA (fórmula)
+    Fórmula: =F17+FA19
+  F (imp_final): ✏️ EDITABLE
+  G (benef_euro): ✏️ EDITABLE
+  H (benef_porcentaje): ✏️ EDITABLE
+  I (benef_euro_acum): ✏️ EDITABLE
+  J (benef_porcentaje_acum): ✏️ EDITABLE
+
+Fila 19 (Fecha: =D18):
+  E (imp_inicial): ✏️ EDITABLE
+  F (imp_final): ✏️ EDITABLE
+  G (benef_euro): ✏️ EDITABLE
+  H (benef_porcentaje): ✏️ EDITABLE
+  I (benef_euro_acum): ✏️ EDITABLE
+  J (benef_porcentaje_acum): ✏️ EDITABLE
+
+Fila 20 (Fecha: =D19):
+  E (imp_inicial): ✏️ EDITABLE
+  F (imp_final): ✏️ EDITABLE
+  G (benef_euro): 🔒 BLOQUEADA (fórmula)
+    Fórmula: =IF(F20<>0,F20-E18,0)
+  H (benef_porcentaje): 🔒 BLOQUEADA (fórmula)
+    Fórmula: =IF(G20<>0,((G20/E18)/1),0)
+  I (benef_euro_acum): 🔒 BLOQUEADA (fórmula)
+    Fórmula: =IF(F20<>0,G20+I17,0)
+  J (benef_porcentaje_acum): 🔒 BLOQUEADA (fórmula)
+    Fórmula: =IF(F20<>0,(I20/F3),0)

@@ -1,0 +1,165 @@
+================================================================================
+ANÁLISIS DE RELACIÓN ENTRE CLIENTES Y VISTA GENERAL
+================================================================================
+
+VISTA GENERAL - Fila 17:
+  imp_inicial: None
+  imp_final: None
+  benef_euro: 0
+  Fórmulas:
+    benef_euro: =IF(F17<>0,F17-E15,0)
+    benef_porcentaje: =IF(G17<>0,((G17/E15)/1),0)
+    benef_euro_acum: =IF(F17<>0,G17,0)
+    benef_porcentaje_acum: =IF(F17<>0,(I17/F3),0)
+
+CLIENTES - Fila 17:
+
+  Cliente 1:
+    incremento: None
+    decremento: None
+    base: 0
+    saldo_diario: 0
+    beneficio_diario: 0
+    Fórmulas:
+      base: =IF(F17<>0,K15-L16,0)
+      beneficio_diario: =M17*P17
+      beneficio_diario_pct: =IF(M17<>0,H17,0)
+      saldo_diario: =IF(M17<>0,M17+O17,0)
+      beneficio_acumulado: =IF(N17<>0,O17,0)
+      beneficio_acumulado_pct: =IF(Q17<>0,Q17/L3,0)
+
+  Cliente 2:
+    incremento: None
+    decremento: None
+    base: 0
+    saldo_diario: 0
+    beneficio_diario: 0
+    Fórmulas:
+      base: =IF(N17<>0,S15-T16,0)
+      beneficio_diario: =U17*X17
+      beneficio_diario_pct: =IF(U17<>0,P17,0)
+      saldo_diario: =IF(U17<>0,U17+W17,0)
+      beneficio_acumulado: =IF(V17<>0,W17,0)
+      beneficio_acumulado_pct: =IF(Y17<>0,Y17/T3,0)
+
+  Cliente 3:
+    incremento: None
+    decremento: None
+    base: 0
+    saldo_diario: 0
+    beneficio_diario: 0
+    Fórmulas:
+      base: =IF(V17<>0,AA15-AB16,0)
+      beneficio_diario: =AC17*AF17
+      beneficio_diario_pct: =IF(AC17<>0,X17,0)
+      saldo_diario: =IF(AC17<>0,AC17+AE17,0)
+      beneficio_acumulado: =IF(AD17<>0,AE17,0)
+      beneficio_acumulado_pct: =IF(AG17<>0,AG17/AB3,0)
+
+================================================================================
+VERIFICACIÓN DE AEO16 (suma de incrementos-decrementos en fila 15):
+================================================================================
+  Cliente 1: incremento=0, decremento=0, contribución=0
+  Cliente 2: incremento=0, decremento=0, contribución=0
+  Cliente 3: incremento=0, decremento=0, contribución=0
+  Cliente 4: incremento=0, decremento=0, contribución=0
+  Cliente 5: incremento=0, decremento=0, contribución=0
+  Cliente 6: incremento=0, decremento=0, contribución=0
+  Cliente 7: incremento=0, decremento=0, contribución=0
+  Cliente 8: incremento=0, decremento=0, contribución=0
+  Cliente 9: incremento=0, decremento=0, contribución=0
+  Cliente 10: incremento=0, decremento=0, contribución=0
+  Cliente 11: incremento=0, decremento=0, contribución=0
+  Cliente 12: incremento=0, decremento=0, contribución=0
+  Cliente 13: incremento=0, decremento=0, contribución=0
+  Cliente 14: incremento=0, decremento=0, contribución=0
+  Cliente 15: incremento=0, decremento=0, contribución=0
+  Cliente 16: incremento=0, decremento=0, contribución=0
+  Cliente 17: incremento=0, decremento=0, contribución=0
+  Cliente 18: incremento=0, decremento=0, contribución=0
+  Cliente 19: incremento=0, decremento=0, contribución=0
+  Cliente 20: incremento=0, decremento=0, contribución=0
+  Cliente 21: incremento=0, decremento=0, contribución=0
+  Cliente 22: incremento=0, decremento=0, contribución=0
+  Cliente 23: incremento=0, decremento=0, contribución=0
+  Cliente 24: incremento=0, decremento=0, contribución=0
+  Cliente 25: incremento=0, decremento=0, contribución=0
+  Cliente 26: incremento=0, decremento=0, contribución=0
+  Cliente 27: incremento=0, decremento=0, contribución=0
+  Cliente 28: incremento=0, decremento=0, contribución=0
+  Cliente 29: incremento=0, decremento=0, contribución=0
+  Cliente 30: incremento=0, decremento=0, contribución=0
+  Cliente 31: incremento=0, decremento=0, contribución=0
+  Cliente 32: incremento=0, decremento=0, contribución=0
+  Cliente 33: incremento=0, decremento=0, contribución=0
+  Cliente 34: incremento=0, decremento=0, contribución=0
+  Cliente 35: incremento=0, decremento=0, contribución=0
+  Cliente 36: incremento=0, decremento=0, contribución=0
+  Cliente 37: incremento=0, decremento=0, contribución=0
+  Cliente 38: incremento=0, decremento=0, contribución=0
+  Cliente 39: incremento=0, decremento=0, contribución=0
+  Cliente 40: incremento=0, decremento=0, contribución=0
+  Cliente 41: incremento=0, decremento=0, contribución=0
+  Cliente 42: incremento=0, decremento=0, contribución=0
+  Cliente 43: incremento=0, decremento=0, contribución=0
+  Cliente 44: incremento=0, decremento=0, contribución=0
+  Cliente 45: incremento=0, decremento=0, contribución=0
+  Cliente 46: incremento=0, decremento=0, contribución=0
+  Cliente 47: incremento=0, decremento=0, contribución=0
+  Cliente 48: incremento=0, decremento=0, contribución=0
+  Cliente 49: incremento=0, decremento=0, contribución=0
+  Cliente 50: incremento=0, decremento=0, contribución=0
+  Cliente 51: incremento=0, decremento=0, contribución=0
+  Cliente 52: incremento=0, decremento=0, contribución=0
+  Cliente 53: incremento=0, decremento=0, contribución=0
+  Cliente 54: incremento=0, decremento=0, contribución=0
+  Cliente 55: incremento=0, decremento=0, contribución=0
+  Cliente 56: incremento=0, decremento=0, contribución=0
+  Cliente 57: incremento=0, decremento=0, contribución=0
+  Cliente 58: incremento=0, decremento=0, contribución=0
+  Cliente 59: incremento=0, decremento=0, contribución=0
+  Cliente 60: incremento=0, decremento=0, contribución=0
+  Cliente 61: incremento=0, decremento=0, contribución=0
+  Cliente 62: incremento=0, decremento=0, contribución=0
+  Cliente 63: incremento=0, decremento=0, contribución=0
+  Cliente 64: incremento=0, decremento=0, contribución=0
+  Cliente 65: incremento=0, decremento=0, contribución=0
+  Cliente 66: incremento=0, decremento=0, contribución=0
+  Cliente 67: incremento=0, decremento=0, contribución=0
+  Cliente 68: incremento=0, decremento=0, contribución=0
+  Cliente 69: incremento=0, decremento=0, contribución=0
+  Cliente 70: incremento=0, decremento=0, contribución=0
+  Cliente 71: incremento=0, decremento=0, contribución=0
+  Cliente 72: incremento=0, decremento=0, contribución=0
+  Cliente 73: incremento=0, decremento=0, contribución=0
+  Cliente 74: incremento=0, decremento=0, contribución=0
+  Cliente 75: incremento=0, decremento=0, contribución=0
+  Cliente 76: incremento=0, decremento=0, contribución=0
+  Cliente 77: incremento=0, decremento=0, contribución=0
+  Cliente 78: incremento=0, decremento=0, contribución=0
+  Cliente 79: incremento=0, decremento=0, contribución=0
+  Cliente 80: incremento=0, decremento=0, contribución=0
+  Cliente 81: incremento=0, decremento=0, contribución=0
+  Cliente 82: incremento=0, decremento=0, contribución=0
+  Cliente 83: incremento=0, decremento=0, contribución=0
+  Cliente 84: incremento=0, decremento=0, contribución=0
+  Cliente 85: incremento=0, decremento=0, contribución=0
+  Cliente 86: incremento=0, decremento=0, contribución=0
+  Cliente 87: incremento=0, decremento=0, contribución=0
+  Cliente 88: incremento=0, decremento=0, contribución=0
+  Cliente 89: incremento=0, decremento=0, contribución=0
+  Cliente 90: incremento=0, decremento=0, contribución=0
+  Cliente 91: incremento=0, decremento=0, contribución=0
+  Cliente 92: incremento=0, decremento=0, contribución=0
+  Cliente 93: incremento=0, decremento=0, contribución=0
+  Cliente 94: incremento=0, decremento=0, contribución=0
+  Cliente 95: incremento=0, decremento=0, contribución=0
+  Cliente 96: incremento=0, decremento=0, contribución=0
+  Cliente 97: incremento=0, decremento=0, contribución=0
+  Cliente 98: incremento=0, decremento=0, contribución=0
+  Cliente 99: incremento=0, decremento=0, contribución=0
+  Cliente 100: incremento=0, decremento=0, contribución=0
+
+  TOTAL AEO16 = 0
+  imp_inicial fila 15 (debería ser igual a AEO16): 0
+  ¿Coinciden? N/A

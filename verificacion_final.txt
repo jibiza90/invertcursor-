@@ -1,0 +1,1437 @@
+================================================================================
+REVISIÓN EXACTA DE CELDAS BLOQUEADAS/EDITABLES EN EXCEL
+================================================================================
+
+📂 Cargando Excel...
+✅ Hoja encontrada: Diario VIP
+
+📂 Cargando JSON...
+
+================================================================================
+ANÁLISIS FILA POR FILA (15-50)
+================================================================================
+
+================================================================================
+FILA 15 (Fecha Excel: 2026-01-01 00:00:00)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: 🔒 BLOQUEADA - Fórmula: =FA16
+  JSON:  🔒 BLOQUEADA - Fórmula: =FA16
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 16 (Fecha Excel: =D15)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 17 (Fecha Excel: =D16)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F17<>0,F17-E15,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F17<>0,F17-E15,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(G17<>0,((G17/E15)/1),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(G17<>0,((G17/E15)/1),0)
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F17<>0,G17,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F17<>0,G17,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F17<>0,(I17/F3),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F17<>0,(I17/F3),0)
+  ✅ COINCIDE
+
+================================================================================
+FILA 18 (Fecha Excel: =D16+1)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: 🔒 BLOQUEADA - Fórmula: =F17+FA19
+  JSON:  🔒 BLOQUEADA - Fórmula: =F17+FA19
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 19 (Fecha Excel: =D18)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 20 (Fecha Excel: =D19)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F20<>0,F20-E18,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F20<>0,F20-E18,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(G20<>0,((G20/E18)/1),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(G20<>0,((G20/E18)/1),0)
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F20<>0,G20+I17,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F20<>0,G20+I17,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F20<>0,(I20/F3),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F20<>0,(I20/F3),0)
+  ✅ COINCIDE
+
+================================================================================
+FILA 21 (Fecha Excel: =D19+1)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: 🔒 BLOQUEADA - Fórmula: =F20+FA22
+  JSON:  🔒 BLOQUEADA - Fórmula: =F20+FA22
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 22 (Fecha Excel: =D21)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 23 (Fecha Excel: =D22)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F23<>0,F23-E21,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F23<>0,F23-E21,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(G23<>0,((G23/E21)/1),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(G23<>0,((G23/E21)/1),0)
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F23<>0,G23+I20,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F23<>0,G23+I20,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F23<>0,(I23/F3),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F23<>0,(I23/F3),0)
+  ✅ COINCIDE
+
+================================================================================
+FILA 24 (Fecha Excel: =D22+1)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: 🔒 BLOQUEADA - Fórmula: =F23+FA25
+  JSON:  🔒 BLOQUEADA - Fórmula: =F23+FA25
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 25 (Fecha Excel: =D24)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 26 (Fecha Excel: =D25)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F26<>0,F26-E24,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F26<>0,F26-E24,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(G26<>0,((G26/E24)/1),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(G26<>0,((G26/E24)/1),0)
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F26<>0,G26+I23,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F26<>0,G26+I23,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F26<>0,(I26/F3),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F26<>0,(I26/F3),0)
+  ✅ COINCIDE
+
+================================================================================
+FILA 27 (Fecha Excel: =D25+1)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: 🔒 BLOQUEADA - Fórmula: =F26+FA28
+  JSON:  🔒 BLOQUEADA - Fórmula: =F26+FA28
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 28 (Fecha Excel: =D27)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 29 (Fecha Excel: =D28)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F29<>0,F29-E27,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F29<>0,F29-E27,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(G29<>0,((G29/E27)/1),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(G29<>0,((G29/E27)/1),0)
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F29<>0,G29+I26,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F29<>0,G29+I26,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F29<>0,(I29/F3),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F29<>0,(I29/F3),0)
+  ✅ COINCIDE
+
+================================================================================
+FILA 30 (Fecha Excel: =D28+1)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: 🔒 BLOQUEADA - Fórmula: =F29+FA31
+  JSON:  🔒 BLOQUEADA - Fórmula: =F29+FA31
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 31 (Fecha Excel: =D30)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 32 (Fecha Excel: =D31)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F32<>0,F32-E30,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F32<>0,F32-E30,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(G32<>0,((G32/E30)/1),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(G32<>0,((G32/E30)/1),0)
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F32<>0,G32+I29,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F32<>0,G32+I29,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F32<>0,(I32/F3),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F32<>0,(I32/F3),0)
+  ✅ COINCIDE
+
+================================================================================
+FILA 33 (Fecha Excel: =D31+1)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: 🔒 BLOQUEADA - Fórmula: =F32+FA34
+  JSON:  🔒 BLOQUEADA - Fórmula: =F32+FA34
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 34 (Fecha Excel: =D33)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 35 (Fecha Excel: =D34)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F35<>0,F35-E33,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F35<>0,F35-E33,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(G35<>0,((G35/E33)/1),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(G35<>0,((G35/E33)/1),0)
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F35<>0,G35+I32,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F35<>0,G35+I32,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F35<>0,(I35/F3),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F35<>0,(I35/F3),0)
+  ✅ COINCIDE
+
+================================================================================
+FILA 36 (Fecha Excel: =D34+1)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: 🔒 BLOQUEADA - Fórmula: =F35+FA37
+  JSON:  🔒 BLOQUEADA - Fórmula: =F35+FA37
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 37 (Fecha Excel: =D36)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 38 (Fecha Excel: =D37)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F38<>0,F38-E36,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F38<>0,F38-E36,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(G38<>0,((G38/E36)/1),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(G38<>0,((G38/E36)/1),0)
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F38<>0,G38+I35,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F38<>0,G38+I35,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F38<>0,(I38/F3),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F38<>0,(I38/F3),0)
+  ✅ COINCIDE
+
+================================================================================
+FILA 39 (Fecha Excel: =D37+1)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: 🔒 BLOQUEADA - Fórmula: =F38+FA40
+  JSON:  🔒 BLOQUEADA - Fórmula: =F38+FA40
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 40 (Fecha Excel: =D39)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 41 (Fecha Excel: =D40)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F41<>0,F41-E39,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F41<>0,F41-E39,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(G41<>0,((G41/E39)/1),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(G41<>0,((G41/E39)/1),0)
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F41<>0,G41+I38,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F41<>0,G41+I38,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F41<>0,(I41/F3),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F41<>0,(I41/F3),0)
+  ✅ COINCIDE
+
+================================================================================
+FILA 42 (Fecha Excel: =D40+1)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: 🔒 BLOQUEADA - Fórmula: =F41+FA43
+  JSON:  🔒 BLOQUEADA - Fórmula: =F41+FA43
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 43 (Fecha Excel: =D42)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 44 (Fecha Excel: =D43)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F44<>0,F44-E42,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F44<>0,F44-E42,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(G44<>0,((G44/E42)/1),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(G44<>0,((G44/E42)/1),0)
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F44<>0,G44+I41,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F44<>0,G44+I41,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F44<>0,(I44/F3),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F44<>0,(I44/F3),0)
+  ✅ COINCIDE
+
+================================================================================
+FILA 45 (Fecha Excel: =D43+1)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: 🔒 BLOQUEADA - Fórmula: =F44+FA46
+  JSON:  🔒 BLOQUEADA - Fórmula: =F44+FA46
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 46 (Fecha Excel: =D45)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 47 (Fecha Excel: =D46)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F47<>0,F47-E45,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F47<>0,F47-E45,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(G47<>0,((G47/E45)/1),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(G47<>0,((G47/E45)/1),0)
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F47<>0,G47+I44,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F47<>0,G47+I44,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F47<>0,(I47/F3),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F47<>0,(I47/F3),0)
+  ✅ COINCIDE
+
+================================================================================
+FILA 48 (Fecha Excel: =D46+1)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: 🔒 BLOQUEADA - Fórmula: =F47+FA49
+  JSON:  🔒 BLOQUEADA - Fórmula: =F47+FA49
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 49 (Fecha Excel: =D48)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+================================================================================
+FILA 50 (Fecha Excel: =D49)
+================================================================================
+
+IMP_INICIAL (Col E):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+IMP_FINAL (Col F):
+  Excel: ✏️ EDITABLE
+  JSON:  ✏️ EDITABLE
+  ✅ COINCIDE
+
+BENEF_EURO (Col G):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F50<>0,F50-E48,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F50<>0,F50-E48,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE (Col H):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(G50<>0,((G50/E48)/1),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(G50<>0,((G50/E48)/1),0)
+  ✅ COINCIDE
+
+BENEF_EURO_ACUM (Col I):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F50<>0,G50+I47,0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F50<>0,G50+I47,0)
+  ✅ COINCIDE
+
+BENEF_PORCENTAJE_ACUM (Col J):
+  Excel: 🔒 BLOQUEADA - Fórmula: =IF(F50<>0,(I50/F3),0)
+  JSON:  🔒 BLOQUEADA - Fórmula: =IF(F50<>0,(I50/F3),0)
+  ✅ COINCIDE
+
+================================================================================
+RESUMEN
+================================================================================
+Total de filas analizadas: 36
+
+IMP_FINAL en Excel:
+  Editables: 36
+  Bloqueadas: 0
+
+IMP_FINAL en JSON:
+  Editables: 36
+  Bloqueadas: 0
+
+Total de discrepancias encontradas: 0
+
+✅ PERFECTO: Todas las celdas coinciden entre Excel y JSON
+
+================================================================================
+ANÁLISIS DE IMP_FINAL POR DÍA
+================================================================================
+
+Fecha: 2026-01-01 00:00:00
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [15]
+
+Fecha: =D15
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [16]
+
+Fecha: =D16
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [17]
+
+Fecha: =D16+1
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [18]
+
+Fecha: =D18
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [19]
+
+Fecha: =D19
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [20]
+
+Fecha: =D19+1
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [21]
+
+Fecha: =D21
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [22]
+
+Fecha: =D22
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [23]
+
+Fecha: =D22+1
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [24]
+
+Fecha: =D24
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [25]
+
+Fecha: =D25
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [26]
+
+Fecha: =D25+1
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [27]
+
+Fecha: =D27
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [28]
+
+Fecha: =D28
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [29]
+
+Fecha: =D28+1
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [30]
+
+Fecha: =D30
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [31]
+
+Fecha: =D31
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [32]
+
+Fecha: =D31+1
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [33]
+
+Fecha: =D33
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [34]
+
+Fecha: =D34
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [35]
+
+Fecha: =D34+1
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [36]
+
+Fecha: =D36
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [37]
+
+Fecha: =D37
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [38]
+
+Fecha: =D37+1
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [39]
+
+Fecha: =D39
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [40]
+
+Fecha: =D40
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [41]
+
+Fecha: =D40+1
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [42]
+
+Fecha: =D42
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [43]
+
+Fecha: =D43
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [44]
+
+Fecha: =D43+1
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [45]
+
+Fecha: =D45
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [46]
+
+Fecha: =D46
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [47]
+
+Fecha: =D46+1
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [48]
+
+Fecha: =D48
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [49]
+
+Fecha: =D49
+  Total filas: 1
+  Filas con imp_final EDITABLE: 1
+    Filas editables: [50]

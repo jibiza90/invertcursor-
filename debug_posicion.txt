@@ -1,0 +1,44 @@
+Fila 15: fecha_valor=2026-01-01 00:00:00, tipo=<class 'datetime.datetime'>
+  fecha_str normalizada: 2026-01-01
+Fila 16: fecha_valor=2026-01-01 00:00:00, tipo=<class 'datetime.datetime'>
+  fecha_str normalizada: 2026-01-01
+Fila 17: fecha_valor=2026-01-01 00:00:00, tipo=<class 'datetime.datetime'>
+  fecha_str normalizada: 2026-01-01
+Fila 18: fecha_valor=2026-01-02 00:00:00, tipo=<class 'datetime.datetime'>
+  fecha_str normalizada: 2026-01-02
+Fila 19: fecha_valor=2026-01-02 00:00:00, tipo=<class 'datetime.datetime'>
+  fecha_str normalizada: 2026-01-02
+Fila 20: fecha_valor=2026-01-02 00:00:00, tipo=<class 'datetime.datetime'>
+  fecha_str normalizada: 2026-01-02
+Fila 21: fecha_valor=2026-01-03 00:00:00, tipo=<class 'datetime.datetime'>
+  fecha_str normalizada: 2026-01-03
+Fila 22: fecha_valor=2026-01-03 00:00:00, tipo=<class 'datetime.datetime'>
+  fecha_str normalizada: 2026-01-03
+Fila 23: fecha_valor=2026-01-03 00:00:00, tipo=<class 'datetime.datetime'>
+  fecha_str normalizada: 2026-01-03
+Fila 24: fecha_valor=2026-01-04 00:00:00, tipo=<class 'datetime.datetime'>
+  fecha_str normalizada: 2026-01-04
+
+================================================================================
+FECHAS AGRUPADAS:
+================================================================================
+2026-01-01: [15, 16, 17]
+2026-01-02: [18, 19, 20]
+2026-01-03: [21, 22, 23]
+2026-01-04: [24]
+
+================================================================================
+PRUEBA DE obtener_posicion_dia:
+================================================================================
+  obtener_posicion_dia(15, 2026-01-01 00:00:00) -> fecha_str=2026-01-01
+    -> posición: 1
+Fila 15: posicion_dia = 1
+
+  obtener_posicion_dia(16, 2026-01-01 00:00:00) -> fecha_str=2026-01-01
+    -> posición: 2
+Fila 16: posicion_dia = 2
+
+  obtener_posicion_dia(17, 2026-01-01 00:00:00) -> fecha_str=2026-01-01
+    -> posición: 3
+Fila 17: posicion_dia = 3
+

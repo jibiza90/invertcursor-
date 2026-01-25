@@ -1,0 +1,56 @@
+================================================================================
+ANÁLISIS DEL PATRÓN DE BLOQUEO EN EXCEL
+================================================================================
+
+PATRÓN POR DÍA:
+================================================================================
+
+Fecha: 2026-01-01 00:00:00
+Filas: [15]
+
+  Fila 15 (posición 1 del día):
+    IMP_FINAL (F): ✏️ EDITABLE
+    BENEF_EURO (G): ✏️ EDITABLE
+    BENEF_PORCENTAJE (H): ✏️ EDITABLE
+    BENEF_EURO_ACUM (I): ✏️ EDITABLE
+    BENEF_PORCENTAJE_ACUM (J): ✏️ EDITABLE
+
+Fecha: =D15
+Filas: [16]
+
+  Fila 16 (posición 1 del día):
+    IMP_FINAL (F): ✏️ EDITABLE
+    BENEF_EURO (G): ✏️ EDITABLE
+    BENEF_PORCENTAJE (H): ✏️ EDITABLE
+    BENEF_EURO_ACUM (I): ✏️ EDITABLE
+    BENEF_PORCENTAJE_ACUM (J): ✏️ EDITABLE
+
+Fecha: =D16
+Filas: [17]
+
+  Fila 17 (posición 1 del día):
+    IMP_FINAL (F): ✏️ EDITABLE
+    BENEF_EURO (G): 🔒 BLOQUEADA
+    BENEF_PORCENTAJE (H): 🔒 BLOQUEADA
+    BENEF_EURO_ACUM (I): 🔒 BLOQUEADA
+    BENEF_PORCENTAJE_ACUM (J): 🔒 BLOQUEADA
+
+Fecha: =D16+1
+Filas: [18]
+
+  Fila 18 (posición 1 del día):
+    IMP_FINAL (F): ✏️ EDITABLE
+    BENEF_EURO (G): ✏️ EDITABLE
+    BENEF_PORCENTAJE (H): ✏️ EDITABLE
+    BENEF_EURO_ACUM (I): ✏️ EDITABLE
+    BENEF_PORCENTAJE_ACUM (J): ✏️ EDITABLE
+
+Fecha: =D18
+Filas: [19]
+
+  Fila 19 (posición 1 del día):
+    IMP_FINAL (F): ✏️ EDITABLE
+    BENEF_EURO (G): ✏️ EDITABLE
+    BENEF_PORCENTAJE (H): ✏️ EDITABLE
+    BENEF_EURO_ACUM (I): ✏️ EDITABLE
+    BENEF_PORCENTAJE_ACUM (J): ✏️ EDITABLE

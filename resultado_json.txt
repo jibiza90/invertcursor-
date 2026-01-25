@@ -1,0 +1,51 @@
+================================================================================
+VERIFICANDO JSON GENERADO - FILAS 15-20
+================================================================================
+
+Fila 15 (Fecha: 2026-01-01 00:00:00):
+  imp_inicial: 🔒 BLOQUEADA (fórmula: =FA16)
+  imp_final: ✏️ EDITABLE
+  benef_euro: 🔒 BLOQUEADA
+  benef_porcentaje: 🔒 BLOQUEADA
+  benef_euro_acum: 🔒 BLOQUEADA
+  benef_porcentaje_acum: 🔒 BLOQUEADA
+
+Fila 16 (Fecha: 2026-01-01 00:00:00):
+  imp_inicial: 🔒 BLOQUEADA
+  imp_final: ✏️ EDITABLE
+  benef_euro: 🔒 BLOQUEADA
+  benef_porcentaje: 🔒 BLOQUEADA
+  benef_euro_acum: 🔒 BLOQUEADA
+  benef_porcentaje_acum: 🔒 BLOQUEADA
+
+Fila 17 (Fecha: 2026-01-01 00:00:00):
+  imp_inicial: 🔒 BLOQUEADA
+  imp_final: ✏️ EDITABLE
+  benef_euro: 🔒 BLOQUEADA (fórmula: =IF(F17<>0,F17-E15,0))
+  benef_porcentaje: 🔒 BLOQUEADA (fórmula: =IF(G17<>0,((G17/E15)/1),0))
+  benef_euro_acum: 🔒 BLOQUEADA (fórmula: =IF(F17<>0,G17,0))
+  benef_porcentaje_acum: 🔒 BLOQUEADA (fórmula: =IF(F17<>0,(I17/F3),0))
+
+Fila 18 (Fecha: 2026-01-02 00:00:00):
+  imp_inicial: 🔒 BLOQUEADA (fórmula: =F17+FA19)
+  imp_final: ✏️ EDITABLE
+  benef_euro: 🔒 BLOQUEADA
+  benef_porcentaje: 🔒 BLOQUEADA
+  benef_euro_acum: 🔒 BLOQUEADA
+  benef_porcentaje_acum: 🔒 BLOQUEADA
+
+Fila 19 (Fecha: 2026-01-02 00:00:00):
+  imp_inicial: 🔒 BLOQUEADA
+  imp_final: ✏️ EDITABLE
+  benef_euro: 🔒 BLOQUEADA
+  benef_porcentaje: 🔒 BLOQUEADA
+  benef_euro_acum: 🔒 BLOQUEADA
+  benef_porcentaje_acum: 🔒 BLOQUEADA
+
+Fila 20 (Fecha: 2026-01-02 00:00:00):
+  imp_inicial: 🔒 BLOQUEADA
+  imp_final: ✏️ EDITABLE
+  benef_euro: 🔒 BLOQUEADA (fórmula: =IF(F20<>0,F20-E18,0))
+  benef_porcentaje: 🔒 BLOQUEADA (fórmula: =IF(G20<>0,((G20/E18)/1),0))
+  benef_euro_acum: 🔒 BLOQUEADA (fórmula: =IF(F20<>0,G20+I17,0))
+  benef_porcentaje_acum: 🔒 BLOQUEADA (fórmula: =IF(F20<>0,(I20/F3),0))

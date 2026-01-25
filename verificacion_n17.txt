@@ -1,0 +1,38 @@
+Hoja encontrada: Diario STD
+================================================================================
+VERIFICACIÓN DE COLUMNAS EN FILA 17
+================================================================================
+
+Fila 17:
+
+Cliente 1 (columnas K-R, 11-18):
+  K17: None
+  L17: None
+  M17: =IF(F17<>0,K15-L16,0)
+  N17: =IF(M17<>0,M17+O17,0)
+  O17: =M17*P17
+  P17: =IF(M17<>0,H17,0)
+  Q17: =IF(N17<>0,O17,0)
+  R17: =IF(Q17<>0,Q17/L3,0)
+
+Cliente 2 (columnas S-Z, 19-26):
+  S17: None
+  T17: None
+  U17: =IF(N17<>0,S15-T16,0)
+  V17: =IF(U17<>0,U17+W17,0)
+  W17: =U17*X17
+  X17: =IF(U17<>0,P17,0)
+  Y17: =IF(V17<>0,W17,0)
+  Z17: =IF(Y17<>0,Y17/T3,0)
+
+N17 (columna 14) específicamente:
+  Fórmula: =IF(M17<>0,M17+O17,0)
+
+U17 (base Cliente 2, columna 21):
+  Fórmula: =IF(N17<>0,S15-T16,0)
+  Referencias encontradas: ['N17', 'S15', 'T16']
+Traceback (most recent call last):
+  File "C:\Users\Jordi\Desktop\InvertCursor\verificar_n17_excel.py", line 72, in <module>
+    fila_num = int(re.match(r'\d+', ref).group())
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'group'

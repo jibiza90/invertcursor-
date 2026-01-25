@@ -1,0 +1,377 @@
+================================================================================
+INFORMACIÓN DEL CLIENTE 1 - HOJA: Diario VIP
+================================================================================
+
+Total de filas con datos: 1141
+Total de columnas: 157
+
+Headers encontrados (primeras 30 columnas con nombre):
+  1. Columna 4: PERIODO
+  2. Columna 11: PERIODO
+  3. Columna 19: PERIODO
+  4. Columna 27: PERIODO
+  5. Columna 35: PERIODO
+  6. Columna 43: PERIODO
+  7. Columna 51: PERIODO
+  8. Columna 59: PERIODO
+  9. Columna 67: PERIODO
+  10. Columna 75: PERIODO
+  11. Columna 83: PERIODO
+  12. Columna 91: PERIODO
+  13. Columna 99: PERIODO
+  14. Columna 107: PERIODO
+  15. Columna 115: PERIODO
+  16. Columna 123: PERIODO
+  17. Columna 131: PERIODO
+  18. Columna 139: PERIODO
+  19. Columna 147: PERIODO
+
+================================================================================
+DATOS DEL CLIENTE 1:
+================================================================================
+
+Columna_3: 1
+Columna_6: 2764513.45
+Columna_7: 0
+Columna_8: 0
+Columna_9: 0
+Columna_10: 0
+Columna_13: 427756.41
+Columna_14: 427756.41
+Columna_15: 0
+Columna_16: 0
+Columna_17: 0
+Columna_18: 0
+Columna_21: 541732.19
+Columna_22: 541732.19
+Columna_23: 0
+Columna_24: 0
+Columna_25: 0
+Columna_26: 0
+Columna_29: 311822.68
+Columna_30: 311822.68
+Columna_31: 0
+Columna_32: 0
+Columna_33: 0
+Columna_34: 0
+Columna_37: 1150495.59
+Columna_38: 1150495.59
+Columna_39: 0
+Columna_40: 0
+Columna_41: 0
+Columna_42: 0
+Columna_45: 131218.42
+Columna_46: 131218.42
+Columna_47: 0
+Columna_48: 0
+Columna_49: 0
+Columna_50: 0
+Columna_53: 201488.16
+Columna_54: 201488.16
+Columna_55: 0
+Columna_56: 0
+Columna_57: 0
+Columna_58: 0
+Columna_61: 0
+Columna_62: 0
+Columna_63: 0
+Columna_64: 0
+Columna_65: 0
+Columna_66: 0
+Columna_69: 0
+Columna_70: 0
+Columna_71: 0
+Columna_72: 0
+Columna_73: 0
+Columna_74: 0
+Columna_77: 0
+Columna_78: 0
+Columna_79: 0
+Columna_80: 0
+Columna_81: 0
+Columna_82: 0
+Columna_85: 0
+Columna_86: 0
+Columna_87: 0
+Columna_88: 0
+Columna_89: 0
+Columna_90: 0
+Columna_93: 0
+Columna_94: 0
+Columna_95: 0
+Columna_96: 0
+Columna_97: 0
+Columna_98: 0
+Columna_101: 0
+Columna_102: 0
+Columna_103: 0
+Columna_104: 0
+Columna_105: 0
+Columna_106: 0
+Columna_109: 0
+Columna_110: 0
+Columna_111: 0
+Columna_112: 0
+Columna_113: 0
+Columna_114: 0
+Columna_117: 0
+Columna_118: 0
+Columna_119: 0
+Columna_120: 0
+Columna_121: 0
+Columna_122: 0
+Columna_125: 0
+Columna_126: 0
+Columna_127: 0
+Columna_128: 0
+Columna_129: 0
+Columna_130: 0
+Columna_133: 0
+Columna_134: 0
+Columna_135: 0
+Columna_136: 0
+Columna_137: 0
+Columna_138: 0
+Columna_141: 0
+Columna_142: 0
+Columna_143: 0
+Columna_144: 0
+Columna_145: 0
+Columna_146: 0
+Columna_149: 0
+Columna_150: 0
+Columna_151: 0
+Columna_152: 0
+Columna_153: 0
+Columna_154: 0
+
+================================================================================
+PRIMERAS 10 FILAS CON DATOS:
+================================================================================
+
+
+Fila 1:
+  PERIODO: SELECCIÓN
+  Columna_5: SELECCIÓN
+  Columna_6: ANUAL
+  Columna_12: ANUAL
+  Columna_20: ANUAL
+  Columna_28: ANUAL
+  Columna_36: ANUAL
+  Columna_44: ANUAL
+  Columna_52: ANUAL
+  Columna_60: ANUAL
+  Columna_68: ANUAL
+  Columna_76: ANUAL
+  Columna_84: ANUAL
+  Columna_92: ANUAL
+  Columna_100: ANUAL
+  Columna_108: ANUAL
+  Columna_116: ANUAL
+  Columna_124: ANUAL
+  Columna_132: ANUAL
+  Columna_140: ANUAL
+  Columna_148: ANUAL
+
+Fila 2:
+  PERIODO: 0
+  Columna_5: 2764513.45
+  Columna_6: 2764513.45
+  Columna_7: TOTAL € INVERSION
+  Columna_12: 427756.41
+  Columna_14: 427756.41
+  Columna_15: 427756.41
+  Columna_20: 541732.19
+  Columna_22: 541732.19
+  Columna_23: 541732.19
+  Columna_28: 311822.68
+  Columna_30: 311822.68
+  Columna_31: 311822.68
+  Columna_36: 1150495.59
+  Columna_38: 1150495.59
+  Columna_39: 1150495.59
+  Columna_44: 131218.42
+  Columna_46: 131218.42
+  Columna_47: 131218.42
+  Columna_52: 201488.16
+  Columna_54: 201488.16
+  Columna_55: 201488.16
+  Columna_60: 0
+  Columna_62: 0
+  Columna_63: 0
+  Columna_68: 0
+  Columna_70: 0
+  Columna_71: 0
+  Columna_76: 0
+  Columna_78: 0
+  Columna_79: 0
+  Columna_84: 0
+  Columna_86: 0
+  Columna_87: 0
+  Columna_92: 0
+  Columna_94: 0
+  Columna_95: 0
+  Columna_100: 0
+  Columna_102: 0
+  Columna_103: 0
+  Columna_108: 0
+  Columna_110: 0
+  Columna_111: 0
+  Columna_116: 0
+  Columna_118: 0
+  Columna_119: 0
+  Columna_124: 0
+  Columna_126: 0
+  Columna_127: 0
+  Columna_132: 0
+  Columna_134: 0
+  Columna_135: 0
+  Columna_140: 0
+  Columna_142: 0
+  Columna_143: 0
+  Columna_148: 0
+
+Fila 3:
+  PERIODO: 0
+  Columna_5: 2775115.24
+  Columna_6: 2775115.24
+  Columna_7: TOTAL € INVERSION+BENEFICIOS
+  Columna_12: 429396.8374068458
+  Columna_20: 543809.7096136665
+  Columna_28: 313018.5065461133
+  Columna_36: 1154907.69103033
+  Columna_44: 131721.6369884982
+  Columna_52: 202260.85841454612
+  Columna_60: 0
+  Columna_68: 0
+  Columna_76: 0
+  Columna_84: 0
+  Columna_92: 0
+  Columna_100: 0
+  Columna_108: 0
+  Columna_116: 0
+  Columna_124: 0
+  Columna_132: 0
+  Columna_140: 0
+  Columna_148: 0
+
+Fila 4:
+  PERIODO: 0
+  Columna_5: 10601.790000000037
+  Columna_6: 10601.790000000035
+  Columna_7: TOTAL € BENEFICIO
+  Columna_12: 1640.4274068458287
+  Columna_20: 2077.5196136666
+  Columna_28: 1195.8265461132814
+  Columna_36: 4412.10103033
+  Columna_44: 503.2169884982129
+  Columna_52: 772.6984145461138
+  Columna_60: 0
+  Columna_68: 0
+  Columna_76: 0
+  Columna_84: 0
+  Columna_92: 0
+  Columna_100: 0
+  Columna_108: 0
+  Columna_116: 0
+  Columna_124: 0
+  Columna_132: 0
+  Columna_140: 0
+  Columna_148: 0
+
+Fila 5:
+  PERIODO: 0
+  Columna_5: 0.0038349569252412344
+  Columna_6: 0.0038349569252412335
+  Columna_7: TOTAL % BENEFICIO
+  Columna_12: 0.0038349569252412344
+  Columna_20: 0.0038349569252412344
+  Columna_28: 0.003834956925241235
+  Columna_36: 0.0038349569252412344
+  Columna_44: 0.0038349569252412344
+  Columna_52: 0.003834956925241234
+  Columna_60: 0
+  Columna_68: 0
+  Columna_76: 0
+  Columna_84: 0
+  Columna_92: 0
+  Columna_100: 0
+  Columna_108: 0
+  Columna_116: 0
+  Columna_124: 0
+  Columna_132: 0
+  Columna_140: 0
+  Columna_148: 0
+
+Fila 6:
+  Columna_12: Nombre cliente
+  Columna_20: Nombre cliente
+  Columna_28: Nombre cliente
+  Columna_36: Nombre cliente
+  Columna_44: Nombre cliente
+  Columna_52: Nombre cliente
+  Columna_60: Nombre cliente
+  Columna_68: Nombre cliente
+  Columna_76: Nombre cliente
+  Columna_84: Nombre cliente
+  Columna_92: Nombre cliente
+  Columna_100: Nombre cliente
+  Columna_108: Nombre cliente
+  Columna_116: Nombre cliente
+  Columna_124: Nombre cliente
+  Columna_132: Nombre cliente
+  Columna_140: Nombre cliente
+  Columna_148: Nombre cliente
+
+Fila 7:
+  Columna_157: 2775115.24
+
+Fila 8:
+  Columna_9: 10601.790000000037
+  Columna_17: 1640.4274068458287
+  Columna_25: 2077.5196136666
+  Columna_33: 1195.8265461132814
+  Columna_41: 4412.10103033
+  Columna_49: 503.2169884982129
+  Columna_57: 772.6984145461138
+  Columna_65: 0
+  Columna_73: 0
+  Columna_81: 0
+  Columna_89: 0
+  Columna_97: 0
+  Columna_105: 0
+  Columna_113: 0
+  Columna_121: 0
+  Columna_129: 0
+  Columna_137: 0
+  Columna_145: 0
+  Columna_153: 0
+  Columna_157: 10601.790000000035
+
+Fila 9:
+  PERIODO: 0
+  Columna_5: 2764513.450000003
+  Columna_6: 2764513.450000003
+  Columna_155: 2764513.45
+
+Fila 10:
+  Columna_12: 0
+  Columna_20: 0
+  Columna_28: 0
+  Columna_36: 0
+  Columna_44: 0
+  Columna_52: 0
+  Columna_60: 0
+  Columna_68: 0
+  Columna_76: 0
+  Columna_84: 0
+  Columna_92: 0
+  Columna_100: 0
+  Columna_108: 0
+  Columna_116: 0
+  Columna_124: 0
+  Columna_132: 0
+  Columna_140: 0
+  Columna_148: 0
+  Columna_156: 0
+  Columna_157: 2764513.45

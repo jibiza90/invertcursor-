@@ -1,0 +1,84 @@
+================================================================================
+ANÁLISIS DEL PATRÓN CORRECTO POR DÍA
+================================================================================
+
+PATRÓN POR DÍA (primeros 3 días):
+================================================================================
+
+================================================================================
+Fecha: 2026-01-01
+Filas: [15, 16, 17] (total: 3 filas)
+================================================================================
+
+  Fila 15 (posición 1 del día):
+    IMP_FINAL (F): ✏️ EDITABLE
+    BENEF_EURO (G): ✏️ EDITABLE
+    BENEF_PORCENTAJE (H): ✏️ EDITABLE
+    BENEF_EURO_ACUM (I): ✏️ EDITABLE
+    BENEF_PORCENTAJE_ACUM (J): ✏️ EDITABLE
+
+  Fila 16 (posición 2 del día):
+    IMP_FINAL (F): ✏️ EDITABLE
+    BENEF_EURO (G): ✏️ EDITABLE
+    BENEF_PORCENTAJE (H): ✏️ EDITABLE
+    BENEF_EURO_ACUM (I): ✏️ EDITABLE
+    BENEF_PORCENTAJE_ACUM (J): ✏️ EDITABLE
+
+  Fila 17 (posición 3 del día):
+    IMP_FINAL (F): ✏️ EDITABLE
+    BENEF_EURO (G): 🔒 BLOQUEADA
+    BENEF_PORCENTAJE (H): 🔒 BLOQUEADA
+    BENEF_EURO_ACUM (I): 🔒 BLOQUEADA
+    BENEF_PORCENTAJE_ACUM (J): 🔒 BLOQUEADA
+
+================================================================================
+Fecha: 2026-01-02
+Filas: [18, 19, 20] (total: 3 filas)
+================================================================================
+
+  Fila 18 (posición 1 del día):
+    IMP_FINAL (F): ✏️ EDITABLE
+    BENEF_EURO (G): ✏️ EDITABLE
+    BENEF_PORCENTAJE (H): ✏️ EDITABLE
+    BENEF_EURO_ACUM (I): ✏️ EDITABLE
+    BENEF_PORCENTAJE_ACUM (J): ✏️ EDITABLE
+
+  Fila 19 (posición 2 del día):
+    IMP_FINAL (F): ✏️ EDITABLE
+    BENEF_EURO (G): ✏️ EDITABLE
+    BENEF_PORCENTAJE (H): ✏️ EDITABLE
+    BENEF_EURO_ACUM (I): ✏️ EDITABLE
+    BENEF_PORCENTAJE_ACUM (J): ✏️ EDITABLE
+
+  Fila 20 (posición 3 del día):
+    IMP_FINAL (F): ✏️ EDITABLE
+    BENEF_EURO (G): 🔒 BLOQUEADA
+    BENEF_PORCENTAJE (H): 🔒 BLOQUEADA
+    BENEF_EURO_ACUM (I): 🔒 BLOQUEADA
+    BENEF_PORCENTAJE_ACUM (J): 🔒 BLOQUEADA
+
+================================================================================
+Fecha: 2026-01-03
+Filas: [21, 22, 23] (total: 3 filas)
+================================================================================
+
+  Fila 21 (posición 1 del día):
+    IMP_FINAL (F): ✏️ EDITABLE
+    BENEF_EURO (G): ✏️ EDITABLE
+    BENEF_PORCENTAJE (H): ✏️ EDITABLE
+    BENEF_EURO_ACUM (I): ✏️ EDITABLE
+    BENEF_PORCENTAJE_ACUM (J): ✏️ EDITABLE
+
+  Fila 22 (posición 2 del día):
+    IMP_FINAL (F): ✏️ EDITABLE
+    BENEF_EURO (G): ✏️ EDITABLE
+    BENEF_PORCENTAJE (H): ✏️ EDITABLE
+    BENEF_EURO_ACUM (I): ✏️ EDITABLE
+    BENEF_PORCENTAJE_ACUM (J): ✏️ EDITABLE
+
+  Fila 23 (posición 3 del día):
+    IMP_FINAL (F): ✏️ EDITABLE
+    BENEF_EURO (G): 🔒 BLOQUEADA
+    BENEF_PORCENTAJE (H): 🔒 BLOQUEADA
+    BENEF_EURO_ACUM (I): 🔒 BLOQUEADA
+    BENEF_PORCENTAJE_ACUM (J): 🔒 BLOQUEADA

@@ -1,0 +1,13 @@
+Hoja encontrada: Diario STD
+================================================================================
+VERIFICACIÓN DE FÓRMULAS EN EXCEL - CLIENTE 2 FILA 17
+================================================================================
+
+Fila 17:
+U17 (base Cliente 2): =IF(N17<>0,S15-T16,0)
+  Referencias: ['N17', 'S15', 'T16']
+Traceback (most recent call last):
+  File "C:\Users\Jordi\Desktop\InvertCursor\verificar_formula_base_excel.py", line 41, in <module>
+    fila_num = int(re.match(r'\d+', ref).group())
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'group'

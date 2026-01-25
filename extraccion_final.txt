@@ -1,0 +1,16 @@
+================================================================================
+EXTRACCION DEFINITIVA CON DETECCION DE FORMULAS
+================================================================================
+
+Procesando datos generales de Diario STD...
+  Datos generales: 4 filas
+
+Extrayendo datos diarios generales...
+Traceback (most recent call last):
+  File "C:\Users\Jordi\Desktop\InvertCursor\extraer_datos_definitivo.py", line 468, in <module>
+    resultado_completo['hojas']['Diario STD'] = procesar_hoja('Diario STD')
+                                                ~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\Jordi\Desktop\InvertCursor\extraer_datos_definitivo.py", line 114, in procesar_hoja
+    if isinstance(fecha_valor, datetime):
+                               ^^^^^^^^
+UnboundLocalError: cannot access local variable 'datetime' where it is not associated with a value

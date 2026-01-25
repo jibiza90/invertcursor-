@@ -1,0 +1,58 @@
+================================================================================
+EXTRACCION DEFINITIVA CON DETECCION DE FORMULAS
+================================================================================
+
+Procesando datos generales de Diario STD...
+  Datos generales: 4 filas
+
+Extrayendo datos diarios generales...
+  Fechas agrupadas: 366 días únicos
+    2026-01-01: [15, 16, 17]
+    2026-01-02: [18, 19, 20]
+    2026-01-03: [21, 22, 23]
+DEBUG: Fila 15, fecha=2026-01-01 00:00:00, posicion_dia=1
+DEBUG: Fila 16, fecha=2026-01-01 00:00:00, posicion_dia=2
+DEBUG: Fila 17, fecha=2026-01-01 00:00:00, posicion_dia=3
+DEBUG: Fila 18, fecha=2026-01-02 00:00:00, posicion_dia=1
+DEBUG: Fila 19, fecha=2026-01-02 00:00:00, posicion_dia=2
+DEBUG: Fila 20, fecha=2026-01-02 00:00:00, posicion_dia=3
+  Datos diarios generales: 1108 registros
+
+Identificando clientes...
+  Clientes encontrados: 100
+
+Extrayendo datos diarios por cliente...
+  Clientes procesados: 100
+  Cliente 1 - Datos diarios: 1112 registros
+  Cliente 1 - Incrementos (desde K15): 0.00
+  Cliente 1 - Decrementos (desde L15): 0.00
+
+Procesando datos generales de Diario VIP...
+  Datos generales: 4 filas
+
+Extrayendo datos diarios generales...
+  Fechas agrupadas: 366 días únicos
+    2026-01-01: [15, 16, 17]
+    2026-01-02: [18, 19, 20]
+    2026-01-03: [21, 22, 23]
+DEBUG: Fila 15, fecha=2026-01-01 00:00:00, posicion_dia=1
+DEBUG: Fila 16, fecha=2026-01-01 00:00:00, posicion_dia=2
+DEBUG: Fila 17, fecha=2026-01-01 00:00:00, posicion_dia=3
+DEBUG: Fila 18, fecha=2026-01-02 00:00:00, posicion_dia=1
+DEBUG: Fila 19, fecha=2026-01-02 00:00:00, posicion_dia=2
+DEBUG: Fila 20, fecha=2026-01-02 00:00:00, posicion_dia=3
+  Datos diarios generales: 1108 registros
+
+Identificando clientes...
+  Clientes encontrados: 17
+
+Extrayendo datos diarios por cliente...
+  Clientes procesados: 17
+  Cliente 1 - Datos diarios: 1112 registros
+  Cliente 1 - Incrementos (desde K15): 427,756.41
+  Cliente 1 - Decrementos (desde L15): 0.00
+  Cliente 1 - Saldo actual: 429,396.84 (Fila 50)
+
+================================================================================
+Datos guardados en: datos_completos.json
+================================================================================

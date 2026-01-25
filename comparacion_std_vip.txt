@@ -1,0 +1,21 @@
+================================================================================
+COMPARACIÓN DE FÓRMULAS DE BENEFICIO
+================================================================================
+
+DIARIO STD - Fila 17:
+  imp_final: None
+  benef_euro: 0
+  benef_euro fórmula: =IF(F17<>0,F17-E15,0)
+  benef_euro bloqueada: True
+  benef_porcentaje: 0
+  benef_porcentaje fórmula: =IF(G17<>0,((G17/E15)/1),0)
+  benef_porcentaje bloqueada: True
+
+DIARIO VIP - Fila 17:
+  imp_final: 2764513.45
+  benef_euro: 0
+  benef_euro fórmula: =IF(F17<>0,F17-E15,0)
+  benef_euro bloqueada: True
+  benef_porcentaje: 0
+  benef_porcentaje fórmula: =IF(G17<>0,((G17/E15)/1),0)
+  benef_porcentaje bloqueada: True

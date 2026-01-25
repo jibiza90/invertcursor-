@@ -1,0 +1,139 @@
+Cargando Excel...
+Cargando JSON...
+
+Verificando filas 1132-1144 del Cliente 1...
+
+Fila 1132 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =K14
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1132 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =L14
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1133 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K15:K107)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1133 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L15:L107)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1134 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K109:K192)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1134 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L109:L192)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1135 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K194:K286)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1135 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L194:L286)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1136 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K288:K377)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1136 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L288:L377)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1137 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K379:K471)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1137 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L379:L471)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1138 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K473:K562)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1138 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L473:L562)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1139 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K564:K656)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1139 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L564:L656)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1140 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K658:K750)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1140 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L658:L750)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1141 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K752:K841)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1141 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L752:L841)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1142 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K843:K935)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1142 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L843:L935)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1143 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K937:K1026)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1143 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L937:L1026)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1144 - INCREMENTO (Col K):
+  Excel - data_type: f, value: =SUM(K1028:K1120)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+Fila 1144 - DECREMENTO (Col L):
+  Excel - data_type: f, value: =SUM(L1028:L1120)
+  JSON - bloqueada: True
+  Tiene fórmula Excel: True
+
+================================================================================
+Total de errores encontrados: 0
+
+✅ No se encontraron errores en estas filas

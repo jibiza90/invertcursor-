@@ -1,0 +1,101 @@
+================================================================================
+VERIFICACION COMPLETA: 100% DE LAS CELDAS
+Fecha: 2026-01-22 11:38:31
+================================================================================
+
+[PASO 1/5] Cargando Excel...
+   ✓ Excel cargado
+   - Max fila: 2229
+   - Max columna: 157
+
+[PASO 2/5] Cargando JSON...
+   ✓ JSON cargado
+   - Datos generales: 4 filas
+   - Datos diarios: 1108 filas
+   - Clientes: 17
+
+[PASO 3/5] Verificando DATOS GENERALES (Filas 3-6, Columnas E-J)...
+   ✓ Verificadas 24 celdas de datos generales
+
+[PASO 4/5] Verificando DATOS DIARIOS GENERALES (Todas las filas desde 15, Columnas E-J)...
+   ✓ Verificadas 6648 celdas de datos diarios generales
+   ✓ Procesadas 1108 filas con datos
+
+[PASO 5/5] Verificando TODOS LOS CLIENTES (Todas las filas desde 15, Columnas K+)...
+   ✓ Encontrados 1 clientes en Excel
+   Verificando Cliente 1 (columnas K-R)...
+     ✓ Cliente 1: 1108 filas, 8864 celdas
+   ✓ Verificadas 8864 celdas de clientes
+   ✓ Procesados 1 clientes
+
+================================================================================
+RESUMEN FINAL - VERIFICACION 100% COMPLETA
+================================================================================
+Total de celdas verificadas: 15,536
+  - Datos generales (Filas 3-6): 24 celdas
+  - Datos diarios generales (Filas 15-2229): 6,648 celdas
+  - Celdas de clientes (Filas 15-2229): 8,864 celdas
+
+Errores críticos encontrados: 52
+Advertencias: 0
+
+================================================================================
+ERRORES CRÍTICOS
+================================================================================
+1. Cliente 1, Fila 1132, K1132 (incremento): Excel tiene formula pero JSON NO
+2. Cliente 1, Fila 1132, K1132 (incremento): Tiene formula pero NO bloqueada
+3. Cliente 1, Fila 1132, L1132 (decremento): Excel tiene formula pero JSON NO
+4. Cliente 1, Fila 1132, L1132 (decremento): Tiene formula pero NO bloqueada
+5. Cliente 1, Fila 1133, K1133 (incremento): Excel tiene formula pero JSON NO
+6. Cliente 1, Fila 1133, K1133 (incremento): Tiene formula pero NO bloqueada
+7. Cliente 1, Fila 1133, L1133 (decremento): Excel tiene formula pero JSON NO
+8. Cliente 1, Fila 1133, L1133 (decremento): Tiene formula pero NO bloqueada
+9. Cliente 1, Fila 1134, K1134 (incremento): Excel tiene formula pero JSON NO
+10. Cliente 1, Fila 1134, K1134 (incremento): Tiene formula pero NO bloqueada
+11. Cliente 1, Fila 1134, L1134 (decremento): Excel tiene formula pero JSON NO
+12. Cliente 1, Fila 1134, L1134 (decremento): Tiene formula pero NO bloqueada
+13. Cliente 1, Fila 1135, K1135 (incremento): Excel tiene formula pero JSON NO
+14. Cliente 1, Fila 1135, K1135 (incremento): Tiene formula pero NO bloqueada
+15. Cliente 1, Fila 1135, L1135 (decremento): Excel tiene formula pero JSON NO
+16. Cliente 1, Fila 1135, L1135 (decremento): Tiene formula pero NO bloqueada
+17. Cliente 1, Fila 1136, K1136 (incremento): Excel tiene formula pero JSON NO
+18. Cliente 1, Fila 1136, K1136 (incremento): Tiene formula pero NO bloqueada
+19. Cliente 1, Fila 1136, L1136 (decremento): Excel tiene formula pero JSON NO
+20. Cliente 1, Fila 1136, L1136 (decremento): Tiene formula pero NO bloqueada
+21. Cliente 1, Fila 1137, K1137 (incremento): Excel tiene formula pero JSON NO
+22. Cliente 1, Fila 1137, K1137 (incremento): Tiene formula pero NO bloqueada
+23. Cliente 1, Fila 1137, L1137 (decremento): Excel tiene formula pero JSON NO
+24. Cliente 1, Fila 1137, L1137 (decremento): Tiene formula pero NO bloqueada
+25. Cliente 1, Fila 1138, K1138 (incremento): Excel tiene formula pero JSON NO
+26. Cliente 1, Fila 1138, K1138 (incremento): Tiene formula pero NO bloqueada
+27. Cliente 1, Fila 1138, L1138 (decremento): Excel tiene formula pero JSON NO
+28. Cliente 1, Fila 1138, L1138 (decremento): Tiene formula pero NO bloqueada
+29. Cliente 1, Fila 1139, K1139 (incremento): Excel tiene formula pero JSON NO
+30. Cliente 1, Fila 1139, K1139 (incremento): Tiene formula pero NO bloqueada
+31. Cliente 1, Fila 1139, L1139 (decremento): Excel tiene formula pero JSON NO
+32. Cliente 1, Fila 1139, L1139 (decremento): Tiene formula pero NO bloqueada
+33. Cliente 1, Fila 1140, K1140 (incremento): Excel tiene formula pero JSON NO
+34. Cliente 1, Fila 1140, K1140 (incremento): Tiene formula pero NO bloqueada
+35. Cliente 1, Fila 1140, L1140 (decremento): Excel tiene formula pero JSON NO
+36. Cliente 1, Fila 1140, L1140 (decremento): Tiene formula pero NO bloqueada
+37. Cliente 1, Fila 1141, K1141 (incremento): Excel tiene formula pero JSON NO
+38. Cliente 1, Fila 1141, K1141 (incremento): Tiene formula pero NO bloqueada
+39. Cliente 1, Fila 1141, L1141 (decremento): Excel tiene formula pero JSON NO
+40. Cliente 1, Fila 1141, L1141 (decremento): Tiene formula pero NO bloqueada
+41. Cliente 1, Fila 1142, K1142 (incremento): Excel tiene formula pero JSON NO
+42. Cliente 1, Fila 1142, K1142 (incremento): Tiene formula pero NO bloqueada
+43. Cliente 1, Fila 1142, L1142 (decremento): Excel tiene formula pero JSON NO
+44. Cliente 1, Fila 1142, L1142 (decremento): Tiene formula pero NO bloqueada
+45. Cliente 1, Fila 1143, K1143 (incremento): Excel tiene formula pero JSON NO
+46. Cliente 1, Fila 1143, K1143 (incremento): Tiene formula pero NO bloqueada
+47. Cliente 1, Fila 1143, L1143 (decremento): Excel tiene formula pero JSON NO
+48. Cliente 1, Fila 1143, L1143 (decremento): Tiene formula pero NO bloqueada
+49. Cliente 1, Fila 1144, K1144 (incremento): Excel tiene formula pero JSON NO
+50. Cliente 1, Fila 1144, K1144 (incremento): Tiene formula pero NO bloqueada
+51. Cliente 1, Fila 1144, L1144 (decremento): Excel tiene formula pero JSON NO
+52. Cliente 1, Fila 1144, L1144 (decremento): Tiene formula pero NO bloqueada
+
+================================================================================
+VERIFICACION COMPLETADA AL 100%
+================================================================================
+Fecha finalización: 2026-01-22 11:38:50

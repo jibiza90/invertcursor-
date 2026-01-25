@@ -1,0 +1,33 @@
+Hoja encontrada: Diario STD
+================================================================================
+ANÁLISIS DE FÓRMULAS DEL CLIENTE 2 - FILA 17
+================================================================================
+
+Fila 17 (día 1, tercera fila):
+
+Fórmulas en Excel:
+  U (base): =IF(N17<>0,S15-T16,0)
+  V (saldo_diario): =IF(U17<>0,U17+W17,0)
+  W (beneficio_diario): =U17*X17
+  X (beneficio_diario_pct): =IF(U17<>0,P17,0)
+  Y (beneficio_acumulado): =IF(V17<>0,W17,0)
+
+Valores en Excel:
+  S (incremento): None
+  T (decremento): None
+  U (base): 0
+  V (saldo_diario): 0
+  W (beneficio_diario): 0
+  X (beneficio_diario_pct): 0
+  Y (beneficio_acumulado): 0
+
+Valores de columnas generales necesarios:
+  E (imp_inicial): None
+  F (imp_final): None
+  G (benef_euro): 0
+  H (benef_porcentaje): 0
+
+Incrementos/Decrementos del cliente 2:
+  Fila 15: incremento=None, decremento=None
+  Fila 16: incremento=None, decremento=None
+  Fila 17: incremento=None, decremento=None
