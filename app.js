@@ -1950,6 +1950,11 @@ function mostrarVistaGeneral() {
     recalcularImpInicialSync(hoja);
     requiereRecalculoImpInicial = false;
     
+    // VALIDACIÓN AUTOMÁTICA PARA DIARIO WIND
+    if (hojaActual === 'Diario WIND') {
+        validarYCorregirAutomaticoWIND(hoja);
+    }
+    
     // Mostrar tarjetas de resumen premium
     mostrarTarjetasResumen(datosGenerales, datosDiarios);
     
@@ -9335,3 +9340,224 @@ window.ignorarYSiguiente = function(indice) {
         mostrarNotificacion('✓ Todas las inconsistencias procesadas', 'success');
     }
 };
+
+// ============================================================================
+// VALIDACIÓN AUTOMÁTICA PARA DIARIO WIND
+// ============================================================================
+
+function validarYCorregirAutomaticoWIND(hoja) {
+    if (!hoja || !hoja.clientes) return;
+    
+    const problemas = [];
+    let recalculosRealizados = 0;
+    
+    // 1. VALIDAR REPARTO DE IMP_FINAL A CLIENTES
+    const datosGen = hoja.datos_diarios_generales || [];
+    const datosConImpFinal = datosGen.filter(d => 
+        d && d.fila >= 15 && d.fila <= 1120 && 
+        d.fecha && d.fecha !== 'FECHA' &&
+        typeof d.imp_final === 'number' && isFinite(d.imp_final) && d.imp_final > 0
+    );
+    
+    if (datosConImpFinal.length > 0) {
+        // Verificar que los clientes tengan datos diarios calculados
+        let clientesSinDatos = 0;
+        let clientesConSaldoInicial = 0;
+        
+        hoja.clientes.forEach((cliente, idx) => {
+            if (!cliente) return;
+            
+            const tieneSaldoInicial = cliente.saldo_inicial_mes && 
+                typeof cliente.saldo_inicial_mes === 'number' && 
+                cliente.saldo_inicial_mes > 0;
+            
+            const datosDiarios = cliente.datos_diarios || [];
+            const datosConSaldo = datosDiarios.filter(d => 
+                d && typeof d.saldo_diario === 'number' && isFinite(d.saldo_diario)
+            );
+            
+            if (tieneSaldoInicial) {
+                clientesConSaldoInicial++;
+                
+                if (datosConSaldo.length === 0) {
+                    clientesSinDatos++;
+                    problemas.push({
+                        tipo: 'cliente_sin_datos',
+                        cliente: idx + 1,
+                        saldo_inicial: cliente.saldo_inicial_mes,
+                        mensaje: `Cliente ${cliente.numero_cliente || (idx + 1)} tiene saldo inicial ${cliente.saldo_inicial_mes.toFixed(2)}€ pero no tiene datos diarios calculados`
+                    });
+                    
+                    // AUTO-CORRECCIÓN: Recalcular cliente
+                    console.log(`🔧 Auto-corrección: Recalculando cliente ${cliente.numero_cliente || (idx + 1)}`);
+                    recalcularClienteCompleto(
+                        cliente,
+                        hoja,
+                        hoja.datos_generales,
+                        hoja.datos_diarios_generales,
+                        null,
+                        'Diario WIND'
+                    );
+                    recalculosRealizados++;
+                }
+            }
+        });
+        
+        if (clientesSinDatos > 0) {
+            console.log(`⚠️ WIND: ${clientesSinDatos} de ${clientesConSaldoInicial} clientes con saldo inicial no tenían datos calculados`);
+        }
+    }
+    
+    // 2. VALIDAR SUMA DE SALDOS DE CLIENTES VS IMP_FINAL GENERAL
+    datosConImpFinal.forEach(datoGen => {
+        const fila = datoGen.fila;
+        const impFinalGeneral = datoGen.imp_final;
+        
+        let sumaSaldosClientes = 0;
+        let clientesEnFila = 0;
+        
+        hoja.clientes.forEach(cliente => {
+            if (!cliente || !cliente.datos_diarios) return;
+            
+            const datoCliente = cliente.datos_diarios.find(d => d && d.fila === fila);
+            if (datoCliente && typeof datoCliente.saldo_diario === 'number' && isFinite(datoCliente.saldo_diario)) {
+                sumaSaldosClientes += datoCliente.saldo_diario;
+                clientesEnFila++;
+            }
+        });
+        
+        const diferencia = Math.abs(impFinalGeneral - sumaSaldosClientes);
+        const tolerancia = 0.01; // 1 céntimo de tolerancia por errores de redondeo
+        
+        if (diferencia > tolerancia && clientesEnFila > 0) {
+            problemas.push({
+                tipo: 'desbalance_reparto',
+                fila: fila,
+                fecha: datoGen.fecha,
+                imp_final_general: impFinalGeneral,
+                suma_clientes: sumaSaldosClientes,
+                diferencia: diferencia,
+                mensaje: `Fila ${fila}: Imp Final General (${impFinalGeneral.toFixed(2)}€) ≠ Suma Clientes (${sumaSaldosClientes.toFixed(2)}€). Diferencia: ${diferencia.toFixed(2)}€`
+            });
+        }
+    });
+    
+    // 3. VALIDAR ARRASTRE DE SALDO ENTRE DÍAS
+    hoja.clientes.forEach((cliente, idx) => {
+        if (!cliente || !cliente.datos_diarios) return;
+        
+        const datosOrdenados = cliente.datos_diarios
+            .filter(d => d && d.fila >= 15 && d.fila <= 1120 && 
+                    typeof d.saldo_diario === 'number' && isFinite(d.saldo_diario))
+            .sort((a, b) => (a.fila || 0) - (b.fila || 0));
+        
+        for (let i = 1; i < datosOrdenados.length; i++) {
+            const anterior = datosOrdenados[i - 1];
+            const actual = datosOrdenados[i];
+            
+            const inc = typeof actual.incremento === 'number' ? actual.incremento : 0;
+            const dec = typeof actual.decremento === 'number' ? actual.decremento : 0;
+            const ben = typeof actual.beneficio_diario === 'number' ? actual.beneficio_diario : 0;
+            
+            const saldoEsperado = anterior.saldo_diario + inc - dec + ben;
+            const diferencia = Math.abs(actual.saldo_diario - saldoEsperado);
+            
+            if (diferencia > 0.01) {
+                problemas.push({
+                    tipo: 'arrastre_incorrecto',
+                    cliente: idx + 1,
+                    fila: actual.fila,
+                    saldo_anterior: anterior.saldo_diario,
+                    saldo_actual: actual.saldo_diario,
+                    saldo_esperado: saldoEsperado,
+                    diferencia: diferencia,
+                    mensaje: `Cliente ${cliente.numero_cliente || (idx + 1)}, Fila ${actual.fila}: Saldo ${actual.saldo_diario.toFixed(2)}€ ≠ Esperado ${saldoEsperado.toFixed(2)}€`
+                });
+            }
+        }
+    });
+    
+    // MOSTRAR RESULTADOS
+    if (recalculosRealizados > 0) {
+        mostrarNotificacion(`🔧 Auto-corrección: ${recalculosRealizados} cliente(s) recalculado(s)`, 'info');
+    }
+    
+    if (problemas.length > 0) {
+        const problemasGraves = problemas.filter(p => 
+            p.tipo === 'desbalance_reparto' || p.tipo === 'arrastre_incorrecto'
+        );
+        
+        if (problemasGraves.length > 0) {
+            console.warn('⚠️ WIND: Problemas detectados:', problemasGraves);
+            mostrarNotificacionValidacionWIND(problemasGraves);
+        }
+    } else if (recalculosRealizados === 0) {
+        console.log('✅ WIND: Validación OK - No se detectaron problemas');
+    }
+}
+
+function mostrarNotificacionValidacionWIND(problemas) {
+    const resumen = {};
+    problemas.forEach(p => {
+        resumen[p.tipo] = (resumen[p.tipo] || 0) + 1;
+    });
+    
+    let mensaje = '⚠️ WIND: ';
+    const tipos = [];
+    if (resumen.desbalance_reparto) tipos.push(`${resumen.desbalance_reparto} desbalance(s) de reparto`);
+    if (resumen.arrastre_incorrecto) tipos.push(`${resumen.arrastre_incorrecto} error(es) de arrastre`);
+    
+    mensaje += tipos.join(', ');
+    
+    // Mostrar notificación persistente
+    const notif = document.getElementById('notificacion');
+    if (notif) {
+        notif.textContent = mensaje;
+        notif.className = 'notificacion warning show';
+        notif.style.cursor = 'pointer';
+        notif.onclick = () => {
+            mostrarDetalleProblemasWIND(problemas);
+        };
+        
+        // No auto-ocultar, dejar que el usuario la cierre
+        setTimeout(() => {
+            if (notif.classList.contains('show')) {
+                notif.textContent += ' (Click para ver detalles)';
+            }
+        }, 3000);
+    }
+}
+
+function mostrarDetalleProblemasWIND(problemas) {
+    let html = '<div style="max-height: 400px; overflow-y: auto; padding: 10px;">';
+    html += '<h3>⚠️ Problemas detectados en Diario WIND</h3>';
+    html += '<p>Se encontraron las siguientes inconsistencias:</p>';
+    html += '<ul style="text-align: left; margin: 10px 0;">';
+    
+    problemas.slice(0, 10).forEach(p => {
+        html += `<li style="margin: 5px 0; font-size: 0.9em;">${p.mensaje}</li>`;
+    });
+    
+    if (problemas.length > 10) {
+        html += `<li style="margin: 5px 0; color: #888;">... y ${problemas.length - 10} más</li>`;
+    }
+    
+    html += '</ul>';
+    html += '<p style="margin-top: 15px;">Recomendación: Pulsa el botón "⟳ Actualizar" para forzar un recálculo completo.</p>';
+    html += '</div>';
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 600px;">
+            ${html}
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="this.closest('.modal').remove(); document.getElementById('btnActualizarTodo').click();">⟳ Recalcular Todo</button>
+                <button class="btn btn-secondary" onclick="this.closest('.modal').remove();">Cerrar</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
