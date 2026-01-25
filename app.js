@@ -2282,34 +2282,7 @@ function mostrarTablaCompleta(datosDiarios) {
         tr.appendChild(td);
         tbody.appendChild(tr);
     } else {
-        // Forzar copia de imp_final en fines de semana si falta (ej: día 31)
-        let ultimoImpFinalGeneral = null;
-        datosFiltrados.forEach(filaData => {
-            // Primero actualizar el último imp_final conocido
-            if (typeof filaData.imp_final === 'number' && isFinite(filaData.imp_final)) {
-                ultimoImpFinalGeneral = filaData.imp_final;
-            }
-            
-            const fechaFila = parsearFechaValor(filaData.fecha);
-            if (!fechaFila) return;
-            const diaSemana = fechaFila.getDay();
-            const esFinDeSemana = diaSemana === 0 || diaSemana === 6;
-            
-            // Si es fin de semana y no tiene imp_final, copiar del último conocido
-            if (esFinDeSemana && (filaData.imp_final === null || filaData.imp_final === undefined) && typeof ultimoImpFinalGeneral === 'number') {
-                console.log(`🔧 Forzando imp_final en fila ${filaData.fila} (${filaData.fecha}): ${ultimoImpFinalGeneral}`);
-                filaData.imp_final = ultimoImpFinalGeneral;
-                filaData._impFinalSource = 'auto_weekend';
-                
-                // TAMBIÉN copiar imp_inicial si no tiene (para consistencia)
-                if (filaData.imp_inicial === null || filaData.imp_inicial === undefined) {
-                    filaData.imp_inicial = ultimoImpFinalGeneral;
-                }
-                
-                // Actualizar el último conocido
-                ultimoImpFinalGeneral = filaData.imp_final;
-            }
-        });
+        // NO forzar nada - solo mostrar lo que el usuario ha escrito
         datosFiltrados.forEach((filaData, index) => {
             const tr = document.createElement('tr');
             tr.className = 'animate-slide-in';
@@ -2348,10 +2321,7 @@ function agregarCeldasFilaGeneral(tr, filaData) {
         // Respetar exactamente lo que dice el JSON (ya está correcto según Excel)
         const tieneFormula = filaData.formulas && filaData.formulas[columna] && filaData.formulas[columna].trim() !== '';
         const estaMarcadaBloqueada = filaData.bloqueadas && filaData.bloqueadas[columna] === true;
-        
-        // EXCEPCIÓN: Si es fin de semana con valor auto_weekend, NO bloquear para que muestre el valor
-        const esAutoWeekend = filaData._impFinalSource === 'auto_weekend' && columna === 'imp_final';
-        const bloqueado = (tieneFormula || estaMarcadaBloqueada) && !esAutoWeekend;
+        const bloqueado = tieneFormula || estaMarcadaBloqueada;
         
         // IMPORTANTE: Tratar 0 como vacío si la casilla no tiene valor real
         // Un valor es "vacío" si es null, undefined, o 0 en casillas calculadas
@@ -2591,14 +2561,13 @@ function agregarCeldasFilaGeneral(tr, filaData) {
     
     tr.appendChild(tdImpInicial);
     
-    // Importe Final - Mostrar valor si es manual O si es fin de semana con valor copiado
+    // Importe Final - Solo mostrar si es manual (escrito por el usuario)
     const esManual = esCeldaManualGeneral(filaData, 'imp_final');
-    const tieneValorAutoWeekend = filaData._impFinalSource === 'auto_weekend' && typeof filaData.imp_final === 'number';
-    const impFinalVisible = (esManual || tieneValorAutoWeekend) ? filaData.imp_final : null;
+    const impFinalVisible = esManual ? filaData.imp_final : null;
     // Normalizar origen del imp_final para el tooltip
     if (impFinalVisible === null || impFinalVisible === undefined) {
-        if (!filaData._impFinalSource) filaData._impFinalSource = 'empty';
-    } else if (!filaData._impFinalSource) {
+        filaData._impFinalSource = 'empty';
+    } else {
         filaData._impFinalSource = 'user';
     }
     const tdImpFinal = crearCeldaEditable('imp_final', impFinalVisible);
@@ -2614,7 +2583,6 @@ function agregarCeldasFilaGeneral(tr, filaData) {
             let sourceText = 'Origen: desconocido';
             if (source === 'user') sourceText = 'Origen: escrito por el usuario';
             if (source === 'user_cleared') sourceText = 'Origen: borrado por el usuario';
-            if (source === 'auto_weekend') sourceText = 'Origen: copiado del viernes (fin de semana)';
             if (source === 'empty') sourceText = 'Origen: vacío (sin dato)';
             tooltip.innerHTML = `
                 <div style="font-weight: 600; margin-bottom: 6px;">Importe Final</div>
@@ -2809,25 +2777,7 @@ function recalcularImpInicialSync(hoja) {
                 filaData.imp_inicial = nuevoImpInicial;
             }
             
-            // COPIAR imp_final del viernes al sábado/domingo si no hay movimientos
-            const fechaFila = parsearFechaValor(filaData.fecha);
-            if (fechaFila && ultimoImpFinal > 0) {
-                const diaSemana = fechaFila.getDay(); // 0=domingo, 6=sábado
-                const esFinDeSemana = diaSemana === 0 || diaSemana === 6;
-                const sinMovimientos = fa === 0;
-                
-                if (esFinDeSemana && sinMovimientos) {
-                    // Copiar imp_final del día anterior si no existe o es null
-                    // PERO NO si el usuario lo borró manualmente
-                    if ((filaData.imp_final === null || filaData.imp_final === undefined) && !filaData._userDeletedImpFinal) {
-                        console.log(`  Fila ${fila} (${diaSemana === 0 ? 'domingo' : 'sábado'}): copiando imp_final ${ultimoImpFinal} del día anterior`);
-                        filaData.imp_final = ultimoImpFinal;
-                        filaData._impFinalSource = 'auto_weekend';
-                        filaData._userDeletedImpFinal = false;
-                    }
-                }
-            }
-            
+            // NO copiar imp_final automáticamente - solo usar lo que el usuario escribe
             if (typeof filaData.imp_final === 'number') {
                 ultimoImpFinal = filaData.imp_final;
             }
