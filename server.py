@@ -20,6 +20,44 @@ ARCHIVO_DATOS_EDITADOS = os.environ.get('EDITADOS_PATH', 'datos_editados.json')
 
 os.makedirs(DIRECTORIO_DATOS, exist_ok=True)
 
+def diagnosticar_mes(nombre_hoja, mes):
+    """Diagnosticar datos de un mes específico."""
+    archivo = os.path.join(DIRECTORIO_DATOS, f'{nombre_hoja}_{mes}.json')
+    if not os.path.exists(archivo):
+        return {'error': f'Archivo no encontrado: {archivo}'}
+    
+    with open(archivo, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    diagnostico = {
+        'archivo': archivo,
+        'clientes_count': len(data.get('clientes', [])),
+        'datos_generales_count': len(data.get('datos_generales', [])),
+        'datos_diarios_generales_count': len(data.get('datos_diarios_generales', [])),
+        'clientes': []
+    }
+    
+    for idx, cliente in enumerate(data.get('clientes', [])):
+        datos_diarios = cliente.get('datos_diarios', [])
+        datos_con_fecha = [d for d in datos_diarios if d.get('fecha') and d.get('fecha') != 'FECHA']
+        datos_con_saldo = [d for d in datos_con_fecha if isinstance(d.get('saldo_diario'), (int, float))]
+        
+        cliente_info = {
+            'indice': idx,
+            'numero_cliente': cliente.get('numero_cliente'),
+            'saldo_inicial_mes': cliente.get('saldo_inicial_mes'),
+            'incrementos_total': cliente.get('incrementos_total'),
+            'decrementos_total': cliente.get('decrementos_total'),
+            'datos_diarios_count': len(datos_diarios),
+            'datos_con_fecha_count': len(datos_con_fecha),
+            'datos_con_saldo_count': len(datos_con_saldo),
+            'primera_fecha': datos_con_fecha[0].get('fecha') if datos_con_fecha else None,
+            'ultima_fecha': datos_con_fecha[-1].get('fecha') if datos_con_fecha else None
+        }
+        diagnostico['clientes'].append(cliente_info)
+    
+    return diagnostico
+
 def sincronizar_clientes_startup():
     """Sincronizar datos de clientes y arrastre de saldo en todos los meses al iniciar el servidor."""
     try:
@@ -144,6 +182,12 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             return self.diagnostico_enero()
         if parsed.path == '/api/diagnostico_enero_general':
             return self.diagnostico_enero_general()
+        if parsed.path.startswith('/api/diagnostico_mes/'):
+            match = re.match(r'/api/diagnostico_mes/([^/]+)/(\d{4}-\d{2})', parsed.path)
+            if match:
+                hoja = match.group(1).replace('_', ' ')
+                mes = match.group(2)
+                return self.enviar_diagnostico_mes(hoja, mes)
         if parsed.path.startswith('/api/datos/'):
             match = re.match(r'/api/datos/([^/]+)/(\d{4}-\d{2})', parsed.path)
             if match:
@@ -167,6 +211,20 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(404)
         self.end_headers()
 
+    def enviar_diagnostico_mes(self, hoja, mes):
+        try:
+            resultado = diagnosticar_mes(hoja, mes)
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps(resultado, ensure_ascii=False, indent=2).encode('utf-8'))
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
+    
     def enviar_clientes_anuales(self):
         try:
             archivo = f"{DIRECTORIO_DATOS}/clientes_anuales_2026.json"
