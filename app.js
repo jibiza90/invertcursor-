@@ -2477,6 +2477,12 @@ function agregarCeldasFilaGeneral(tr, filaData) {
     
     // Importe Final - Solo mostrar valor en filas manuales
     const impFinalVisible = esCeldaManualGeneral(filaData, 'imp_final') ? filaData.imp_final : null;
+    // Normalizar origen del imp_final para el tooltip
+    if (impFinalVisible === null || impFinalVisible === undefined) {
+        filaData._impFinalSource = 'empty';
+    } else if (!filaData._impFinalSource) {
+        filaData._impFinalSource = 'user';
+    }
     const tdImpFinal = crearCeldaEditable('imp_final', impFinalVisible);
     
     // Tooltip para imp_final con origen del valor
@@ -2639,7 +2645,17 @@ function recalcularImpInicialSync(hoja) {
             }
         });
     });
-    const limiteCalculo = Math.max((ultimaFilaImpFinalManual > 0 ? (ultimaFilaImpFinalManual + 1) : 0), ultimaFilaConIncremento);
+    const maxFilaConFecha = datosGen.reduce((max, d) => {
+        if (!d || typeof d.fila !== 'number') return max;
+        if (d.fila < 15 || d.fila > 1120) return max;
+        if (!d.fecha || d.fecha === 'FECHA') return max;
+        return Math.max(max, d.fila);
+    }, 0);
+    const limiteCalculo = Math.max(
+        (ultimaFilaImpFinalManual > 0 ? (ultimaFilaImpFinalManual + 1) : 0),
+        ultimaFilaConIncremento,
+        maxFilaConFecha
+    );
     if (limiteCalculo === 0) return;
     
     // Recalcular imp_inicial para cada fila hasta el límite
@@ -2680,6 +2696,8 @@ function recalcularImpInicialSync(hoja) {
                     if ((filaData.imp_final === null || filaData.imp_final === undefined) && !filaData._userDeletedImpFinal) {
                         console.log(`  Fila ${fila} (${diaSemana === 0 ? 'domingo' : 'sábado'}): copiando imp_final ${ultimoImpFinal} del día anterior`);
                         filaData.imp_final = ultimoImpFinal;
+                        filaData._impFinalSource = 'auto_weekend';
+                        filaData._userDeletedImpFinal = false;
                     }
                 }
             }
@@ -6271,6 +6289,8 @@ async function recalcularFormulasGeneralesDesdeFila(filaInicio, hoja, skipImpFin
                         if (impFinalActual !== baseCalculo && (impFinalActual === null || impFinalActual === undefined) && !filaData._userDeletedImpFinal) {
                             console.log(`  Fila ${fila} (${diaSemana === 0 ? 'domingo' : 'sábado'}): copiando imp_final ${baseCalculo} del día anterior`);
                             filaData.imp_final = baseCalculo;
+                            filaData._impFinalSource = 'auto_weekend';
+                            filaData._userDeletedImpFinal = false;
                             huboCambios = true;
                             totalCambios++;
                             actualizarCeldaEnUI(fila, 'imp_final', baseCalculo);
