@@ -132,11 +132,14 @@ function testRecalculoCompleto() {
         const impInicialDespues = fila15.imp_inicial;
         console.log(`   imp_inicial(15) después = ${impInicialDespues}`);
         
-        // Verificar que coincide con FA
+        const baseMesAnterior = (hojaActual === 'Diario WIND' && typeof hoja._impFinalMesAnterior === 'number') ? hoja._impFinalMesAnterior : 0;
         const fa15 = calcularFA(15, hoja);
         console.log(`   FA(15) = ${fa15}`);
+        const esperado = (hojaActual === 'Diario WIND') ? (baseMesAnterior + fa15) : fa15;
+        console.log(`   base mes anterior = ${baseMesAnterior}`);
+        console.log(`   esperado imp_inicial(15) = ${esperado}`);
         
-        const ok = Math.abs(impInicialDespues - fa15) < 0.01;
+        const ok = Math.abs(impInicialDespues - esperado) < 0.01;
         console.log(ok ? '✅ Test 3 PASSED' : '❌ Test 3 FAILED');
         return ok;
     }
