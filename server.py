@@ -69,14 +69,16 @@ def sincronizar_clientes_startup():
                         cliente_anterior = data_anterior['clientes'][idx]
                         
                         # Obtener saldo final del mes anterior
+                        # PRIORIDAD: último saldo_diario > saldo_actual > 0
                         datos_diarios = cliente_anterior.get('datos_diarios', [])
                         saldos = [d.get('saldo_diario') for d in datos_diarios 
                                  if isinstance(d.get('saldo_diario'), (int, float))]
                         
-                        if saldos:
+                        # Usar el último saldo_diario si existe (incluso si es 0)
+                        if len(saldos) > 0:
                             saldo_final_anterior = saldos[-1]
                         elif isinstance(cliente_anterior.get('saldo_actual'), (int, float)):
-                            # Si no hay datos_diarios con saldo, usar saldo_actual
+                            # Solo si NO hay datos_diarios, usar saldo_actual
                             saldo_final_anterior = cliente_anterior.get('saldo_actual')
                         else:
                             saldo_final_anterior = 0
@@ -457,14 +459,16 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                         for idx, cliente_actual in enumerate(datos.get('clientes', [])):
                             if idx < len(data_siguiente.get('clientes', [])):
                                 # Obtener saldo final del mes actual
+                                # PRIORIDAD: último saldo_diario > saldo_actual > 0
                                 datos_diarios = cliente_actual.get('datos_diarios', [])
                                 saldos = [d.get('saldo_diario') for d in datos_diarios 
                                          if isinstance(d.get('saldo_diario'), (int, float))]
                                 
-                                if saldos:
+                                # Usar el último saldo_diario si existe (incluso si es 0)
+                                if len(saldos) > 0:
                                     saldo_final = saldos[-1]
                                 elif isinstance(cliente_actual.get('saldo_actual'), (int, float)):
-                                    # Si no hay datos_diarios con saldo, usar saldo_actual
+                                    # Solo si NO hay datos_diarios, usar saldo_actual
                                     saldo_final = cliente_actual.get('saldo_actual')
                                 else:
                                     saldo_final = 0
