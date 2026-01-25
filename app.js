@@ -1451,9 +1451,37 @@ async function aplicarArrastreAnualAlCargar(nombreHoja, mes, dataMes) {
             c.numero_cliente = typeof c.numero_cliente === 'number' ? c.numero_cliente : (idx + 1);
             c.columna_inicio = 11 + (idx * 8);
         });
+        
+        // ARRASTRE DE IMP_FINAL del mes anterior al primer día del nuevo mes
+        const datosGenPrev = dataPrev.datos_diarios_generales || [];
+        const ultimoImpFinalMesAnterior = obtenerUltimoImpFinalDeDatosGenerales(datosGenPrev);
+        
+        if (typeof ultimoImpFinalMesAnterior === 'number' && ultimoImpFinalMesAnterior > 0) {
+            console.log(`📅 Arrastre entre meses: último imp_final de ${mesAnterior} = ${ultimoImpFinalMesAnterior}`);
+            
+            // Guardar para usarlo en recalcularImpInicialSync
+            dataMes._impFinalMesAnterior = ultimoImpFinalMesAnterior;
+        }
     } catch (e) {
         console.warn('⚠️ No se pudo aplicar arrastre anual:', e);
     }
+}
+
+// Obtener el último imp_final válido de datos generales
+function obtenerUltimoImpFinalDeDatosGenerales(datosGen) {
+    if (!datosGen || !Array.isArray(datosGen)) return null;
+    
+    const datosOrdenados = datosGen
+        .filter(d => d && d.fila >= 15 && d.fila <= 1120 && d.fecha && d.fecha !== 'FECHA')
+        .sort((a, b) => (b.fila || 0) - (a.fila || 0)); // Ordenar descendente por fila
+    
+    for (const d of datosOrdenados) {
+        if (typeof d.imp_final === 'number' && isFinite(d.imp_final) && d.imp_final > 0) {
+            return d.imp_final;
+        }
+    }
+    
+    return null;
 }
 
 // Inicializar eventos
@@ -2696,15 +2724,23 @@ function recalcularImpInicialSync(hoja) {
     
     console.log(`📊 recalcularImpInicialSync: procesando ${datosGenOrd.length} filas hasta límite ${limiteCalculo}`);
     
-    let ultimoImpFinal = 0;
+    // ARRASTRE ENTRE MESES: usar imp_final del mes anterior como base
+    const impFinalMesAnterior = hoja._impFinalMesAnterior || 0;
+    let ultimoImpFinal = impFinalMesAnterior;
+    
+    if (impFinalMesAnterior > 0) {
+        console.log(`📅 Usando imp_final del mes anterior como base: ${impFinalMesAnterior}`);
+    }
+    
     for (const filaData of datosGenOrd) {
         const fila = filaData.fila;
         const fa = calcularFA(fila, hoja);
         
         if (fila === 15) {
-            // Primera fila: imp_inicial = FA (suma de inversiones iniciales)
-            if (fa > 0 || filaData.imp_inicial !== null) {
-                filaData.imp_inicial = fa;
+            // Primera fila: imp_inicial = imp_final_mes_anterior + FA (o solo FA si no hay mes anterior)
+            const nuevoImpInicial = impFinalMesAnterior + fa;
+            if (nuevoImpInicial > 0 || fa > 0 || filaData.imp_inicial !== null) {
+                filaData.imp_inicial = nuevoImpInicial > 0 ? nuevoImpInicial : fa;
             }
             if (typeof filaData.imp_final === 'number') {
                 ultimoImpFinal = filaData.imp_final;
