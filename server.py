@@ -283,6 +283,49 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as sync_error:
                 print(f"⚠️ Error sincronizando clientes: {sync_error}")
             
+            # ACTUALIZAR saldo_inicial_mes del mes siguiente
+            try:
+                # Obtener lista de meses ordenados
+                archivos_hoja = sorted([f for f in os.listdir(DIRECTORIO_DATOS) 
+                                       if f.startswith(hoja.replace(' ', '_')) 
+                                       and f.endswith('.json')
+                                       and 'clientes_anuales' not in f])
+                
+                # Encontrar el mes siguiente
+                archivo_actual = f"{hoja.replace(' ', '_')}_{mes}.json"
+                if archivo_actual in archivos_hoja:
+                    idx_actual = archivos_hoja.index(archivo_actual)
+                    if idx_actual < len(archivos_hoja) - 1:
+                        archivo_siguiente = archivos_hoja[idx_actual + 1]
+                        ruta_siguiente = f"{DIRECTORIO_DATOS}/{archivo_siguiente}"
+                        
+                        # Cargar mes siguiente
+                        with open(ruta_siguiente, 'r', encoding='utf-8') as f:
+                            data_siguiente = json.load(f)
+                        
+                        # Actualizar saldo_inicial_mes de cada cliente
+                        modificado_siguiente = False
+                        for idx, cliente_actual in enumerate(datos.get('clientes', [])):
+                            if idx < len(data_siguiente.get('clientes', [])):
+                                # Obtener saldo final del mes actual
+                                datos_diarios = cliente_actual.get('datos_diarios', [])
+                                saldos = [d.get('saldo_diario') for d in datos_diarios 
+                                         if isinstance(d.get('saldo_diario'), (int, float))]
+                                saldo_final = saldos[-1] if saldos else 0
+                                
+                                # Actualizar saldo_inicial_mes del mes siguiente
+                                cliente_siguiente = data_siguiente['clientes'][idx]
+                                if cliente_siguiente.get('saldo_inicial_mes') != saldo_final:
+                                    cliente_siguiente['saldo_inicial_mes'] = saldo_final
+                                    modificado_siguiente = True
+                        
+                        if modificado_siguiente:
+                            with open(ruta_siguiente, 'w', encoding='utf-8') as f:
+                                json.dump(data_siguiente, f, ensure_ascii=False, separators=(',', ':'))
+                            print(f"✅ Saldo inicial actualizado en mes siguiente")
+            except Exception as saldo_error:
+                print(f"⚠️ Error actualizando saldo inicial: {saldo_error}")
+            
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
