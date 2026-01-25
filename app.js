@@ -2313,9 +2313,15 @@ function agregarCeldasFilaGeneral(tr, filaData) {
                 console.log(`🗑️ Borrado detectado en ${columna} fila ${filaData.fila}: inputVacio=${inputVacio}, nuevoValor=${nuevoValor}`);
                 
                 // MARCAR que el usuario borró este campo para evitar restauración automática
-                if (inputVacio && columna === 'imp_final') {
-                    filaData._userDeletedImpFinal = true;
-                    console.log(`🔒 Marcando fila ${filaData.fila} como imp_final borrado por usuario`);
+                if (columna === 'imp_final') {
+                    if (inputVacio) {
+                        filaData._userDeletedImpFinal = true;
+                        filaData._impFinalSource = 'user_cleared';
+                        console.log(`🔒 Marcando fila ${filaData.fila} como imp_final borrado por usuario`);
+                    } else {
+                        filaData._userDeletedImpFinal = false;
+                        filaData._impFinalSource = 'user';
+                    }
                 }
                 
                 // Actualizar el dato y recalcular fórmulas automáticamente
@@ -2471,7 +2477,65 @@ function agregarCeldasFilaGeneral(tr, filaData) {
     
     // Importe Final - Solo mostrar valor en filas manuales
     const impFinalVisible = esCeldaManualGeneral(filaData, 'imp_final') ? filaData.imp_final : null;
-    tr.appendChild(crearCeldaEditable('imp_final', impFinalVisible));
+    const tdImpFinal = crearCeldaEditable('imp_final', impFinalVisible);
+    
+    // Tooltip para imp_final con origen del valor
+    let impFinalTooltipTimeout = null;
+    tdImpFinal.addEventListener('mouseenter', function(e) {
+        if (impFinalTooltipTimeout) clearTimeout(impFinalTooltipTimeout);
+        impFinalTooltipTimeout = setTimeout(() => {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'custom-tooltip';
+            const source = filaData._impFinalSource || (typeof filaData.imp_final === 'number' ? 'user' : 'empty');
+            let sourceText = 'Origen: desconocido';
+            if (source === 'user') sourceText = 'Origen: escrito por el usuario';
+            if (source === 'user_cleared') sourceText = 'Origen: borrado por el usuario';
+            if (source === 'auto_weekend') sourceText = 'Origen: copiado del viernes (fin de semana)';
+            if (source === 'empty') sourceText = 'Origen: vacío (sin dato)';
+            tooltip.innerHTML = `
+                <div style="font-weight: 600; margin-bottom: 6px;">Importe Final</div>
+                <div>${sourceText}</div>
+            `;
+            tooltip.style.cssText = `
+                position: fixed;
+                background: #fff;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                padding: 10px 12px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                font-size: 12px;
+                max-width: 320px;
+                pointer-events: none;
+            `;
+            document.body.appendChild(tooltip);
+            const rect = e.target.getBoundingClientRect();
+            const tooltipRect = tooltip.getBoundingClientRect();
+            let left = rect.left;
+            let top = rect.top - tooltipRect.height - 10;
+            if (top < 10) {
+                top = rect.bottom + 10;
+            }
+            if (left + tooltipRect.width > window.innerWidth - 10) {
+                left = window.innerWidth - tooltipRect.width - 10;
+            }
+            if (left < 10) left = 10;
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+            tdImpFinal._tooltip = tooltip;
+        }, 1200);
+    });
+    tdImpFinal.addEventListener('mouseleave', function() {
+        if (impFinalTooltipTimeout) {
+            clearTimeout(impFinalTooltipTimeout);
+            impFinalTooltipTimeout = null;
+        }
+        if (tdImpFinal._tooltip) {
+            tdImpFinal._tooltip.remove();
+            tdImpFinal._tooltip = null;
+        }
+    });
+    tr.appendChild(tdImpFinal);
     
     // Beneficio € (puede ser texto o número)
     const tdBenefEuro = document.createElement('td');
