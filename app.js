@@ -315,7 +315,7 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
         inversionAcum += inc;
 
         const datoGeneral = mapGeneralPorFila.get(filaCalculo.fila);
-        const tieneImpFinalGeneral = !!(datoGeneral && typeof datoGeneral.imp_final === 'number' && isFinite(datoGeneral.imp_final));
+        const tieneImpFinalGeneral = esImpFinalConValorGeneral(datoGeneral);
         const benefPct = (datoGeneral && typeof datoGeneral.benef_porcentaje === 'number' && isFinite(datoGeneral.benef_porcentaje))
             ? datoGeneral.benef_porcentaje
             : 0;
@@ -1041,6 +1041,11 @@ function esCeldaManualGeneral(filaData, columna) {
     return !tieneFormula && !estaBloqueada;
 }
 
+function esImpFinalConValorGeneral(filaData) {
+    return !!(filaData && filaData.fecha && filaData.fecha !== 'FECHA' &&
+        typeof filaData.imp_final === 'number' && isFinite(filaData.imp_final));
+}
+
 function obtenerUltimaFilaImpFinalManual(hoja) {
     const datosDiarios = hoja?.datos_diarios_generales || [];
     let maxFila = 0;
@@ -1048,10 +1053,8 @@ function obtenerUltimaFilaImpFinalManual(hoja) {
         if (!d || typeof d.fila !== 'number') return;
         if (d.fila < 15 || d.fila > 1120) return;
         if (!d.fecha || d.fecha === 'FECHA') return;
-        if (!esCeldaManualGeneral(d, 'imp_final')) return;
-        if (typeof d.imp_final === 'number' && isFinite(d.imp_final)) {
-            maxFila = Math.max(maxFila, d.fila);
-        }
+        if (!esImpFinalConValorGeneral(d)) return;
+        maxFila = Math.max(maxFila, d.fila);
     });
     return maxFila;
 }
@@ -1059,8 +1062,8 @@ function obtenerUltimaFilaImpFinalManual(hoja) {
 function obtenerUltimaFechaImpFinalManual(hoja) {
     const datosDiarios = hoja?.datos_diarios_generales || [];
     const manuales = datosDiarios
-        .filter(d => d && d.fila >= 15 && d.fila <= 1120 && d.fecha && d.fecha !== 'FECHA')
-        .filter(d => esCeldaManualGeneral(d, 'imp_final') && typeof d.imp_final === 'number');
+        .filter(d => d && d.fila >= 15 && d.fila <= 1120)
+        .filter(d => esImpFinalConValorGeneral(d));
 
     if (manuales.length === 0) return null;
 
@@ -1981,13 +1984,7 @@ function recalcularTotalesGenerales(hoja) {
         // Buscar desde el final hacia atrás, solo filas válidas (15-1120) y manuales
         for (let i = datosDiarios.length - 1; i >= 0; i--) {
             const dato = datosDiarios[i];
-            if (dato.fila >= 15 && dato.fila <= 1120 &&
-                dato.fecha && 
-                dato.fecha !== 'FECHA' &&
-                esCeldaManualGeneral(dato, 'imp_final') &&
-                dato.imp_final !== null && 
-                dato.imp_final !== undefined && 
-                typeof dato.imp_final === 'number') {
+            if (dato.fila >= 15 && dato.fila <= 1120 && esImpFinalConValorGeneral(dato)) {
                 ultimoImpFinal = dato.imp_final;
                 ultimaFecha = dato.fecha;
                 break;
@@ -5603,8 +5600,8 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
     const ultimaFilaImpFinalGeneral = datosDiariosGenerales.reduce((m, d) => {
         if (!d || typeof d.fila !== 'number') return m;
         if (d.fila < 15 || d.fila > 1120) return m;
-        if (!esCeldaManualGeneral(d, 'imp_final')) return m;
-        if (typeof d.imp_final === 'number' && isFinite(d.imp_final)) return Math.max(m, d.fila);
+        if (!esImpFinalConValorGeneral(d)) return m;
+        return Math.max(m, d.fila);
         return m;
     }, 0);
     
@@ -6128,7 +6125,7 @@ async function recalcularFormulasPorCambioClienteInterno(clienteIdx, filaIdx, ca
                 
                 // Obtener benef_porcentaje de la vista general para esta fila
                 const datoGeneral = hoja.datos_diarios_generales?.find(g => g.fila === filaDataCliente.fila);
-                const tieneImpFinalGeneral = !!(datoGeneral && esCeldaManualGeneral(datoGeneral, 'imp_final') && typeof datoGeneral.imp_final === 'number' && isFinite(datoGeneral.imp_final));
+                const tieneImpFinalGeneral = esImpFinalConValorGeneral(datoGeneral);
                 const benefPct = tieneImpFinalGeneral ? (datoGeneral?.benef_porcentaje || 0) : 0;
                 const esDiarioWind = nombreHoja === 'Diario WIND';
                 
@@ -6337,7 +6334,7 @@ async function recalcularFormulasGeneralesDesdeFila(filaInicio, hoja, skipImpFin
             
             // IMPORTANTE: Si NO hay imp_final en esta fila, LIMPIAR los valores de beneficio
             // Los beneficios solo deben existir si hay imp_final
-            const tieneImpFinal = !!(esCeldaManualGeneral(filaData, 'imp_final') && typeof filaData.imp_final === 'number' && isFinite(filaData.imp_final));
+            const tieneImpFinal = esImpFinalConValorGeneral(filaData);
             
             if (!tieneImpFinal) {
                 // Limpiar beneficios si no hay imp_final
