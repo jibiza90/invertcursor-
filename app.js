@@ -1069,6 +1069,20 @@ function esCeldaManualGeneral(filaData, columna) {
     return !tieneFormula && !estaBloqueada;
 }
 
+function obtenerSaldoAnteriorImpFinalManualGeneral(hoja, fila) {
+    if (!hoja || typeof fila !== 'number') return 0;
+    const datos = hoja.datos_diarios_generales || [];
+    for (let f = fila - 1; f >= 15; f--) {
+        const d = datos.find(x => x && x.fila === f);
+        if (!d) continue;
+        if (!d.fecha || d.fecha === 'FECHA') continue;
+        if (esCeldaManualGeneral(d, 'imp_final') && typeof d.imp_final === 'number' && isFinite(d.imp_final)) {
+            return d.imp_final;
+        }
+    }
+    return typeof hoja._impFinalMesAnterior === 'number' ? hoja._impFinalMesAnterior : 0;
+}
+
 function esImpFinalConValorGeneral(filaData) {
     return !!(filaData && filaData.fecha && filaData.fecha !== 'FECHA' &&
         typeof filaData.imp_final === 'number' && isFinite(filaData.imp_final));
@@ -1587,7 +1601,8 @@ function obtenerUltimoImpFinalDeDatosGenerales(datosGen) {
         .sort((a, b) => (b.fila || 0) - (a.fila || 0)); // Ordenar descendente por fila
     
     for (const d of datosOrdenados) {
-        if (typeof d.imp_final === 'number' && isFinite(d.imp_final) && d.imp_final > 0) {
+        // CRÍTICO: Para arrastre entre meses, solo usar imp_final manual (editable). Ignorar bloqueados.
+        if (esCeldaManualGeneral(d, 'imp_final') && typeof d.imp_final === 'number' && isFinite(d.imp_final) && d.imp_final > 0) {
             return d.imp_final;
         }
     }
@@ -2040,7 +2055,7 @@ function recalcularTotalesGenerales(hoja) {
         // Buscar desde el final hacia atrás, solo filas válidas (15-1120) y manuales
         for (let i = datosDiarios.length - 1; i >= 0; i--) {
             const dato = datosDiarios[i];
-            if (dato.fila >= 15 && dato.fila <= 1120 && esImpFinalConValorGeneral(dato)) {
+            if (dato.fila >= 15 && dato.fila <= 1120 && esCeldaManualGeneral(dato, 'imp_final') && esImpFinalConValorGeneral(dato)) {
                 ultimoImpFinal = dato.imp_final;
                 ultimaFecha = dato.fecha;
                 break;
@@ -2543,10 +2558,8 @@ function agregarCeldasFilaGeneral(tr, filaData) {
         const hoja = datosEditados?.hojas?.[hojaActual];
         if (!hoja) return;
         
-        // Obtener datos del día anterior
-        const datosDiarios = hoja.datos_diarios_generales || [];
-        const filaAnterior = datosDiarios.find(d => d.fila === fila - 1);
-        const saldoAnterior = filaAnterior?.imp_final || 0;
+        // Obtener saldo anterior REAL (último imp_final manual anterior o imp_final mes anterior)
+        const saldoAnterior = obtenerSaldoAnteriorImpFinalManualGeneral(hoja, fila);
         
         // Obtener incrementos y decrementos de este día
         const clientes = hoja.clientes || [];
