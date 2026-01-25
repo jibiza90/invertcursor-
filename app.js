@@ -5294,6 +5294,13 @@ function renderDetalleCliente(index) {
 // Mostrar detalle del cliente
 async function mostrarDetalleCliente(index) {
     await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_detalle' });
+    
+    // REDISTRIBUCIÓN AUTOMÁTICA PARA DIARIO WIND antes de mostrar cliente
+    if (hojaActual === 'Diario WIND' && datosEditados?.hojas?.[hojaActual]) {
+        const hoja = datosEditados.hojas[hojaActual];
+        redistribuirSaldosClientesWIND(hoja);
+    }
+    
     renderDetalleCliente(index);
 }
 
