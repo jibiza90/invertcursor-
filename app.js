@@ -2415,23 +2415,39 @@ function agregarCeldasFilaGeneral(tr, filaData) {
         const rect = e.target.getBoundingClientRect();
         const tooltipRect = tooltip.getBoundingClientRect();
         
-        // Calcular si cabe abajo
+        // Calcular espacio disponible en todas las direcciones
         const espacioAbajo = window.innerHeight - rect.bottom;
         const espacioArriba = rect.top;
+        const espacioDerecha = window.innerWidth - rect.right;
+        const espacioIzquierda = rect.left;
         
+        let left = rect.left + window.scrollX;
+        let top = rect.bottom + window.scrollY + 5;
+        
+        // Decidir posición vertical (arriba o abajo)
         if (espacioAbajo >= tooltipRect.height + 10) {
             // Mostrar abajo
-            tooltip.style.left = (rect.left + window.scrollX) + 'px';
-            tooltip.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+            top = rect.bottom + window.scrollY + 5;
         } else if (espacioArriba >= tooltipRect.height + 10) {
             // Mostrar arriba
-            tooltip.style.left = (rect.left + window.scrollX) + 'px';
-            tooltip.style.top = (rect.top + window.scrollY - tooltipRect.height - 5) + 'px';
+            top = rect.top + window.scrollY - tooltipRect.height - 5;
         } else {
-            // Mostrar al lado derecho si no cabe ni arriba ni abajo
-            tooltip.style.left = (rect.right + window.scrollX + 10) + 'px';
-            tooltip.style.top = (rect.top + window.scrollY) + 'px';
+            // Si no cabe ni arriba ni abajo, centrar verticalmente en viewport
+            top = window.scrollY + (window.innerHeight - tooltipRect.height) / 2;
         }
+        
+        // Ajustar posición horizontal para que no se salga de la pantalla
+        if (left + tooltipRect.width > window.innerWidth + window.scrollX) {
+            // Se sale por la derecha, alinear a la derecha
+            left = window.innerWidth + window.scrollX - tooltipRect.width - 10;
+        }
+        if (left < window.scrollX) {
+            // Se sale por la izquierda, alinear a la izquierda
+            left = window.scrollX + 10;
+        }
+        
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = top + 'px';
         
         // Guardar referencia para eliminar después
         tdImpInicial._tooltip = tooltip;
@@ -6148,6 +6164,26 @@ async function recalcularFormulasGeneralesDesdeFila(filaInicio, hoja, skipImpFin
                     huboCambios = true;
                     totalCambios++;
                     actualizarCeldaEnUI(fila, 'imp_inicial', nuevoValor);
+                }
+                
+                // COPIAR imp_final del viernes al sábado/domingo si no hay movimientos
+                const fechaFila = parsearFechaValor(filaData.fecha);
+                if (fechaFila) {
+                    const diaSemana = fechaFila.getDay(); // 0=domingo, 6=sábado
+                    const esFinDeSemana = diaSemana === 0 || diaSemana === 6;
+                    const sinMovimientos = sumaFA === 0;
+                    
+                    if (esFinDeSemana && sinMovimientos && baseCalculo > 0) {
+                        // Copiar imp_final del día anterior si no existe
+                        const impFinalActual = filaData.imp_final;
+                        if (impFinalActual !== baseCalculo && (impFinalActual === null || impFinalActual === undefined)) {
+                            console.log(`  Fila ${fila} (${diaSemana === 0 ? 'domingo' : 'sábado'}): copiando imp_final ${baseCalculo} del día anterior`);
+                            filaData.imp_final = baseCalculo;
+                            huboCambios = true;
+                            totalCambios++;
+                            actualizarCeldaEnUI(fila, 'imp_final', baseCalculo);
+                        }
+                    }
                 }
             }
             
