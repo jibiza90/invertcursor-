@@ -2895,6 +2895,15 @@ function recalcularImpInicialSync(hoja) {
         }
     }
 
+    // CRÍTICO: Limpiar imp_inicial de TODAS las filas después de la última con imp_final
+    if (hojaActual === 'Diario WIND' && ultimaFilaImpFinalManual > 0) {
+        for (const d of datosGen) {
+            if (d && d.fila > ultimaFilaImpFinalManual) {
+                d.imp_inicial = null;
+            }
+        }
+    }
+    
     // Limpiar imp_inicial FUTURO para que no aparezca relleno cuando aún no toca
     for (const d of datosGen) {
         if (!d || typeof d.fila !== 'number') continue;
