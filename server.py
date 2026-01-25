@@ -73,6 +73,8 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 hoja = match.group(1).replace('_', ' ')
                 mes = match.group(2)
                 return self.guardar_datos_mes(hoja, mes)
+        if parsed.path == '/api/sincronizar_clientes':
+            return self.sincronizar_clientes_todos_meses()
         if parsed.path == '/guardar_datos':
             return self.guardar_datos_completo()
         self.send_response(404)
@@ -142,6 +144,56 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
 
+    def sincronizar_clientes_todos_meses(self):
+        try:
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            payload = json.loads(post_data.decode('utf-8'))
+            
+            hoja = payload.get('hoja', 'Diario WIND')
+            clientes_datos = payload.get('clientes', [])
+            
+            # Sincronizar datos de clientes en TODOS los meses
+            archivos_modificados = 0
+            for archivo in os.listdir(DIRECTORIO_DATOS):
+                if not archivo.endswith('.json'):
+                    continue
+                if not archivo.startswith(hoja.replace(' ', '_')):
+                    continue
+                if 'clientes_anuales' in archivo:
+                    continue
+                
+                ruta = f"{DIRECTORIO_DATOS}/{archivo}"
+                with open(ruta, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                modificado = False
+                for idx, datos_cliente in enumerate(clientes_datos):
+                    if idx < len(data.get('clientes', [])):
+                        cliente_actual = data['clientes'][idx]
+                        # Solo actualizar datos (nombre, apellidos), NO movimientos
+                        if cliente_actual.get('datos') != datos_cliente:
+                            cliente_actual['datos'] = datos_cliente
+                            modificado = True
+                
+                if modificado:
+                    with open(ruta, 'w', encoding='utf-8') as f:
+                        json.dump(data, f, ensure_ascii=False, separators=(',', ':'))
+                    archivos_modificados += 1
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                'success': True,
+                'archivos_modificados': archivos_modificados
+            }).encode('utf-8'))
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'success': False, 'error': str(e)}).encode('utf-8'))
+
     def guardar_datos_mes(self, hoja, mes):
         try:
             content_length = int(self.headers['Content-Length'])
@@ -150,6 +202,38 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             archivo = f"{DIRECTORIO_DATOS}/{hoja.replace(' ', '_')}_{mes}.json"
             with open(archivo, 'w', encoding='utf-8') as f:
                 json.dump(datos, f, ensure_ascii=False, separators=(',', ':'))
+            
+            # SINCRONIZAR datos de clientes en todos los meses automáticamente
+            try:
+                clientes_datos = [c.get('datos', {}) for c in datos.get('clientes', [])]
+                for archivo_mes in os.listdir(DIRECTORIO_DATOS):
+                    if not archivo_mes.endswith('.json'):
+                        continue
+                    if not archivo_mes.startswith(hoja.replace(' ', '_')):
+                        continue
+                    if 'clientes_anuales' in archivo_mes:
+                        continue
+                    if archivo_mes == f"{hoja.replace(' ', '_')}_{mes}.json":
+                        continue  # Skip el mes actual
+                    
+                    ruta = f"{DIRECTORIO_DATOS}/{archivo_mes}"
+                    with open(ruta, 'r', encoding='utf-8') as f:
+                        data_mes = json.load(f)
+                    
+                    modificado = False
+                    for idx, datos_cliente in enumerate(clientes_datos):
+                        if idx < len(data_mes.get('clientes', [])):
+                            cliente_actual = data_mes['clientes'][idx]
+                            if cliente_actual.get('datos') != datos_cliente:
+                                cliente_actual['datos'] = datos_cliente
+                                modificado = True
+                    
+                    if modificado:
+                        with open(ruta, 'w', encoding='utf-8') as f:
+                            json.dump(data_mes, f, ensure_ascii=False, separators=(',', ':'))
+            except Exception as sync_error:
+                print(f"⚠️ Error sincronizando clientes: {sync_error}")
+            
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
