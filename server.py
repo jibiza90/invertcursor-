@@ -21,7 +21,7 @@ ARCHIVO_DATOS_EDITADOS = os.environ.get('EDITADOS_PATH', 'datos_editados.json')
 os.makedirs(DIRECTORIO_DATOS, exist_ok=True)
 
 def sincronizar_clientes_startup():
-    """Sincronizar datos de clientes en todos los meses al iniciar el servidor."""
+    """Sincronizar datos de clientes y arrastre de saldo en todos los meses al iniciar el servidor."""
     try:
         target = Path(DIRECTORIO_DATOS)
         archivos_wind = sorted(target.glob('Diario_WIND_2026-*.json'))
@@ -29,7 +29,7 @@ def sincronizar_clientes_startup():
         if len(archivos_wind) == 0:
             return
         
-        print("🔄 Sincronizando datos de clientes en todos los meses...")
+        print("🔄 Sincronizando datos de clientes y arrastre de saldo...")
         
         # Recopilar datos de clientes
         clientes_por_indice = {}
@@ -43,12 +43,17 @@ def sincronizar_clientes_startup():
                     if datos:
                         clientes_por_indice[idx] = datos
         
-        # Aplicar a todos los meses
+        # Aplicar datos de clientes y arrastre de saldo
+        datos_meses = []
         for archivo in archivos_wind:
             with open(archivo, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            
+            datos_meses.append((archivo, data))
+        
+        for i, (archivo, data) in enumerate(datos_meses):
             modificado = False
+            
+            # Sincronizar datos de clientes
             for idx, datos_correctos in clientes_por_indice.items():
                 if idx < len(data.get('clientes', [])):
                     cliente = data['clientes'][idx]
@@ -56,13 +61,31 @@ def sincronizar_clientes_startup():
                         cliente['datos'] = datos_correctos.copy()
                         modificado = True
             
+            # Sincronizar arrastre de saldo desde mes anterior
+            if i > 0:
+                _, data_anterior = datos_meses[i-1]
+                for idx, cliente in enumerate(data.get('clientes', [])):
+                    if idx < len(data_anterior.get('clientes', [])):
+                        cliente_anterior = data_anterior['clientes'][idx]
+                        
+                        # Obtener saldo final del mes anterior
+                        datos_diarios = cliente_anterior.get('datos_diarios', [])
+                        saldos = [d.get('saldo_diario') for d in datos_diarios 
+                                 if isinstance(d.get('saldo_diario'), (int, float))]
+                        saldo_final_anterior = saldos[-1] if saldos else 0
+                        
+                        # Actualizar saldo_inicial_mes si es diferente
+                        if cliente.get('saldo_inicial_mes') != saldo_final_anterior:
+                            cliente['saldo_inicial_mes'] = saldo_final_anterior
+                            modificado = True
+            
             if modificado:
                 with open(archivo, 'w', encoding='utf-8') as f:
                     json.dump(data, f, ensure_ascii=False, separators=(',', ':'))
         
-        print(f"✅ Sincronización completada: {len(clientes_por_indice)} clientes")
+        print(f"✅ Sincronización completada: {len(clientes_por_indice)} clientes, arrastre de saldo actualizado")
     except Exception as e:
-        print(f"⚠️  Error sincronizando clientes: {e}")
+        print(f"⚠️  Error sincronizando: {e}")
 
 def seed_datos_if_empty():
     """If DATA_DIR points to a persistent disk and it's empty, seed it from the repo's datos_mensuales."""

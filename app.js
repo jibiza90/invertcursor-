@@ -1663,6 +1663,16 @@ async function cambiarMes() {
         actualizarNavegacionMes();
         await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'cambiarMes' });
         mostrarVistaGeneral();
+        
+        // Scroll al día 1 (fila 15)
+        setTimeout(() => {
+            const fila15 = document.querySelector('[data-fila="15"]');
+            if (fila15) {
+                fila15.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }, 100);
     } finally {
         ocultarLoadingOverlay();
     }
