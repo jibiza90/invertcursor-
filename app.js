@@ -1452,16 +1452,32 @@ async function aplicarArrastreAnualAlCargar(nombreHoja, mes, dataMes) {
             c.columna_inicio = 11 + (idx * 8);
         });
         
-        // ARRASTRE DE IMP_FINAL del mes anterior al primer día del nuevo mes
+        // ARRASTRE COMPLETO DEL MES ANTERIOR
         const datosGenPrev = dataPrev.datos_diarios_generales || [];
+        const datosGeneralesPrev = dataPrev.datos_generales || [];
+        
+        // 1. Último imp_final del mes anterior
         const ultimoImpFinalMesAnterior = obtenerUltimoImpFinalDeDatosGenerales(datosGenPrev);
         
-        if (typeof ultimoImpFinalMesAnterior === 'number' && ultimoImpFinalMesAnterior > 0) {
-            console.log(`📅 Arrastre entre meses: último imp_final de ${mesAnterior} = ${ultimoImpFinalMesAnterior}`);
-            
-            // Guardar para usarlo en recalcularImpInicialSync
-            dataMes._impFinalMesAnterior = ultimoImpFinalMesAnterior;
-        }
+        // 2. Inversión inicial acumulada (fila 3 del mes anterior)
+        const fila3Prev = datosGeneralesPrev.find(d => d.fila === 3);
+        const inversionInicialAcumulada = fila3Prev?.imp_inicial || fila3Prev?.imp_final || 0;
+        
+        // 3. Beneficio acumulado (última fila con benef_euro_acum)
+        const ultimoBenefAcum = obtenerUltimoBeneficioAcumulado(datosGenPrev);
+        const ultimoBenefPctAcum = obtenerUltimoBeneficioPctAcumulado(datosGenPrev);
+        
+        console.log(`📅 Arrastre entre meses desde ${mesAnterior}:`);
+        console.log(`   - Último imp_final: ${ultimoImpFinalMesAnterior}`);
+        console.log(`   - Inversión inicial acumulada: ${inversionInicialAcumulada}`);
+        console.log(`   - Beneficio € acumulado: ${ultimoBenefAcum}`);
+        console.log(`   - Beneficio % acumulado: ${ultimoBenefPctAcum}`);
+        
+        // Guardar para usarlo en recálculos
+        dataMes._impFinalMesAnterior = ultimoImpFinalMesAnterior || 0;
+        dataMes._inversionInicialAcumulada = inversionInicialAcumulada || 0;
+        dataMes._benefEuroAcumAnterior = ultimoBenefAcum || 0;
+        dataMes._benefPctAcumAnterior = ultimoBenefPctAcum || 0;
     } catch (e) {
         console.warn('⚠️ No se pudo aplicar arrastre anual:', e);
     }
@@ -1482,6 +1498,40 @@ function obtenerUltimoImpFinalDeDatosGenerales(datosGen) {
     }
     
     return null;
+}
+
+// Obtener el último beneficio € acumulado del mes
+function obtenerUltimoBeneficioAcumulado(datosGen) {
+    if (!datosGen || !Array.isArray(datosGen)) return 0;
+    
+    const datosOrdenados = datosGen
+        .filter(d => d && d.fila >= 15 && d.fila <= 1120 && d.fecha && d.fecha !== 'FECHA')
+        .sort((a, b) => (b.fila || 0) - (a.fila || 0));
+    
+    for (const d of datosOrdenados) {
+        if (typeof d.benef_euro_acum === 'number' && isFinite(d.benef_euro_acum)) {
+            return d.benef_euro_acum;
+        }
+    }
+    
+    return 0;
+}
+
+// Obtener el último beneficio % acumulado del mes
+function obtenerUltimoBeneficioPctAcumulado(datosGen) {
+    if (!datosGen || !Array.isArray(datosGen)) return 0;
+    
+    const datosOrdenados = datosGen
+        .filter(d => d && d.fila >= 15 && d.fila <= 1120 && d.fecha && d.fecha !== 'FECHA')
+        .sort((a, b) => (b.fila || 0) - (a.fila || 0));
+    
+    for (const d of datosOrdenados) {
+        if (typeof d.benef_porcentaje_acum === 'number' && isFinite(d.benef_porcentaje_acum)) {
+            return d.benef_porcentaje_acum;
+        }
+    }
+    
+    return 0;
 }
 
 // Inicializar eventos
@@ -1845,11 +1895,15 @@ function mostrarVistaGeneral() {
 function recalcularTotalesGenerales(hoja) {
     const datosGenerales = hoja.datos_generales || [];
     
-    // Fila 3: Inversión Inicial = Suma de TODOS los incrementos de TODOS los clientes
-    // IMPORTANTE: Sumar directamente desde datos_diarios, no desde incrementos_total
+    // Fila 3: Inversión Inicial = Inversión acumulada del mes anterior + Suma de incrementos de este mes
+    // IMPORTANTE: El año es continuo, los meses no se reinician
     const fila3 = datosGenerales.find(d => d.fila === 3);
     if (fila3 && hoja.clientes) {
-        let sumaIncrementos = 0;
+        // Inversión acumulada del mes anterior
+        const inversionAcumuladaAnterior = hoja._inversionInicialAcumulada || 0;
+        
+        // Sumar incrementos de este mes
+        let sumaIncrementosMes = 0;
         hoja.clientes.forEach(cliente => {
             if (cliente.datos_diarios) {
                 cliente.datos_diarios.forEach(dato => {
@@ -1859,14 +1913,17 @@ function recalcularTotalesGenerales(hoja) {
                         dato.incremento !== undefined && 
                         typeof dato.incremento === 'number' &&
                         dato.incremento > 0) {
-                        sumaIncrementos += dato.incremento;
+                        sumaIncrementosMes += dato.incremento;
                     }
                 });
             }
         });
-        fila3.imp_inicial = sumaIncrementos;
-        fila3.imp_final = sumaIncrementos; // También actualizar imp_final
-        console.log(`✓ Fila 3 (Inversión Inicial): ${sumaIncrementos}`);
+        
+        // Total = acumulado anterior + incrementos de este mes
+        const inversionTotal = inversionAcumuladaAnterior + sumaIncrementosMes;
+        fila3.imp_inicial = inversionTotal;
+        fila3.imp_final = inversionTotal;
+        console.log(`✓ Fila 3 (Inversión Inicial): ${inversionTotal} (anterior: ${inversionAcumuladaAnterior} + este mes: ${sumaIncrementosMes})`);
     }
     
     // Fila 4: Importe Final = Última casilla de imp_final escrita (con su fecha)
