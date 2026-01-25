@@ -1161,7 +1161,7 @@ function restaurarVistaAnterior(vistaAnterior, clienteAnterior) {
         renderDetalleCliente(clienteAnterior);
     } else if (vistaAnterior === 'clientes') {
         mostrarVistaClientes();
-    } else if (vistaAnterior === 'info') {
+    } else if (vistaAnterior === 'infoClientes' || vistaAnterior === 'info') {
         mostrarVistaInfoClientes();
     } else if (vistaAnterior === 'comision') {
         mostrarVistaComision();
