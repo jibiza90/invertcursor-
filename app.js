@@ -2320,8 +2320,105 @@ function agregarCeldasFilaGeneral(tr, filaData) {
         return td;
     }
     
-    // Importe Inicial
-    tr.appendChild(crearCeldaEditable('imp_inicial', filaData.imp_inicial));
+    // Importe Inicial (con tooltip detallado)
+    const tdImpInicial = crearCeldaEditable('imp_inicial', filaData.imp_inicial);
+    
+    // Añadir tooltip con desglose del importe inicial
+    tdImpInicial.addEventListener('mouseenter', function(e) {
+        const fila = filaData.fila;
+        const hoja = datosEditados?.hojas?.[hojaActual];
+        if (!hoja) return;
+        
+        // Obtener datos del día anterior
+        const datosDiarios = hoja.datos_diarios_generales || [];
+        const filaAnterior = datosDiarios.find(d => d.fila === fila - 1);
+        const saldoAnterior = filaAnterior?.imp_final || 0;
+        
+        // Obtener incrementos y decrementos de este día
+        const clientes = hoja.clientes || [];
+        const incrementos = [];
+        const decrementos = [];
+        
+        clientes.forEach((cliente, idx) => {
+            const datoCliente = cliente.datos_diarios?.find(d => d.fila === fila);
+            if (datoCliente) {
+                const nombre = cliente?.datos?.['NOMBRE']?.valor || '';
+                const apellidos = cliente?.datos?.['APELLIDOS']?.valor || '';
+                const nombreCompleto = (nombre || apellidos) ? `${nombre} ${apellidos}`.trim() : `Cliente ${idx + 1}`;
+                
+                if (typeof datoCliente.incremento === 'number' && datoCliente.incremento !== 0) {
+                    incrementos.push({ nombre: nombreCompleto, valor: datoCliente.incremento });
+                }
+                if (typeof datoCliente.decremento === 'number' && datoCliente.decremento !== 0) {
+                    decrementos.push({ nombre: nombreCompleto, valor: datoCliente.decremento });
+                }
+            }
+        });
+        
+        const totalIncrementos = incrementos.reduce((sum, inc) => sum + inc.valor, 0);
+        const totalDecrementos = decrementos.reduce((sum, dec) => sum + dec.valor, 0);
+        const total = saldoAnterior + totalIncrementos - totalDecrementos;
+        
+        // Crear contenido del tooltip
+        let tooltipHTML = '<div style="text-align: left; min-width: 250px;">';
+        tooltipHTML += `<div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px;">Desglose Importe Inicial</div>`;
+        tooltipHTML += `<div style="margin-bottom: 6px;">Saldo día anterior: <span style="float: right; font-weight: 600;">${formatearMoneda(saldoAnterior)}</span></div>`;
+        
+        if (incrementos.length > 0) {
+            tooltipHTML += `<div style="margin-top: 8px; font-weight: bold; color: #10b981;">Incrementos:</div>`;
+            incrementos.forEach(inc => {
+                tooltipHTML += `<div style="margin-left: 10px; font-size: 0.9em;">• ${inc.nombre}: <span style="float: right;">${formatearMoneda(inc.valor)}</span></div>`;
+            });
+            tooltipHTML += `<div style="margin-left: 10px; margin-top: 4px; padding-top: 4px; border-top: 1px solid #10b981;">Total: <span style="float: right; font-weight: 600;">${formatearMoneda(totalIncrementos)}</span></div>`;
+        }
+        
+        if (decrementos.length > 0) {
+            tooltipHTML += `<div style="margin-top: 8px; font-weight: bold; color: #ef4444;">Decrementos:</div>`;
+            decrementos.forEach(dec => {
+                tooltipHTML += `<div style="margin-left: 10px; font-size: 0.9em;">• ${dec.nombre}: <span style="float: right;">${formatearMoneda(dec.valor)}</span></div>`;
+            });
+            tooltipHTML += `<div style="margin-left: 10px; margin-top: 4px; padding-top: 4px; border-top: 1px solid #ef4444;">Total: <span style="float: right; font-weight: 600;">${formatearMoneda(totalDecrementos)}</span></div>`;
+        }
+        
+        tooltipHTML += `<div style="margin-top: 12px; padding-top: 8px; border-top: 2px solid #333; font-weight: bold; font-size: 1.1em;">Total: <span style="float: right;">${formatearMoneda(total)}</span></div>`;
+        tooltipHTML += '</div>';
+        
+        // Crear y mostrar tooltip
+        const tooltip = document.createElement('div');
+        tooltip.className = 'custom-tooltip';
+        tooltip.innerHTML = tooltipHTML;
+        tooltip.style.cssText = `
+            position: fixed;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            font-size: 13px;
+            max-width: 400px;
+            pointer-events: none;
+        `;
+        
+        document.body.appendChild(tooltip);
+        
+        // Posicionar tooltip
+        const rect = e.target.getBoundingClientRect();
+        tooltip.style.left = (rect.left + window.scrollX) + 'px';
+        tooltip.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+        
+        // Guardar referencia para eliminar después
+        tdImpInicial._tooltip = tooltip;
+    });
+    
+    tdImpInicial.addEventListener('mouseleave', function() {
+        if (tdImpInicial._tooltip) {
+            tdImpInicial._tooltip.remove();
+            tdImpInicial._tooltip = null;
+        }
+    });
+    
+    tr.appendChild(tdImpInicial);
     
     // Importe Final - Solo mostrar valor en filas manuales
     const impFinalVisible = esCeldaManualGeneral(filaData, 'imp_final') ? filaData.imp_final : null;
