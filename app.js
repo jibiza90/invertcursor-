@@ -236,6 +236,8 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
     (datosGeneralesParaImpFinal || []).forEach(d => {
         if (d && typeof d.fila === 'number') mapGeneralPorFila.set(d.fila, d);
     });
+    
+    console.log(`🔍 Recalculando cliente - datos generales disponibles: ${mapGeneralPorFila.size} filas`);
 
     const rows = cliente.datos_diarios
         .filter(d => d && typeof d.fila === 'number' && d.fila >= 15 && d.fila <= 1120)
@@ -317,6 +319,11 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
         const benefPct = (datoGeneral && typeof datoGeneral.benef_porcentaje === 'number' && isFinite(datoGeneral.benef_porcentaje))
             ? datoGeneral.benef_porcentaje
             : 0;
+
+        // Log para diagnóstico
+        if (filaCalculo.fila === 15 || !datoGeneral) {
+            console.log(`  Fila ${filaCalculo.fila}: datoGeneral=${!!datoGeneral}, imp_final=${datoGeneral?.imp_final}, benef_pct=${benefPct}, tieneImpFinal=${tieneImpFinalGeneral}`);
+        }
 
         // En WIND (y en general), si hay imp_final general, el beneficio del día se calcula por % sobre base.
         // Si no hay imp_final general, no hay beneficios.
