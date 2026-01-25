@@ -55,6 +55,8 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path == '/api/meses':
             return self.enviar_lista_meses()
+        if parsed.path == '/api/clientes_anuales':
+            return self.enviar_clientes_anuales()
         if parsed.path.startswith('/api/datos/'):
             match = re.match(r'/api/datos/([^/]+)/(\d{4}-\d{2})', parsed.path)
             if match:
@@ -75,6 +77,27 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             return self.guardar_datos_completo()
         self.send_response(404)
         self.end_headers()
+
+    def enviar_clientes_anuales(self):
+        try:
+            archivo = f"{DIRECTORIO_DATOS}/clientes_anuales_2026.json"
+            if not os.path.exists(archivo):
+                self.send_response(404)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'No hay clientes anuales'}).encode('utf-8'))
+                return
+            with open(archivo, 'r', encoding='utf-8') as f:
+                datos = json.load(f)
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(datos).encode('utf-8'))
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
 
     def enviar_lista_meses(self):
         try:

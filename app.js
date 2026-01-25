@@ -1,6 +1,7 @@
 // Datos de la aplicación
 let datosCompletos = null;
 let datosEditados = null;
+let clientesAnuales = null; // Lista de clientes del año (independiente del mes)
 let hojaActual = 'Diario WIND';
 let mesActual = null;
 let mesesDisponibles = {};
@@ -590,12 +591,29 @@ function esErrorIgnorado(error) {
     return ignorados.includes(clave);
 }
 
+// Cargar clientes anuales (independientes del mes)
+async function cargarClientesAnuales() {
+    try {
+        const response = await fetch('/api/clientes_anuales', { cache: 'no-store' });
+        if (!response.ok) {
+            console.warn('⚠️ No se pudieron cargar clientes anuales, usando datos mensuales');
+            return;
+        }
+        const data = await response.json();
+        clientesAnuales = data.clientes || [];
+        console.log('✅ Clientes anuales cargados:', clientesAnuales.length);
+    } catch (error) {
+        console.warn('⚠️ Error al cargar clientes anuales:', error);
+    }
+}
+
 // Inicialización
 async function inicializarApp() {
     try {
         console.log('🚀 Iniciando aplicación...');
         await cargarMeses();
         console.log('✅ Meses cargados:', mesesDisponibles);
+        await cargarClientesAnuales();
         await cargarDatos();
         console.log('✅ Datos cargados');
         inicializarEventos();
@@ -4300,9 +4318,35 @@ function calcularDetalleComisionesCobradas(cliente) {
 }
 
 function renderVistaClientes() {
-    const hoja = datosEditados?.hojas?.[hojaActual];
-    if (!hoja) return;
-    const clientes = hoja.clientes || [];
+    // Usar clientes anuales si están disponibles, sino usar del mes actual
+    let clientes = [];
+    
+    if (clientesAnuales && clientesAnuales.length > 0) {
+        // MODO ANUAL: Usar lista de clientes del año completo
+        clientes = clientesAnuales.map((clienteAnual, idx) => {
+            // Agregar datos de TODOS los meses para este cliente
+            const hoja = datosEditados?.hojas?.[hojaActual];
+            const clienteMes = hoja?.clientes?.[idx];
+            
+            // Combinar datos anuales con datos del mes actual
+            return {
+                ...clienteAnual,
+                // Datos mensuales (incrementos, decrementos, saldo)
+                incrementos_total: clienteMes?.incrementos_total || 0,
+                decrementos_total: clienteMes?.decrementos_total || 0,
+                saldo_actual: clienteMes?.saldo_actual || 0,
+                datos_diarios: clienteMes?.datos_diarios || [],
+                _acumPrevInc: clienteMes?._acumPrevInc || 0,
+                _acumPrevDec: clienteMes?._acumPrevDec || 0,
+                saldo_inicial_mes: clienteMes?.saldo_inicial_mes || 0
+            };
+        });
+    } else {
+        // MODO MENSUAL (fallback): Usar clientes del mes actual
+        const hoja = datosEditados?.hojas?.[hojaActual];
+        if (!hoja) return;
+        clientes = hoja.clientes || [];
+    }
 
     const selectorPlantilla = document.getElementById('selectorPlantillaCliente');
     if (selectorPlantilla) {
@@ -6665,13 +6709,34 @@ function mostrarInfoClientes() {
     // Usar la hoja seleccionada en Info Clientes, no la hoja actual general
     const hojaParaMostrar = hojaInfoClientes || 'Diario STD';
     
-    if (!datosEditados || !datosEditados.hojas || !datosEditados.hojas[hojaParaMostrar]) {
-        container.innerHTML = '<div class="error-box"><p>No hay datos disponibles</p></div>';
-        return;
-    }
+    // MODO ANUAL: Usar clientes anuales si están disponibles
+    let clientes = [];
     
-    const hoja = datosEditados.hojas[hojaParaMostrar];
-    const clientes = hoja.clientes || [];
+    if (clientesAnuales && clientesAnuales.length > 0) {
+        // Combinar clientes anuales con datos del mes actual
+        const hoja = datosEditados?.hojas?.[hojaParaMostrar];
+        clientes = clientesAnuales.map((clienteAnual, idx) => {
+            const clienteMes = hoja?.clientes?.[idx];
+            return {
+                ...clienteAnual,
+                incrementos_total: clienteMes?.incrementos_total || 0,
+                decrementos_total: clienteMes?.decrementos_total || 0,
+                saldo_actual: clienteMes?.saldo_actual || 0,
+                datos_diarios: clienteMes?.datos_diarios || [],
+                _acumPrevInc: clienteMes?._acumPrevInc || 0,
+                _acumPrevDec: clienteMes?._acumPrevDec || 0,
+                saldo_inicial_mes: clienteMes?.saldo_inicial_mes || 0
+            };
+        });
+    } else {
+        // MODO MENSUAL (fallback)
+        if (!datosEditados || !datosEditados.hojas || !datosEditados.hojas[hojaParaMostrar]) {
+            container.innerHTML = '<div class="error-box"><p>No hay datos disponibles</p></div>';
+            return;
+        }
+        const hoja = datosEditados.hojas[hojaParaMostrar];
+        clientes = hoja.clientes || [];
+    }
     
     if (clientes.length === 0) {
         container.innerHTML = '<div class="info-box"><p>No hay clientes en esta hoja</p></div>';
@@ -7180,13 +7245,34 @@ function mostrarComision() {
     
     const hojaParaMostrar = hojaComision || 'Diario STD';
     
-    if (!datosEditados || !datosEditados.hojas || !datosEditados.hojas[hojaParaMostrar]) {
-        container.innerHTML = '<div class="error-box"><p>No hay datos disponibles</p></div>';
-        return;
-    }
+    // MODO ANUAL: Usar clientes anuales si están disponibles
+    let clientes = [];
     
-    const hoja = datosEditados.hojas[hojaParaMostrar];
-    const clientes = hoja.clientes || [];
+    if (clientesAnuales && clientesAnuales.length > 0) {
+        // Combinar clientes anuales con datos del mes actual
+        const hoja = datosEditados?.hojas?.[hojaParaMostrar];
+        clientes = clientesAnuales.map((clienteAnual, idx) => {
+            const clienteMes = hoja?.clientes?.[idx];
+            return {
+                ...clienteAnual,
+                incrementos_total: clienteMes?.incrementos_total || 0,
+                decrementos_total: clienteMes?.decrementos_total || 0,
+                saldo_actual: clienteMes?.saldo_actual || 0,
+                datos_diarios: clienteMes?.datos_diarios || [],
+                _acumPrevInc: clienteMes?._acumPrevInc || 0,
+                _acumPrevDec: clienteMes?._acumPrevDec || 0,
+                saldo_inicial_mes: clienteMes?.saldo_inicial_mes || 0
+            };
+        });
+    } else {
+        // MODO MENSUAL (fallback)
+        if (!datosEditados || !datosEditados.hojas || !datosEditados.hojas[hojaParaMostrar]) {
+            container.innerHTML = '<div class="error-box"><p>No hay datos disponibles</p></div>';
+            return;
+        }
+        const hoja = datosEditados.hojas[hojaParaMostrar];
+        clientes = hoja.clientes || [];
+    }
     
     if (clientes.length === 0) {
         container.innerHTML = '<div class="info-box"><p>No hay clientes en esta hoja</p></div>';

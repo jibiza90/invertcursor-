@@ -1,0 +1,730 @@
+{
+  "año": 2026,
+  "hoja": "Diario WIND",
+  "clientes": [
+    {
+      "numero_cliente": 1,
+      "columna_inicio": 11,
+      "datos": {
+        "nombre": "CLIENTE 1",
+        "NOMBRE": {
+          "valor": "Jordi"
+        },
+        "APELLIDOS": {
+          "valor": "Ibiza"
+        },
+        "TELEFONO": {
+          "valor": ""
+        },
+        "GARANTIA_INICIAL": {
+          "valor": "2000"
+        },
+        "GARANTIA": {
+          "valor": "2000"
+        }
+      }
+    },
+    {
+      "numero_cliente": 2,
+      "columna_inicio": 19,
+      "datos": {
+        "nombre": "CLIENTE 2",
+        "NOMBRE": {
+          "valor": "jordi"
+        },
+        "APELLIDOS": {
+          "valor": "barra"
+        },
+        "TELEFONO": {
+          "valor": ""
+        }
+      }
+    },
+    {
+      "numero_cliente": 3,
+      "columna_inicio": 27,
+      "datos": {
+        "nombre": "CLIENTE 3"
+      }
+    },
+    {
+      "numero_cliente": 4,
+      "columna_inicio": 35,
+      "datos": {
+        "nombre": "CLIENTE 4"
+      }
+    },
+    {
+      "numero_cliente": 5,
+      "columna_inicio": 43,
+      "datos": {
+        "nombre": "CLIENTE 5"
+      }
+    },
+    {
+      "numero_cliente": 6,
+      "columna_inicio": 51,
+      "datos": {
+        "nombre": "CLIENTE 6"
+      }
+    },
+    {
+      "numero_cliente": 7,
+      "columna_inicio": 59,
+      "datos": {
+        "nombre": "CLIENTE 7"
+      }
+    },
+    {
+      "numero_cliente": 8,
+      "columna_inicio": 67,
+      "datos": {
+        "nombre": "CLIENTE 8"
+      }
+    },
+    {
+      "numero_cliente": 9,
+      "columna_inicio": 75,
+      "datos": {
+        "nombre": "CLIENTE 9"
+      }
+    },
+    {
+      "numero_cliente": 10,
+      "columna_inicio": 83,
+      "datos": {
+        "nombre": "CLIENTE 10"
+      }
+    },
+    {
+      "numero_cliente": 11,
+      "columna_inicio": 91,
+      "datos": {
+        "nombre": "CLIENTE 11"
+      }
+    },
+    {
+      "numero_cliente": 12,
+      "columna_inicio": 99,
+      "datos": {
+        "nombre": "CLIENTE 12"
+      }
+    },
+    {
+      "numero_cliente": 13,
+      "columna_inicio": 107,
+      "datos": {
+        "nombre": "CLIENTE 13"
+      }
+    },
+    {
+      "numero_cliente": 14,
+      "columna_inicio": 115,
+      "datos": {
+        "nombre": "CLIENTE 14"
+      }
+    },
+    {
+      "numero_cliente": 15,
+      "columna_inicio": 123,
+      "datos": {
+        "nombre": "CLIENTE 15"
+      }
+    },
+    {
+      "numero_cliente": 16,
+      "columna_inicio": 131,
+      "datos": {
+        "nombre": "CLIENTE 16"
+      }
+    },
+    {
+      "numero_cliente": 17,
+      "columna_inicio": 139,
+      "datos": {
+        "nombre": "CLIENTE 17"
+      }
+    },
+    {
+      "numero_cliente": 18,
+      "columna_inicio": 147,
+      "datos": {
+        "nombre": "CLIENTE 18"
+      }
+    },
+    {
+      "numero_cliente": 19,
+      "columna_inicio": 155,
+      "datos": {
+        "nombre": "CLIENTE 19"
+      }
+    },
+    {
+      "numero_cliente": 20,
+      "columna_inicio": 163,
+      "datos": {
+        "nombre": "CLIENTE 20"
+      }
+    },
+    {
+      "numero_cliente": 21,
+      "columna_inicio": 171,
+      "datos": {
+        "nombre": "CLIENTE 21"
+      }
+    },
+    {
+      "numero_cliente": 22,
+      "columna_inicio": 179,
+      "datos": {
+        "nombre": "CLIENTE 22"
+      }
+    },
+    {
+      "numero_cliente": 23,
+      "columna_inicio": 187,
+      "datos": {
+        "nombre": "CLIENTE 23"
+      }
+    },
+    {
+      "numero_cliente": 24,
+      "columna_inicio": 195,
+      "datos": {
+        "nombre": "CLIENTE 24"
+      }
+    },
+    {
+      "numero_cliente": 25,
+      "columna_inicio": 203,
+      "datos": {
+        "nombre": "CLIENTE 25"
+      }
+    },
+    {
+      "numero_cliente": 26,
+      "columna_inicio": 211,
+      "datos": {
+        "nombre": "CLIENTE 26"
+      }
+    },
+    {
+      "numero_cliente": 27,
+      "columna_inicio": 219,
+      "datos": {
+        "nombre": "CLIENTE 27"
+      }
+    },
+    {
+      "numero_cliente": 28,
+      "columna_inicio": 227,
+      "datos": {
+        "nombre": "CLIENTE 28"
+      }
+    },
+    {
+      "numero_cliente": 29,
+      "columna_inicio": 235,
+      "datos": {
+        "nombre": "CLIENTE 29"
+      }
+    },
+    {
+      "numero_cliente": 30,
+      "columna_inicio": 243,
+      "datos": {
+        "nombre": "CLIENTE 30"
+      }
+    },
+    {
+      "numero_cliente": 31,
+      "columna_inicio": 251,
+      "datos": {
+        "nombre": "CLIENTE 31"
+      }
+    },
+    {
+      "numero_cliente": 32,
+      "columna_inicio": 259,
+      "datos": {
+        "nombre": "CLIENTE 32"
+      }
+    },
+    {
+      "numero_cliente": 33,
+      "columna_inicio": 267,
+      "datos": {
+        "nombre": "CLIENTE 33"
+      }
+    },
+    {
+      "numero_cliente": 34,
+      "columna_inicio": 275,
+      "datos": {
+        "nombre": "CLIENTE 34"
+      }
+    },
+    {
+      "numero_cliente": 35,
+      "columna_inicio": 283,
+      "datos": {
+        "nombre": "CLIENTE 35"
+      }
+    },
+    {
+      "numero_cliente": 36,
+      "columna_inicio": 291,
+      "datos": {
+        "nombre": "CLIENTE 36"
+      }
+    },
+    {
+      "numero_cliente": 37,
+      "columna_inicio": 299,
+      "datos": {
+        "nombre": "CLIENTE 37"
+      }
+    },
+    {
+      "numero_cliente": 38,
+      "columna_inicio": 307,
+      "datos": {
+        "nombre": "CLIENTE 38"
+      }
+    },
+    {
+      "numero_cliente": 39,
+      "columna_inicio": 315,
+      "datos": {
+        "nombre": "CLIENTE 39"
+      }
+    },
+    {
+      "numero_cliente": 40,
+      "columna_inicio": 323,
+      "datos": {
+        "nombre": "CLIENTE 40"
+      }
+    },
+    {
+      "numero_cliente": 41,
+      "columna_inicio": 331,
+      "datos": {
+        "nombre": "CLIENTE 41"
+      }
+    },
+    {
+      "numero_cliente": 42,
+      "columna_inicio": 339,
+      "datos": {
+        "nombre": "CLIENTE 42"
+      }
+    },
+    {
+      "numero_cliente": 43,
+      "columna_inicio": 347,
+      "datos": {
+        "nombre": "CLIENTE 43"
+      }
+    },
+    {
+      "numero_cliente": 44,
+      "columna_inicio": 355,
+      "datos": {
+        "nombre": "CLIENTE 44"
+      }
+    },
+    {
+      "numero_cliente": 45,
+      "columna_inicio": 363,
+      "datos": {
+        "nombre": "CLIENTE 45"
+      }
+    },
+    {
+      "numero_cliente": 46,
+      "columna_inicio": 371,
+      "datos": {
+        "nombre": "CLIENTE 46"
+      }
+    },
+    {
+      "numero_cliente": 47,
+      "columna_inicio": 379,
+      "datos": {
+        "nombre": "CLIENTE 47"
+      }
+    },
+    {
+      "numero_cliente": 48,
+      "columna_inicio": 387,
+      "datos": {
+        "nombre": "CLIENTE 48"
+      }
+    },
+    {
+      "numero_cliente": 49,
+      "columna_inicio": 395,
+      "datos": {
+        "nombre": "CLIENTE 49"
+      }
+    },
+    {
+      "numero_cliente": 50,
+      "columna_inicio": 403,
+      "datos": {
+        "nombre": "CLIENTE 50"
+      }
+    },
+    {
+      "numero_cliente": 51,
+      "columna_inicio": 411,
+      "datos": {
+        "nombre": "CLIENTE 51"
+      }
+    },
+    {
+      "numero_cliente": 52,
+      "columna_inicio": 419,
+      "datos": {
+        "nombre": "CLIENTE 52"
+      }
+    },
+    {
+      "numero_cliente": 53,
+      "columna_inicio": 427,
+      "datos": {
+        "nombre": "CLIENTE 53"
+      }
+    },
+    {
+      "numero_cliente": 54,
+      "columna_inicio": 435,
+      "datos": {
+        "nombre": "CLIENTE 54"
+      }
+    },
+    {
+      "numero_cliente": 55,
+      "columna_inicio": 443,
+      "datos": {
+        "nombre": "CLIENTE 55"
+      }
+    },
+    {
+      "numero_cliente": 56,
+      "columna_inicio": 451,
+      "datos": {
+        "nombre": "CLIENTE 56"
+      }
+    },
+    {
+      "numero_cliente": 57,
+      "columna_inicio": 459,
+      "datos": {
+        "nombre": "CLIENTE 57"
+      }
+    },
+    {
+      "numero_cliente": 58,
+      "columna_inicio": 467,
+      "datos": {
+        "nombre": "CLIENTE 58"
+      }
+    },
+    {
+      "numero_cliente": 59,
+      "columna_inicio": 475,
+      "datos": {
+        "nombre": "CLIENTE 59"
+      }
+    },
+    {
+      "numero_cliente": 60,
+      "columna_inicio": 483,
+      "datos": {
+        "nombre": "CLIENTE 60"
+      }
+    },
+    {
+      "numero_cliente": 61,
+      "columna_inicio": 491,
+      "datos": {
+        "nombre": "CLIENTE 61"
+      }
+    },
+    {
+      "numero_cliente": 62,
+      "columna_inicio": 499,
+      "datos": {
+        "nombre": "CLIENTE 62"
+      }
+    },
+    {
+      "numero_cliente": 63,
+      "columna_inicio": 507,
+      "datos": {
+        "nombre": "CLIENTE 63"
+      }
+    },
+    {
+      "numero_cliente": 64,
+      "columna_inicio": 515,
+      "datos": {
+        "nombre": "CLIENTE 64"
+      }
+    },
+    {
+      "numero_cliente": 65,
+      "columna_inicio": 523,
+      "datos": {
+        "nombre": "CLIENTE 65"
+      }
+    },
+    {
+      "numero_cliente": 66,
+      "columna_inicio": 531,
+      "datos": {
+        "nombre": "CLIENTE 66"
+      }
+    },
+    {
+      "numero_cliente": 67,
+      "columna_inicio": 539,
+      "datos": {
+        "nombre": "CLIENTE 67"
+      }
+    },
+    {
+      "numero_cliente": 68,
+      "columna_inicio": 547,
+      "datos": {
+        "nombre": "CLIENTE 68"
+      }
+    },
+    {
+      "numero_cliente": 69,
+      "columna_inicio": 555,
+      "datos": {
+        "nombre": "CLIENTE 69"
+      }
+    },
+    {
+      "numero_cliente": 70,
+      "columna_inicio": 563,
+      "datos": {
+        "nombre": "CLIENTE 70"
+      }
+    },
+    {
+      "numero_cliente": 71,
+      "columna_inicio": 571,
+      "datos": {
+        "nombre": "CLIENTE 71"
+      }
+    },
+    {
+      "numero_cliente": 72,
+      "columna_inicio": 579,
+      "datos": {
+        "nombre": "CLIENTE 72"
+      }
+    },
+    {
+      "numero_cliente": 73,
+      "columna_inicio": 587,
+      "datos": {
+        "nombre": "CLIENTE 73"
+      }
+    },
+    {
+      "numero_cliente": 74,
+      "columna_inicio": 595,
+      "datos": {
+        "nombre": "CLIENTE 74"
+      }
+    },
+    {
+      "numero_cliente": 75,
+      "columna_inicio": 603,
+      "datos": {
+        "nombre": "CLIENTE 75"
+      }
+    },
+    {
+      "numero_cliente": 76,
+      "columna_inicio": 611,
+      "datos": {
+        "nombre": "CLIENTE 76"
+      }
+    },
+    {
+      "numero_cliente": 77,
+      "columna_inicio": 619,
+      "datos": {
+        "nombre": "CLIENTE 77"
+      }
+    },
+    {
+      "numero_cliente": 78,
+      "columna_inicio": 627,
+      "datos": {
+        "nombre": "CLIENTE 78"
+      }
+    },
+    {
+      "numero_cliente": 79,
+      "columna_inicio": 635,
+      "datos": {
+        "nombre": "CLIENTE 79"
+      }
+    },
+    {
+      "numero_cliente": 80,
+      "columna_inicio": 643,
+      "datos": {
+        "nombre": "CLIENTE 80"
+      }
+    },
+    {
+      "numero_cliente": 81,
+      "columna_inicio": 651,
+      "datos": {
+        "nombre": "CLIENTE 81"
+      }
+    },
+    {
+      "numero_cliente": 82,
+      "columna_inicio": 659,
+      "datos": {
+        "nombre": "CLIENTE 82"
+      }
+    },
+    {
+      "numero_cliente": 83,
+      "columna_inicio": 667,
+      "datos": {
+        "nombre": "CLIENTE 83"
+      }
+    },
+    {
+      "numero_cliente": 84,
+      "columna_inicio": 675,
+      "datos": {
+        "nombre": "CLIENTE 84"
+      }
+    },
+    {
+      "numero_cliente": 85,
+      "columna_inicio": 683,
+      "datos": {
+        "nombre": "CLIENTE 85"
+      }
+    },
+    {
+      "numero_cliente": 86,
+      "columna_inicio": 691,
+      "datos": {
+        "nombre": "CLIENTE 86"
+      }
+    },
+    {
+      "numero_cliente": 87,
+      "columna_inicio": 699,
+      "datos": {
+        "nombre": "CLIENTE 87"
+      }
+    },
+    {
+      "numero_cliente": 88,
+      "columna_inicio": 707,
+      "datos": {
+        "nombre": "CLIENTE 88"
+      }
+    },
+    {
+      "numero_cliente": 89,
+      "columna_inicio": 715,
+      "datos": {
+        "nombre": "CLIENTE 89"
+      }
+    },
+    {
+      "numero_cliente": 90,
+      "columna_inicio": 723,
+      "datos": {
+        "nombre": "CLIENTE 90"
+      }
+    },
+    {
+      "numero_cliente": 91,
+      "columna_inicio": 731,
+      "datos": {
+        "nombre": "CLIENTE 91"
+      }
+    },
+    {
+      "numero_cliente": 92,
+      "columna_inicio": 739,
+      "datos": {
+        "nombre": "CLIENTE 92"
+      }
+    },
+    {
+      "numero_cliente": 93,
+      "columna_inicio": 747,
+      "datos": {
+        "nombre": "CLIENTE 93"
+      }
+    },
+    {
+      "numero_cliente": 94,
+      "columna_inicio": 755,
+      "datos": {
+        "nombre": "CLIENTE 94"
+      }
+    },
+    {
+      "numero_cliente": 95,
+      "columna_inicio": 763,
+      "datos": {
+        "nombre": "CLIENTE 95"
+      }
+    },
+    {
+      "numero_cliente": 96,
+      "columna_inicio": 771,
+      "datos": {
+        "nombre": "CLIENTE 96"
+      }
+    },
+    {
+      "numero_cliente": 97,
+      "columna_inicio": 779,
+      "datos": {
+        "nombre": "CLIENTE 98"
+      }
+    },
+    {
+      "numero_cliente": 98,
+      "columna_inicio": 787,
+      "datos": {
+        "nombre": "CLIENTE 99"
+      }
+    },
+    {
+      "numero_cliente": 99,
+      "columna_inicio": 795,
+      "datos": {
+        "nombre": "CLIENTE 100"
+      }
+    },
+    {
+      "numero_cliente": 100,
+      "columna_inicio": 803,
+      "datos": {
+        "nombre": "CLIENTE 100"
+      }
+    }
+  ]
+}
