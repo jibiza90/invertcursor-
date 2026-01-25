@@ -284,6 +284,11 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
         console.log(`  Cliente sin movimientos pero con saldo_inicial_mes=${cliente.saldo_inicial_mes}, calculando hasta fila ${last}`);
     }
 
+    // CRÍTICO: nunca calcular más allá de la última fila escrita en general (imp_final manual)
+    if (ultimaFilaImpFinal > 0) {
+        last = last > 0 ? Math.min(last, ultimaFilaImpFinal) : ultimaFilaImpFinal;
+    }
+
     // Si no hay actividad ni saldo inicial, limpiar cualquier arrastre (evita "fantasmas" en clientes nuevos)
     if (last === 0) {
         for (const d of rows) {
@@ -361,6 +366,7 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
     for (let i = 0; i < rows.length; i++) {
         const d = rows[i];
         if (!d || !d.fecha) continue;
+        if (last > 0 && d.fila > last) continue;
         
         const fecha = new Date(d.fecha);
         const diaSemana = fecha.getDay(); // 0=domingo, 6=sábado
@@ -2805,7 +2811,7 @@ function recalcularImpInicialSync(hoja) {
     if (!hoja) return;
     const datosGen = hoja.datos_diarios_generales || [];
     
-    // Calcular límite: última fila con imp_final o con incremento/decremento
+    // Calcular límite: última fila con imp_final manual
     const ultimaFilaImpFinalManual = obtenerUltimaFilaImpFinalManual(hoja);
     let ultimaFilaConIncremento = 0;
     (hoja.clientes || []).forEach(c => {
@@ -2822,11 +2828,13 @@ function recalcularImpInicialSync(hoja) {
         if (!d.fecha || d.fecha === 'FECHA') return max;
         return Math.max(max, d.fila);
     }, 0);
-    const limiteCalculo = Math.max(
-        (ultimaFilaImpFinalManual > 0 ? (ultimaFilaImpFinalManual + 1) : 0),
-        ultimaFilaConIncremento,
-        maxFilaConFecha
-    );
+    const limiteCalculo = (hojaActual === 'Diario WIND' && ultimaFilaImpFinalManual > 0)
+        ? ultimaFilaImpFinalManual
+        : Math.max(
+            (ultimaFilaImpFinalManual > 0 ? (ultimaFilaImpFinalManual + 1) : 0),
+            ultimaFilaConIncremento,
+            maxFilaConFecha
+        );
     if (limiteCalculo === 0) return;
     
     // Recalcular imp_inicial para cada fila hasta el límite
