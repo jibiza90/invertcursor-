@@ -607,15 +607,32 @@ async function cargarClientesAnuales() {
     }
 }
 
+// Mostrar loading overlay
+function mostrarLoadingOverlay() {
+    let overlay = document.getElementById('loadingOverlay');
+    if (!overlay) {
+        // Crear overlay si no existe (fue removido)
+        overlay = document.createElement('div');
+        overlay.id = 'loadingOverlay';
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = `
+            <div class="loading-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="loading-text">Cargando...</div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+    overlay.classList.remove('hidden');
+}
+
 // Ocultar loading overlay
 function ocultarLoadingOverlay() {
     const overlay = document.getElementById('loadingOverlay');
     if (overlay) {
         overlay.classList.add('hidden');
-        // Remover del DOM después de la animación
-        setTimeout(() => {
-            overlay.remove();
-        }, 400);
     }
 }
 
@@ -662,27 +679,47 @@ async function inicializarApp() {
 }
 
 async function mostrarVistaGeneralAuto() {
-    await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_general' });
-    mostrarVistaGeneral();
-    ocultarSidebarAlNavegar();
+    mostrarLoadingOverlay();
+    try {
+        await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_general' });
+        mostrarVistaGeneral();
+        ocultarSidebarAlNavegar();
+    } finally {
+        ocultarLoadingOverlay();
+    }
 }
 
 async function mostrarVistaClientesAuto() {
-    await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_clientes' });
-    mostrarVistaClientes();
-    ocultarSidebarAlNavegar();
+    mostrarLoadingOverlay();
+    try {
+        await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_clientes' });
+        mostrarVistaClientes();
+        ocultarSidebarAlNavegar();
+    } finally {
+        ocultarLoadingOverlay();
+    }
 }
 
 async function mostrarVistaInfoClientesAuto() {
-    await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_infoClientes' });
-    mostrarVistaInfoClientes();
-    ocultarSidebarAlNavegar();
+    mostrarLoadingOverlay();
+    try {
+        await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_infoClientes' });
+        mostrarVistaInfoClientes();
+        ocultarSidebarAlNavegar();
+    } finally {
+        ocultarLoadingOverlay();
+    }
 }
 
 async function mostrarVistaComisionAuto() {
-    await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_comision' });
-    mostrarVistaComision();
-    ocultarSidebarAlNavegar();
+    mostrarLoadingOverlay();
+    try {
+        await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_comision' });
+        mostrarVistaComision();
+        ocultarSidebarAlNavegar();
+    } finally {
+        ocultarLoadingOverlay();
+    }
 }
 
 async function autoActualizarVistaActual() {
@@ -1578,12 +1615,14 @@ function inicializarHoverScaleDelay() {
 
 // Cambiar hoja
 async function cambiarHoja() {
+    mostrarLoadingOverlay();
     try {
         const nuevoValor = document.getElementById('selectorHoja').value;
         console.log('🔄 cambiarHoja: de', hojaActual, 'a', nuevoValor);
         
         if (nuevoValor === hojaActual) {
             console.log('⏭️ Misma hoja, no hay cambio');
+            ocultarLoadingOverlay();
             return;
         }
         
@@ -1606,20 +1645,27 @@ async function cambiarHoja() {
     } catch (error) {
         console.error('❌ Error al cambiar hoja:', error);
         mostrarNotificacion('Error al cambiar hoja', 'error');
+    } finally {
+        ocultarLoadingOverlay();
     }
 }
 
 async function cambiarMes() {
-    const selectorMes = document.getElementById('selectorMes');
-    mesActual = selectorMes ? selectorMes.value : mesActual;
-    clienteActual = null;
-    const selectorCliente = document.getElementById('selectorCliente');
-    if (selectorCliente) selectorCliente.value = '';
-    await cargarDatos();
-    requiereRecalculoImpInicial = true;
-    actualizarNavegacionMes();
-    await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'cambiarMes' });
-    mostrarVistaGeneral();
+    mostrarLoadingOverlay();
+    try {
+        const selectorMes = document.getElementById('selectorMes');
+        mesActual = selectorMes ? selectorMes.value : mesActual;
+        clienteActual = null;
+        const selectorCliente = document.getElementById('selectorCliente');
+        if (selectorCliente) selectorCliente.value = '';
+        await cargarDatos();
+        requiereRecalculoImpInicial = true;
+        actualizarNavegacionMes();
+        await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'cambiarMes' });
+        mostrarVistaGeneral();
+    } finally {
+        ocultarLoadingOverlay();
+    }
 }
 
 // Variables para vista general
