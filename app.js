@@ -285,8 +285,14 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
     }
 
     // CRÍTICO: nunca calcular más allá de la última fila escrita en general (imp_final manual)
+    // PERO si el cliente tiene saldo_inicial_mes, debe calcular al menos hasta donde haya imp_final
     if (ultimaFilaImpFinal > 0) {
-        last = last > 0 ? Math.min(last, ultimaFilaImpFinal) : ultimaFilaImpFinal;
+        if (last > 0) {
+            last = Math.min(last, ultimaFilaImpFinal);
+        } else if (tieneSaldoInicial) {
+            // Cliente sin movimientos pero con saldo inicial: calcular hasta última fila con imp_final
+            last = ultimaFilaImpFinal;
+        }
     }
 
     // Si no hay actividad ni saldo inicial, limpiar cualquier arrastre (evita "fantasmas" en clientes nuevos)
@@ -2519,7 +2525,12 @@ function agregarCeldasFilaGeneral(tr, filaData) {
     }
     
     // Importe Inicial (con tooltip detallado)
-    const tdImpInicial = crearCeldaEditable('imp_inicial', filaData.imp_inicial);
+    // CRÍTICO: No mostrar imp_inicial después de la última fecha con imp_final escrito
+    const hoja = datosEditados?.hojas?.[hojaActual];
+    const ultimaFilaImpFinal = hoja ? obtenerUltimaFilaImpFinalManual(hoja) : 0;
+    const mostrarImpInicial = (ultimaFilaImpFinal === 0 || filaData.fila <= ultimaFilaImpFinal);
+    const impInicialVisible = mostrarImpInicial ? filaData.imp_inicial : null;
+    const tdImpInicial = crearCeldaEditable('imp_inicial', impInicialVisible);
     
     // Añadir tooltip con desglose del importe inicial
     tdImpInicial.addEventListener('mouseenter', function(e) {
