@@ -1081,7 +1081,8 @@ function obtenerUltimaFilaImpFinalManual(hoja) {
         if (!d || typeof d.fila !== 'number') return;
         if (d.fila < 15 || d.fila > 1120) return;
         if (!d.fecha || d.fecha === 'FECHA') return;
-        if (!esImpFinalConValorGeneral(d)) return;
+        // CRÍTICO: Solo considerar imp_final REALMENTE manual (editable). Ignorar valores bloqueados.
+        if (!(esCeldaManualGeneral(d, 'imp_final') && esImpFinalConValorGeneral(d))) return;
         maxFila = Math.max(maxFila, d.fila);
     });
     return maxFila;
@@ -1091,7 +1092,8 @@ function obtenerUltimaFechaImpFinalManual(hoja) {
     const datosDiarios = hoja?.datos_diarios_generales || [];
     const manuales = datosDiarios
         .filter(d => d && d.fila >= 15 && d.fila <= 1120)
-        .filter(d => esImpFinalConValorGeneral(d));
+        // CRÍTICO: Solo imp_final manual (editable). Ignorar bloqueados.
+        .filter(d => esCeldaManualGeneral(d, 'imp_final') && esImpFinalConValorGeneral(d));
 
     if (manuales.length === 0) return null;
 
@@ -2175,7 +2177,7 @@ function mostrarTarjetasResumen(datosGenerales, datosDiariosOverride = null) {
             return true;
         });
     }
-    // Buscar desde el final hacia atrás la última casilla con imp_final escrito y válido
+    // Buscar desde el final hacia atrás la última casilla con imp_final MANUAL (editable) y válido
     // Filtrar solo filas dentro del rango válido (15-1120) y con fecha válida
     for (let i = datosDiariosParaResumen.length - 1; i >= 0; i--) {
         const dato = datosDiariosParaResumen[i];
@@ -2183,6 +2185,7 @@ function mostrarTarjetasResumen(datosGenerales, datosDiariosOverride = null) {
         if (dato.fila >= 15 && dato.fila <= 1120 &&
             dato.fecha && 
             dato.fecha !== 'FECHA' &&
+            esCeldaManualGeneral(dato, 'imp_final') &&
             dato.imp_final !== null && 
             dato.imp_final !== undefined && 
             typeof dato.imp_final === 'number' &&
@@ -2193,13 +2196,14 @@ function mostrarTarjetasResumen(datosGenerales, datosDiariosOverride = null) {
         }
     }
     
-    // Si no se encontró, buscar cualquier imp_final válido (incluso si es 0)
+    // Si no se encontró, buscar cualquier imp_final MANUAL válido (incluso si es 0)
     if (importeFinal === null) {
         for (let i = datosDiariosParaResumen.length - 1; i >= 0; i--) {
             const dato = datosDiariosParaResumen[i];
             if (dato.fila >= 15 && dato.fila <= 1120 &&
                 dato.fecha && 
                 dato.fecha !== 'FECHA' &&
+                esCeldaManualGeneral(dato, 'imp_final') &&
                 dato.imp_final !== null && 
                 dato.imp_final !== undefined && 
                 typeof dato.imp_final === 'number') {
@@ -2215,11 +2219,12 @@ function mostrarTarjetasResumen(datosGenerales, datosDiariosOverride = null) {
     let beneficioTotal = null;
     let rentabilidad = null;
     
-    // Buscar la última fila con imp_final escrito y obtener sus acumulados
+    // Buscar la última fila con imp_final MANUAL y obtener sus acumulados
     for (let i = datosDiariosParaResumen.length - 1; i >= 0; i--) {
         const dato = datosDiariosParaResumen[i];
         if (dato.fila >= 15 && dato.fila <= 1120 &&
             dato.fecha && dato.fecha !== 'FECHA' &&
+            esCeldaManualGeneral(dato, 'imp_final') &&
             typeof dato.imp_final === 'number') {
             // Encontramos la última fila con imp_final, usar sus acumulados
             if (typeof dato.benef_euro_acum === 'number') {
@@ -2878,7 +2883,8 @@ function recalcularImpInicialSync(hoja) {
             if (nuevoImpInicial > 0 || fa > 0 || filaData.imp_inicial !== null) {
                 filaData.imp_inicial = nuevoImpInicial > 0 ? nuevoImpInicial : fa;
             }
-            if (typeof filaData.imp_final === 'number') {
+            // CRÍTICO: Solo avanzar el saldo anterior con imp_final manual (editable)
+            if (esCeldaManualGeneral(filaData, 'imp_final') && typeof filaData.imp_final === 'number') {
                 ultimoImpFinal = filaData.imp_final;
             }
         } else {
@@ -2889,7 +2895,8 @@ function recalcularImpInicialSync(hoja) {
             }
             
             // NO copiar imp_final automáticamente - solo usar lo que el usuario escribe
-            if (typeof filaData.imp_final === 'number') {
+            // CRÍTICO: Solo usar imp_final manual (editable) como nuevo saldo anterior
+            if (esCeldaManualGeneral(filaData, 'imp_final') && typeof filaData.imp_final === 'number') {
                 ultimoImpFinal = filaData.imp_final;
             }
         }
