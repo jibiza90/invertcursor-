@@ -6455,18 +6455,24 @@ async function recalcularFormulasGeneralesDesdeFila(filaInicio, hoja, skipImpFin
             const filaData = datosDiarios.find(f => f.fila === fila);
             if (!filaData) continue;
             
-            // CASO ESPECIAL: Fila 15 (día 1) - imp_inicial = suma de incrementos de todos los clientes (FA)
+            // CASO ESPECIAL: Fila 15 (día 1)
             if (fila === 15) {
                 const sumaFA = calcularFA(fila, hoja);
                 const valorAnterior = filaData.imp_inicial;
+                // En WIND, el día 1 debe partir del cierre del mes anterior + FA
+                const baseMesAnterior = (hojaActual === 'Diario WIND' && typeof hoja._impFinalMesAnterior === 'number' && isFinite(hoja._impFinalMesAnterior))
+                    ? hoja._impFinalMesAnterior
+                    : 0;
+                const nuevoValor = baseMesAnterior + sumaFA;
+
                 // SIEMPRE actualizar si hay diferencia (incluyendo null/undefined vs número)
                 const valorAnteriorNum = typeof valorAnterior === 'number' ? valorAnterior : 0;
-                if (sumaFA !== valorAnteriorNum || valorAnterior === null || valorAnterior === undefined) {
-                    console.log(`  Fila 15 (día 1): imp_inicial ${valorAnterior} -> ${sumaFA} (suma de incrementos)`);
-                    filaData.imp_inicial = sumaFA;
+                if (nuevoValor !== valorAnteriorNum || valorAnterior === null || valorAnterior === undefined) {
+                    console.log(`  Fila 15 (día 1): imp_inicial ${valorAnterior} -> ${nuevoValor} (base_mes_anterior=${baseMesAnterior} + FA=${sumaFA})`);
+                    filaData.imp_inicial = nuevoValor;
                     huboCambios = true;
                     totalCambios++;
-                    actualizarCeldaEnUI(fila, 'imp_inicial', sumaFA);
+                    actualizarCeldaEnUI(fila, 'imp_inicial', nuevoValor);
                 }
                 continue; // Siguiente fila
             }
@@ -6656,6 +6662,10 @@ async function recalcularFormulasGeneralesDesdeFila(filaInicio, hoja, skipImpFin
     
     console.log(`✓ Recalculación completada: ${totalCambios} cambios en ${pasada} pasadas`);
     
+    // CRÍTICO: Tras recalcular imp_inicial (por cambios en incrementos/decrementos),
+    // recalcular también beneficios/acumulados para que no queden valores antiguos.
+    recalcularBeneficiosGeneralesDesdeFila(filaInicio, hoja);
+
     // Recalcular totales generales (filas 3-6) que dependen de SUMs y totales
     recalcularTotalesGenerales(hoja);
     
