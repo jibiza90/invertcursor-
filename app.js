@@ -2312,6 +2312,12 @@ function agregarCeldasFilaGeneral(tr, filaData) {
                 
                 console.log(`🗑️ Borrado detectado en ${columna} fila ${filaData.fila}: inputVacio=${inputVacio}, nuevoValor=${nuevoValor}`);
                 
+                // MARCAR que el usuario borró este campo para evitar restauración automática
+                if (inputVacio && columna === 'imp_final') {
+                    filaData._userDeletedImpFinal = true;
+                    console.log(`🔒 Marcando fila ${filaData.fila} como imp_final borrado por usuario`);
+                }
+                
                 // Actualizar el dato y recalcular fórmulas automáticamente
                 await actualizarDatoGeneral(filaData.fila, columna, nuevoValor);
                 e.target.classList.add('cell-modified');
@@ -2575,6 +2581,8 @@ function recalcularImpInicialSync(hoja) {
     // Recalcular imp_inicial para cada fila hasta el límite
     const datosGenOrd = datosGen.filter(d => d.fila >= 15 && d.fila <= limiteCalculo).sort((a, b) => a.fila - b.fila);
     
+    console.log(`📊 recalcularImpInicialSync: procesando ${datosGenOrd.length} filas hasta límite ${limiteCalculo}`);
+    
     let ultimoImpFinal = 0;
     for (const filaData of datosGenOrd) {
         const fila = filaData.fila;
@@ -2604,7 +2612,8 @@ function recalcularImpInicialSync(hoja) {
                 
                 if (esFinDeSemana && sinMovimientos) {
                     // Copiar imp_final del día anterior si no existe o es null
-                    if (filaData.imp_final === null || filaData.imp_final === undefined) {
+                    // PERO NO si el usuario lo borró manualmente
+                    if ((filaData.imp_final === null || filaData.imp_final === undefined) && !filaData._userDeletedImpFinal) {
                         console.log(`  Fila ${fila} (${diaSemana === 0 ? 'domingo' : 'sábado'}): copiando imp_final ${ultimoImpFinal} del día anterior`);
                         filaData.imp_final = ultimoImpFinal;
                     }
@@ -6193,8 +6202,9 @@ async function recalcularFormulasGeneralesDesdeFila(filaInicio, hoja, skipImpFin
                     
                     if (esFinDeSemana && sinMovimientos && baseCalculo > 0) {
                         // Copiar imp_final del día anterior si no existe
+                        // PERO NO si el usuario lo borró manualmente
                         const impFinalActual = filaData.imp_final;
-                        if (impFinalActual !== baseCalculo && (impFinalActual === null || impFinalActual === undefined)) {
+                        if (impFinalActual !== baseCalculo && (impFinalActual === null || impFinalActual === undefined) && !filaData._userDeletedImpFinal) {
                             console.log(`  Fila ${fila} (${diaSemana === 0 ? 'domingo' : 'sábado'}): copiando imp_final ${baseCalculo} del día anterior`);
                             filaData.imp_final = baseCalculo;
                             huboCambios = true;
