@@ -1480,6 +1480,7 @@ async function guardarDatosAutomatico(numFormulasGenerales = 0, numFormulasClien
     
     // CRÍTICO: Asegurar que saldo_inicial_mes se persista para el arrastre entre meses
     // Y calcular saldo_actual (saldo final del mes) para que el próximo mes lo use
+    // TAMBIÉN: Guardar TODOS los valores calculados para que las estadísticas funcionen
     if (hoja.clientes) {
         hoja.clientes.forEach((cliente, idx) => {
             if (!cliente) return;
@@ -1489,11 +1490,25 @@ async function guardarDatosAutomatico(numFormulasGenerales = 0, numFormulasClien
                 cliente.saldo_inicial_mes = 0;
             }
             
+            // Recalcular totales de incrementos/decrementos
+            recalcularTotalesCliente(cliente);
+            
             // IMPORTANTE: Calcular saldo_actual (saldo final del mes) para el próximo mes
             const saldoFinal = obtenerSaldoFinalClienteDeMes(cliente);
             cliente.saldo_actual = saldoFinal;
             
-            console.log(`   Cliente ${idx + 1}: saldo_inicial_mes=${cliente.saldo_inicial_mes}, saldo_actual=${saldoFinal}`);
+            // Guardar valores calculados de datos_diarios para estadísticas históricas
+            // Esto permite ver la evolución real del patrimonio en meses anteriores
+            if (cliente.datos_diarios) {
+                cliente.datos_diarios.forEach(d => {
+                    // Solo guardar valores numéricos calculados, no fórmulas ni nulls
+                    if (typeof d.saldo_diario === 'number') d._saldo_diario_guardado = d.saldo_diario;
+                    if (typeof d.beneficio_acumulado === 'number') d._beneficio_acum_guardado = d.beneficio_acumulado;
+                    if (typeof d.beneficio_diario === 'number') d._beneficio_diario_guardado = d.beneficio_diario;
+                });
+            }
+            
+            console.log(`   Cliente ${idx + 1}: saldo_inicial_mes=${cliente.saldo_inicial_mes}, saldo_actual=${saldoFinal}, inc=${cliente.incrementos_total}, dec=${cliente.decrementos_total}`);
         });
     }
     
@@ -9001,7 +9016,10 @@ async function mostrarEstadisticasCliente() {
         <div class="modal-stats-client-content">
             <div class="modal-stats-client-header">
                 <h2>📊 Estadísticas de ${nombreCompleto}</h2>
-                <button class="modal-stats-client-close" onclick="this.closest('.modal-stats-client').remove()">×</button>
+                <div style="display:flex;gap:0.5rem;align-items:center;">
+                    <button class="btn-actualizar-stats" onclick="actualizarEstadisticasCliente()" title="Recalcular todo">🔄 Actualizar</button>
+                    <button class="modal-stats-client-close" onclick="this.closest('.modal-stats-client').remove()">×</button>
+                </div>
             </div>
             <div id="clientStatsContent" style="text-align: center; padding: 3rem;">
                 <div class="spinner-ring"></div>
@@ -9048,7 +9066,7 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, cli
     
     console.log(`📊 Calculando estadísticas para Cliente ${numeroCliente} en ${hoja}, meses:`, meses);
     
-    // Primero, recopilar rentabilidades de cada mes
+    // Primero, recopilar rentabilidades de cada mes y datos guardados del cliente
     const datosMeses = [];
     for (const mes of meses) {
         try {
@@ -9072,57 +9090,120 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, cli
             const rentabilidadMes = datosConBenef.reduce((sum, d) => sum + (d.benef_porcentaje * 100), 0);
             benefAcumTotal += rentabilidadMes;
             
+            // Buscar último saldo guardado del cliente en este mes
+            // Usar _saldo_diario_guardado si existe, sino saldo_diario, sino saldo_actual
+            const datosDiariosCliente = clienteData.datos_diarios || [];
+            const ultimaFila = datosConBenef.sort((a, b) => b.fila - a.fila)[0]?.fila || 0;
+            const filaCliente = datosDiariosCliente.find(d => d.fila === ultimaFila);
+            
+            // Prioridad: valor guardado > valor calculado > saldo_actual del cliente
+            let saldoMesGuardado = filaCliente?._saldo_diario_guardado || 
+                                   filaCliente?.saldo_diario || 
+                                   clienteData.saldo_actual || 0;
+            
+            // Si saldoMesGuardado no es número válido, usar 0
+            if (typeof saldoMesGuardado !== 'number' || !isFinite(saldoMesGuardado)) {
+                saldoMesGuardado = clienteData.saldo_actual || 0;
+            }
+            
             datosMeses.push({
                 mes,
                 rentabilidad: rentabilidadMes,
                 benefAcumTotal,
-                diasOperados: datosConBenef.length
+                diasOperados: datosConBenef.length,
+                saldoGuardado: saldoMesGuardado,
+                incrementos: clienteData.incrementos_total || 0,
+                decrementos: clienteData.decrementos_total || 0
             });
+            
+            console.log(`${mes}: rent=${rentabilidadMes.toFixed(4)}%, saldoGuardado=${saldoMesGuardado}`);
         } catch (error) {
             console.warn(`Error cargando ${mes}:`, error);
         }
     }
     
-    // Calcular patrimonio hacia atrás desde el saldo actual
-    // Saldo actual del cliente en memoria
+    // Usar datos guardados cuando estén disponibles, sino usar datos en memoria
     const saldoActualCliente = clienteEnMemoria?.saldo_actual || 0;
     const inversionTotal = clienteEnMemoria?.incrementos_total || 0;
     const retiradasTotal = clienteEnMemoria?.decrementos_total || 0;
-    
-    // El beneficio total = saldo actual - inversión + retiradas
     const beneficioTotal = saldoActualCliente - inversionTotal + retiradasTotal;
     
-    // Calcular patrimonio de cada mes proporcionalmente a la rentabilidad acumulada
-    // Patrimonio(mes) = Inversión * (1 + rentabilidad_acumulada_hasta_mes)
-    const rentabilidadTotalAcum = datosMeses.length > 0 ? datosMeses[datosMeses.length - 1].benefAcumTotal : 0;
-    
+    // Construir resultados usando saldoGuardado cuando esté disponible
     for (let i = 0; i < datosMeses.length; i++) {
         const d = datosMeses[i];
-        // Patrimonio estimado basado en rentabilidad acumulada
-        // Asumiendo inversión constante desde el inicio
-        const factorRent = 1 + (d.benefAcumTotal / 100);
-        const patrimonioEstimado = inversionTotal * factorRent - retiradasTotal;
+        const esUltimoMes = (i === datosMeses.length - 1);
+        
+        // Para el último mes: usar datos en memoria (más actualizados)
+        // Para meses anteriores: usar saldoGuardado del JSON
+        let saldoFinalMes = d.saldoGuardado || 0;
+        if (esUltimoMes) {
+            saldoFinalMes = saldoActualCliente;
+        }
         
         resultados.push({
             mes: d.mes,
             rentabilidad: d.rentabilidad,
             benefAcumTotal: d.benefAcumTotal,
-            saldoFinalMes: patrimonioEstimado,
+            saldoFinalMes: saldoFinalMes,
+            incrementos: d.incrementos,
+            decrementos: d.decrementos,
             diasOperados: d.diasOperados
         });
         
-        console.log(`${d.mes}: rent=${d.rentabilidad.toFixed(4)}%, patrimonioEst=${patrimonioEstimado.toFixed(2)}`);
+        console.log(`${d.mes}: rent=${d.rentabilidad.toFixed(4)}%, saldo=${saldoFinalMes}`);
     }
     
-    // El último mes debe tener el saldo real del cliente en memoria
+    // El último mes tiene beneficio calculado
     if (resultados.length > 0) {
-        resultados[resultados.length - 1].saldoFinalMes = saldoActualCliente;
         resultados[resultados.length - 1].benefAcumEuroMes = beneficioTotal;
     }
     
     console.log(`📊 Resultados mensuales:`, resultados);
     
     return resultados;
+}
+
+async function actualizarEstadisticasCliente() {
+    // Recalcular todo desde cero
+    const container = document.getElementById('clientStatsContent');
+    if (!container) return;
+    
+    // Mostrar loading
+    container.innerHTML = `
+        <div style="text-align: center; padding: 3rem;">
+            <div class="spinner-ring"></div>
+            <p style="color: rgba(255,255,255,0.6); margin-top: 1rem;">Recalculando estadísticas...</p>
+        </div>
+    `;
+    
+    const hoja = datosEditados?.hojas?.[hojaActual];
+    if (!hoja || !hoja.clientes || !hoja.clientes[clienteActual]) {
+        container.innerHTML = '<p style="color:#ff6b6b;">No hay datos del cliente</p>';
+        return;
+    }
+    
+    const cliente = hoja.clientes[clienteActual];
+    
+    // Recalcular totales del cliente en memoria
+    recalcularTotalesCliente(cliente);
+    cliente.saldo_actual = obtenerSaldoFinalClienteDeMes(cliente);
+    
+    const datosCliente = cliente.datos || {};
+    const nombre = datosCliente['NOMBRE']?.valor || '';
+    const apellidos = datosCliente['APELLIDOS']?.valor || '';
+    const nombreCompleto = nombre || apellidos ? `${nombre} ${apellidos}`.trim() : `Cliente ${clienteActual + 1}`;
+    
+    try {
+        const meses = mesesDisponibles[hojaActual] || [];
+        const numeroCliente = cliente.numero_cliente || (clienteActual + 1);
+        const datosClienteMeses = await calcularRentabilidadClientePorMes(hojaActual, numeroCliente, meses, cliente);
+        const kpisTotales = calcularKPIsTotalesCliente(datosClienteMeses, cliente);
+        renderizarContenidoEstadisticasCliente(nombreCompleto, kpisTotales, datosClienteMeses);
+        mostrarNotificacion('✓ Estadísticas actualizadas', 'success');
+    } catch (error) {
+        console.error('Error actualizando estadísticas:', error);
+        container.innerHTML = `<p style="color:#ff6b6b;">Error: ${error.message}</p>`;
+    }
 }
 
 function calcularKPIsTotalesCliente(datosClienteMeses, clienteEnMemoria) {

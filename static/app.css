@@ -3191,19 +3191,22 @@ input[type="text"]:focus {
     position: relative;
 }
 
-/* Botón de detalles en stats */
-.btn-detalles-stats {
-    background: transparent;
+/* Botón actualizar estadísticas */
+.btn-actualizar-stats {
+    background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
     border: none;
+    border-radius: 6px;
+    color: #fff;
     cursor: pointer;
-    font-size: 0.9rem;
-    padding: 0 4px;
-    opacity: 0.7;
-    transition: opacity 0.2s;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s;
 }
 
-.btn-detalles-stats:hover {
-    opacity: 1;
+.btn-actualizar-stats:hover {
+    background: linear-gradient(135deg, #00e5ff 0%, #00aadd 100%);
+    transform: scale(1.02);
 }
 
 /* Popup de detalles */
