@@ -8411,6 +8411,7 @@ async function mostrarEstadisticas() {
 
 async function calcularRentabilidadPorMes(hoja, meses) {
     const resultados = [];
+    let benefAcumMesAnterior = 0;
     
     for (const mes of meses) {
         try {
@@ -8419,35 +8420,33 @@ async function calcularRentabilidadPorMes(hoja, meses) {
             const data = await response.json();
             
             const datosGenerales = data.datos_diarios_generales || [];
-            const datosValidos = datosGenerales
-                .filter(d => d && d.fila >= 15 && d.fila <= 1120)
-                .filter(d => typeof d.base === 'number' && d.base > 0)
-                .sort((a, b) => (a.fila || 0) - (b.fila || 0));
             
-            if (datosValidos.length === 0) {
-                resultados.push({ mes, rentabilidad: 0, saldoInicial: 0, saldoFinal: 0 });
+            // Buscar el último día con benef_porcentaje_acum (beneficio % acumulado del año)
+            const datosConBenef = datosGenerales
+                .filter(d => d && d.fila >= 15 && d.fila <= 1120)
+                .filter(d => typeof d.benef_porcentaje_acum === 'number' && isFinite(d.benef_porcentaje_acum))
+                .sort((a, b) => (b.fila || 0) - (a.fila || 0)); // Ordenar descendente para obtener el último
+            
+            if (datosConBenef.length === 0) {
+                resultados.push({ mes, rentabilidad: 0, benefAcumAnual: benefAcumMesAnterior });
                 continue;
             }
             
-            const primerDia = datosValidos[0];
-            const ultimoDia = datosValidos[datosValidos.length - 1];
-            
-            const saldoInicial = primerDia.base || 0;
-            const saldoFinal = ultimoDia.saldo_diario || ultimoDia.base || saldoInicial;
-            
-            const rentabilidad = saldoInicial > 0 
-                ? ((saldoFinal / saldoInicial) - 1) * 100 
-                : 0;
+            // El benef_porcentaje_acum es el acumulado del AÑO
+            // Para obtener el beneficio del MES: benefAcumActual - benefAcumMesAnterior
+            const benefAcumActual = datosConBenef[0].benef_porcentaje_acum * 100; // Convertir a %
+            const rentabilidadMes = benefAcumActual - benefAcumMesAnterior;
             
             resultados.push({
                 mes,
-                rentabilidad: Math.round(rentabilidad * 100) / 100,
-                saldoInicial,
-                saldoFinal
+                rentabilidad: Math.round(rentabilidadMes * 100) / 100,
+                benefAcumAnual: Math.round(benefAcumActual * 100) / 100
             });
+            
+            benefAcumMesAnterior = benefAcumActual;
         } catch (error) {
             console.warn(`Error cargando datos de ${mes}:`, error);
-            resultados.push({ mes, rentabilidad: 0, saldoInicial: 0, saldoFinal: 0 });
+            resultados.push({ mes, rentabilidad: 0, benefAcumAnual: benefAcumMesAnterior });
         }
     }
     
@@ -8507,9 +8506,8 @@ function renderizarGrafico(datos) {
                             const idx = context.dataIndex;
                             const d = datos[idx];
                             return [
-                                `Rentabilidad: ${d.rentabilidad.toFixed(2)}%`,
-                                `Saldo Inicial: ${formatearMoneda(d.saldoInicial)}`,
-                                `Saldo Final: ${formatearMoneda(d.saldoFinal)}`
+                                `Rentabilidad mes: ${d.rentabilidad.toFixed(2)}%`,
+                                `Acumulado año: ${d.benefAcumAnual.toFixed(2)}%`
                             ];
                         }
                     }
@@ -8543,10 +8541,12 @@ function renderizarResumenEstadisticas(container, datos) {
         return;
     }
     
-    const totalRentabilidad = datos.reduce((sum, d) => sum + d.rentabilidad, 0);
+    // El acumulado anual es el último benefAcumAnual
+    const ultimoDato = datos[datos.length - 1];
+    const acumuladoAnual = ultimoDato?.benefAcumAnual || 0;
     const mejorMes = datos.reduce((best, d) => d.rentabilidad > best.rentabilidad ? d : best, datos[0]);
     const peorMes = datos.reduce((worst, d) => d.rentabilidad < worst.rentabilidad ? d : worst, datos[0]);
-    const promedio = totalRentabilidad / datos.length;
+    const promedio = acumuladoAnual / datos.length;
     const mesesPositivos = datos.filter(d => d.rentabilidad > 0).length;
     
     const formatMes = (mes) => {
@@ -8557,8 +8557,8 @@ function renderizarResumenEstadisticas(container, datos) {
     
     container.innerHTML = `
         <div class="stat-card">
-            <div class="stat-label">Rentabilidad Acumulada</div>
-            <div class="stat-value ${totalRentabilidad >= 0 ? 'positive' : 'negative'}">${totalRentabilidad.toFixed(2)}%</div>
+            <div class="stat-label">Rentabilidad Acumulada Año</div>
+            <div class="stat-value ${acumuladoAnual >= 0 ? 'positive' : 'negative'}">${acumuladoAnual.toFixed(2)}%</div>
             <div class="stat-detail">${datos.length} meses</div>
         </div>
         <div class="stat-card">
