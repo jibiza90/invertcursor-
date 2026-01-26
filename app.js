@@ -1599,29 +1599,25 @@ function obtenerMesAnteriorDeHoja(nombreHoja, mes) {
 }
 
 function obtenerSaldoFinalClienteDeMes(cliente) {
-    // Buscar último saldo_diario válido en datos_diarios CON FECHA ESCRITA
+    // SOLO leer último saldo_diario o imp_final válido del JSON
+    // NO usar fallbacks como saldo_inicial_mes que pueden estar mal
     const datos = (cliente?.datos_diarios || [])
-        .filter(d => d && d.fila >= 15 && d.fila <= 1120 && 
-                d.fecha && d.fecha !== 'FECHA' && // Solo filas con fecha escrita
-                typeof d.saldo_diario === 'number')
-        .sort((a, b) => (a.fila || 0) - (b.fila || 0));
+        .filter(d => d && d.fila >= 15 && d.fila <= 1120)
+        .sort((a, b) => (b.fila || 0) - (a.fila || 0)); // Ordenar de mayor a menor fila
     
-    if (datos.length > 0) {
-        const ultimo = datos[datos.length - 1];
-        console.log(`   - Cliente saldo final: ${ultimo.saldo_diario} (fila ${ultimo.fila}, fecha ${ultimo.fecha})`);
-        return ultimo.saldo_diario;
+    // Buscar el último saldo válido (saldo_diario o imp_final)
+    for (const d of datos) {
+        // Priorizar saldo_diario si existe y es válido
+        if (typeof d.saldo_diario === 'number' && d.saldo_diario > 0) {
+            return d.saldo_diario;
+        }
+        // Fallback a imp_final si existe
+        if (typeof d.imp_final === 'number' && d.imp_final > 0) {
+            return d.imp_final;
+        }
     }
     
-    // CRÍTICO: Si no hay saldos diarios (cliente sin movimientos), 
-    // el saldo final es el saldo_inicial_mes (arrastre sin cambios)
-    // NO usar saldo_actual porque puede tener valor viejo de antes de borrar movimientos
-    if (typeof cliente?.saldo_inicial_mes === 'number' && cliente.saldo_inicial_mes > 0) {
-        console.log(`   - Cliente sin movimientos, saldo final = saldo_inicial_mes: ${cliente.saldo_inicial_mes}`);
-        return cliente.saldo_inicial_mes;
-    }
-    
-    // Cliente sin saldo inicial y sin movimientos = saldo 0
-    console.log(`   - Cliente sin saldo inicial ni movimientos, saldo final = 0`);
+    // Si no hay saldos válidos en datos_diarios, el cliente tiene 0
     return 0;
 }
 
