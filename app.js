@@ -5051,17 +5051,35 @@ function obtenerGarantiaActualCliente(cliente) {
     const datosCliente = cliente?.datos || {};
     const gIniRaw = datosCliente['GARANTIA_INICIAL']?.valor ?? datosCliente['GARANTIA']?.valor ?? 0;
     const gIni = typeof gIniRaw === 'number' ? gIniRaw : (parseFloat(gIniRaw) || 0);
-    const retirado = typeof cliente?.decrementos_total === 'number' ? cliente.decrementos_total : 0;
+    
+    // Sumar decrementos directamente del JSON
+    // NO usar decrementos_total de memoria
+    let retirado = typeof cliente?._acumPrevDec === 'number' ? cliente._acumPrevDec : 0;
+    const datosDiarios = (cliente?.datos_diarios || [])
+        .filter(d => d && d.fila >= 15 && d.fila <= 1120);
+    for (const d of datosDiarios) {
+        if (typeof d.decremento === 'number') retirado += d.decremento;
+    }
+    
     return Math.max(0, gIni - retirado);
 }
 
 function calcularComisionSiRetiraTodoHoy(cliente) {
     if (!cliente) return 0;
-    if (!cliente.incrementos_total && cliente.datos_diarios) {
-        recalcularTotalesCliente(cliente);
+    
+    // Sumar incrementos y decrementos directamente del JSON
+    // NO usar incrementos_total/decrementos_total de memoria
+    let inc = typeof cliente._acumPrevInc === 'number' ? cliente._acumPrevInc : 0;
+    let dec = typeof cliente._acumPrevDec === 'number' ? cliente._acumPrevDec : 0;
+    
+    const datosDiarios = (cliente.datos_diarios || [])
+        .filter(d => d && d.fila >= 15 && d.fila <= 1120);
+    
+    for (const d of datosDiarios) {
+        if (typeof d.incremento === 'number') inc += d.incremento;
+        if (typeof d.decremento === 'number') dec += d.decremento;
     }
-    const inc = typeof cliente.incrementos_total === 'number' ? cliente.incrementos_total : 0;
-    const dec = typeof cliente.decrementos_total === 'number' ? cliente.decrementos_total : 0;
+    
     const saldo = obtenerSaldoActualClienteSinLogs(cliente);
     const totalDecSiRetira = dec + Math.max(0, saldo);
     const exceso = Math.max(0, totalDecSiRetira - inc);
