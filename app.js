@@ -8517,8 +8517,6 @@ async function mostrarEstadisticas() {
     renderizarResumenEstadisticas(container, rentabilidadMeses);
     renderizarIndicadoresAvanzados(rentabilidadMeses);
     renderizarTablaDetallada(rentabilidadMeses, benchmark);
-    renderizarComparativaHojas();
-    renderizarTopClientes();
     renderizarProyeccion(rentabilidadMeses);
 }
 
@@ -8612,8 +8610,19 @@ function renderizarGraficoPremium(datos, benchmark) {
             order: 0
         });
         
-        if (!vistaAcumulado && datos.length > 2) {
-            const tendencia = calcularLineaTendencia(valores);
+        // Tendencia solo sobre meses con datos reales (diasOperados > 0)
+        const mesesConDatos = datos.filter(d => d.diasOperados > 0);
+        if (!vistaAcumulado && mesesConDatos.length > 2) {
+            const valoresFiltrados = mesesConDatos.map(d => d.rentabilidad);
+            const tendenciaFiltrada = calcularLineaTendencia(valoresFiltrados);
+            // Mapear tendencia a todos los meses (null para meses sin datos)
+            let idxFiltrado = 0;
+            const tendencia = datos.map(d => {
+                if (d.diasOperados > 0) {
+                    return tendenciaFiltrada[idxFiltrado++];
+                }
+                return null;
+            });
             datasets.push({
                 label: 'Tendencia',
                 data: tendencia,
@@ -8622,7 +8631,8 @@ function renderizarGraficoPremium(datos, benchmark) {
                 borderWidth: 2,
                 fill: false,
                 pointRadius: 0,
-                order: 0
+                order: 0,
+                spanGaps: true
             });
         }
     }
@@ -8797,23 +8807,23 @@ function renderizarIndicadoresAvanzados(datos) {
     const consistencia = 100 - (volatilidad / Math.abs(media || 1)) * 10;
     
     container.innerHTML = `
-        <div class="indicator-item">
+        <div class="indicator-item" title="Mide cuánto varían los resultados mes a mes. Menor volatilidad = resultados más estables.">
             <div class="indicator-label">Volatilidad</div>
             <div class="indicator-value ${volatilidad > 3 ? 'danger' : volatilidad > 1.5 ? 'warning' : ''}">${volatilidad.toFixed(2)}%</div>
         </div>
-        <div class="indicator-item">
+        <div class="indicator-item" title="Mayor pérdida desde un máximo. Indica el peor escenario que se ha experimentado.">
             <div class="indicator-label">Max Drawdown</div>
             <div class="indicator-value ${maxDrawdown > 5 ? 'danger' : maxDrawdown > 2 ? 'warning' : ''}">${maxDrawdown.toFixed(2)}%</div>
         </div>
-        <div class="indicator-item">
+        <div class="indicator-item" title="Rentabilidad ajustada al riesgo. Mayor de 1 = buena relación rentabilidad/riesgo.">
             <div class="indicator-label">Ratio Sharpe</div>
             <div class="indicator-value">${sharpe.toFixed(2)}</div>
         </div>
-        <div class="indicator-item">
+        <div class="indicator-item" title="Porcentaje de meses con resultado positivo.">
             <div class="indicator-label">Win Rate</div>
             <div class="indicator-value">${winRate.toFixed(0)}%</div>
         </div>
-        <div class="indicator-item">
+        <div class="indicator-item" title="Mide la regularidad de los resultados. Mayor consistencia = resultados más predecibles.">
             <div class="indicator-label">Consistencia</div>
             <div class="indicator-value ${consistencia < 50 ? 'warning' : ''}">${Math.max(0, Math.min(100, consistencia)).toFixed(0)}%</div>
         </div>
@@ -8957,9 +8967,16 @@ function renderizarProyeccion(datos) {
     const container = document.getElementById('statsProjection');
     if (!container || datos.length === 0) return;
     
-    const ultimoDato = datos[datos.length - 1];
-    const promMensual = ultimoDato.benefAcumAnual / datos.length;
-    const mesesRestantes = 12 - datos.length;
+    // Solo contar meses con datos reales (días operados > 0)
+    const mesesConDatos = datos.filter(d => d.diasOperados > 0);
+    if (mesesConDatos.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    const ultimoDato = mesesConDatos[mesesConDatos.length - 1];
+    const promMensual = ultimoDato.benefAcumAnual / mesesConDatos.length;
+    const mesesRestantes = 12 - mesesConDatos.length;
     const proyeccionAnual = ultimoDato.benefAcumAnual + (promMensual * mesesRestantes);
     
     container.innerHTML = `
