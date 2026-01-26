@@ -7807,33 +7807,31 @@ function cargarInfoClienteDetalle(index, container, hojaParaUsar) {
     
     if (!cliente) return;
     
-    // Calcular totales si no están calculados
-    if (!cliente.incrementos_total && cliente.datos_diarios) {
-        recalcularTotalesCliente(cliente);
+    // LEER DIRECTAMENTE DEL JSON - NO usar variables de memoria
+    const datosDiarios = (cliente.datos_diarios || [])
+        .filter(d => d && d.fila >= 15 && d.fila <= 1120);
+    
+    // Calcular incrementos y decrementos sumando del JSON
+    let invertido = 0;
+    let retirado = 0;
+    for (const d of datosDiarios) {
+        if (typeof d.incremento === 'number') invertido += d.incremento;
+        if (typeof d.decremento === 'number') retirado += d.decremento;
     }
     
-    const invertido = cliente.incrementos_total || 0;
-    const retirado = cliente.decrementos_total || 0;
+    // Calcular saldo actual: SOLO leer último saldo_diario o imp_final del JSON
+    let saldoActual = 0;
+    const datosDiariosOrdenados = [...datosDiarios].sort((a, b) => (b.fila || 0) - (a.fila || 0));
     
-    // Calcular saldo actual: último valor de saldo_diario numérico con FECHA ESCRITA
-    let saldoActual = null;
-    let saldoActualFila = null;
-    const datosDiariosValidos = (cliente.datos_diarios || []).filter(d =>
-        d.fila >= 15 && d.fila <= 1120 &&
-        d.fecha && d.fecha !== 'FECHA' && // Solo filas con fecha escrita
-        d.saldo_diario !== null && d.saldo_diario !== undefined &&
-        typeof d.saldo_diario === 'number'
-    );
-    if (datosDiariosValidos.length > 0) {
-        datosDiariosValidos.sort((a, b) => (a.fila || 0) - (b.fila || 0));
-        const ultimoConSaldo = datosDiariosValidos[datosDiariosValidos.length - 1];
-        saldoActual = ultimoConSaldo.saldo_diario;
-        saldoActualFila = ultimoConSaldo.fila;
-    }
-    
-    // Si no hay saldo_diario válido, usar el cálculo por defecto
-    if (saldoActual === null) {
-        saldoActual = invertido - retirado;
+    for (const d of datosDiariosOrdenados) {
+        if (typeof d.saldo_diario === 'number' && d.saldo_diario > 0) {
+            saldoActual = d.saldo_diario;
+            break;
+        }
+        if (typeof d.imp_final === 'number' && d.imp_final > 0) {
+            saldoActual = d.imp_final;
+            break;
+        }
     }
     
     const fechaObjetivoProporcion = hojaData ? obtenerUltimaFechaImpFinalManual(hojaData) : null;
@@ -8225,13 +8223,17 @@ function mostrarComision() {
     let totalComisionSiRetiran = 0;
     
     clientes.forEach((cliente, index) => {
-        // Calcular totales si no están calculados
-        if (!cliente.incrementos_total && cliente.datos_diarios) {
-            recalcularTotalesCliente(cliente);
-        }
+        // LEER DIRECTAMENTE DEL JSON - NO usar variables de memoria
+        const datosDiarios = (cliente.datos_diarios || [])
+            .filter(d => d && d.fila >= 15 && d.fila <= 1120);
         
-        const incrementosTotal = cliente.incrementos_total || 0;
-        const decrementosTotal = cliente.decrementos_total || 0;
+        // Calcular incrementos y decrementos sumando del JSON
+        let incrementosTotal = 0;
+        let decrementosTotal = 0;
+        for (const d of datosDiarios) {
+            if (typeof d.incremento === 'number') incrementosTotal += d.incremento;
+            if (typeof d.decremento === 'number') decrementosTotal += d.decremento;
+        }
 
         const saldoActual = obtenerSaldoActualClienteSinLogs(cliente);
         const comisionSiRetiraHoy = calcularComisionSiRetiraTodoHoy(cliente);
