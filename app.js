@@ -8746,12 +8746,19 @@ function renderizarResumenEstadisticas(container, datos) {
         return;
     }
     
-    const ultimoDato = datos[datos.length - 1];
+    // Solo contar meses con datos reales (días operados > 0)
+    const mesesOperados = datos.filter(d => d.diasOperados > 0);
+    if (mesesOperados.length === 0) {
+        container.innerHTML = '<div class="info-box"><p>No hay meses con operaciones</p></div>';
+        return;
+    }
+    
+    const ultimoDato = mesesOperados[mesesOperados.length - 1];
     const acumuladoAnual = ultimoDato?.benefAcumAnual || 0;
-    const mejorMes = datos.reduce((best, d) => d.rentabilidad > best.rentabilidad ? d : best, datos[0]);
-    const peorMes = datos.reduce((worst, d) => d.rentabilidad < worst.rentabilidad ? d : worst, datos[0]);
-    const promedio = acumuladoAnual / datos.length;
-    const mesesPositivos = datos.filter(d => d.rentabilidad > 0).length;
+    const mejorMes = mesesOperados.reduce((best, d) => d.rentabilidad > best.rentabilidad ? d : best, mesesOperados[0]);
+    const peorMes = mesesOperados.reduce((worst, d) => d.rentabilidad < worst.rentabilidad ? d : worst, mesesOperados[0]);
+    const promedio = acumuladoAnual / mesesOperados.length;
+    const mesesPositivos = mesesOperados.filter(d => d.rentabilidad > 0).length;
     
     const formatMes = (mes) => {
         const [year, month] = mes.split('-');
@@ -8763,12 +8770,12 @@ function renderizarResumenEstadisticas(container, datos) {
         <div class="stat-card">
             <div class="stat-label">Rentabilidad Acumulada</div>
             <div class="stat-value ${acumuladoAnual >= 0 ? 'positive' : 'negative'}">${acumuladoAnual.toFixed(4)}%</div>
-            <div class="stat-detail">${datos.length} meses analizados</div>
+            <div class="stat-detail">${mesesOperados.length} meses operados</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Promedio Mensual</div>
             <div class="stat-value ${promedio >= 0 ? 'positive' : 'negative'}">${promedio.toFixed(4)}%</div>
-            <div class="stat-detail">${mesesPositivos}/${datos.length} meses positivos</div>
+            <div class="stat-detail">${mesesPositivos}/${mesesOperados.length} meses positivos</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Mejor Mes</div>
