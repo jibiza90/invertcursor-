@@ -1833,6 +1833,12 @@ function inicializarEventos() {
         btnVistaEstadisticas.addEventListener('click', () => { void mostrarVistaEstadisticasAuto(); });
     }
     
+    // Estadísticas del Cliente
+    const btnEstadisticasCliente = document.getElementById('btnEstadisticasCliente');
+    if (btnEstadisticasCliente) {
+        btnEstadisticasCliente.addEventListener('click', () => { mostrarEstadisticasCliente(); });
+    }
+    
     // Tabs para seleccionar hoja en Info Clientes
     const tabSTD = document.getElementById('tabSTD');
     const tabVIP = document.getElementById('tabVIP');
@@ -2138,6 +2144,8 @@ function mostrarVistaGeneral() {
     if (vistaInfo) vistaInfo.classList.remove('active');
     const vistaComision = document.getElementById('vistaComision');
     if (vistaComision) vistaComision.classList.remove('active');
+    const vistaEstadisticas = document.getElementById('vistaEstadisticas');
+    if (vistaEstadisticas) vistaEstadisticas.classList.remove('active');
     
     // Actualizar botones
     document.getElementById('btnVistaGeneral').classList.add('active');
@@ -2146,6 +2154,8 @@ function mostrarVistaGeneral() {
     if (btnInfo) btnInfo.classList.remove('active');
     const btnComision = document.getElementById('btnVistaComision');
     if (btnComision) btnComision.classList.remove('active');
+    const btnEstadisticas = document.getElementById('btnVistaEstadisticas');
+    if (btnEstadisticas) btnEstadisticas.classList.remove('active');
     
     if (!datosEditados || !datosEditados.hojas || !datosEditados.hojas[hojaActual]) {
         return;
@@ -4959,6 +4969,8 @@ function mostrarVistaClientes() {
     if (vistaInfo) vistaInfo.classList.remove('active');
     const vistaComision = document.getElementById('vistaComision');
     if (vistaComision) vistaComision.classList.remove('active');
+    const vistaEstadisticas = document.getElementById('vistaEstadisticas');
+    if (vistaEstadisticas) vistaEstadisticas.classList.remove('active');
     document.getElementById('selectorCliente').value = '';
     
     // Actualizar botones
@@ -4968,6 +4980,8 @@ function mostrarVistaClientes() {
     if (btnInfo) btnInfo.classList.remove('active');
     const btnComision = document.getElementById('btnVistaComision');
     if (btnComision) btnComision.classList.remove('active');
+    const btnEstadisticas = document.getElementById('btnVistaEstadisticas');
+    if (btnEstadisticas) btnEstadisticas.classList.remove('active');
     
     if (!datosEditados || !datosEditados.hojas || !datosEditados.hojas[hojaActual]) {
         return;
@@ -5519,6 +5533,23 @@ function renderDetalleCliente(index) {
     document.getElementById('vistaGeneral').classList.remove('active');
     document.getElementById('vistaClientes').classList.remove('active');
     document.getElementById('vistaDetalle').classList.add('active');
+    const vistaInfo = document.getElementById('vistaInfoClientes');
+    if (vistaInfo) vistaInfo.classList.remove('active');
+    const vistaComision = document.getElementById('vistaComision');
+    if (vistaComision) vistaComision.classList.remove('active');
+    const vistaEstadisticas = document.getElementById('vistaEstadisticas');
+    if (vistaEstadisticas) vistaEstadisticas.classList.remove('active');
+    
+    // Deseleccionar todos los botones de navegación
+    document.getElementById('btnVistaGeneral').classList.remove('active');
+    document.getElementById('btnVistaClientes').classList.remove('active');
+    const btnInfo = document.getElementById('btnVistaInfoClientes');
+    if (btnInfo) btnInfo.classList.remove('active');
+    const btnComision = document.getElementById('btnVistaComision');
+    if (btnComision) btnComision.classList.remove('active');
+    const btnEstadisticas = document.getElementById('btnVistaEstadisticas');
+    if (btnEstadisticas) btnEstadisticas.classList.remove('active');
+    
     document.getElementById('selectorCliente').value = index;
     
     const hoja = datosEditados.hojas[hojaActual];
@@ -7566,6 +7597,8 @@ function mostrarVistaInfoClientes() {
     document.getElementById('vistaDetalle').classList.remove('active');
     const vistaComision = document.getElementById('vistaComision');
     if (vistaComision) vistaComision.classList.remove('active');
+    const vistaEstadisticas = document.getElementById('vistaEstadisticas');
+    if (vistaEstadisticas) vistaEstadisticas.classList.remove('active');
     const vistaInfo = document.getElementById('vistaInfoClientes');
     if (vistaInfo) vistaInfo.classList.add('active');
     
@@ -7574,6 +7607,8 @@ function mostrarVistaInfoClientes() {
     document.getElementById('btnVistaClientes').classList.remove('active');
     const btnCom = document.getElementById('btnVistaComision');
     if (btnCom) btnCom.classList.remove('active');
+    const btnEstadisticas = document.getElementById('btnVistaEstadisticas');
+    if (btnEstadisticas) btnEstadisticas.classList.remove('active');
     const btnInfo = document.getElementById('btnVistaInfoClientes');
     if (btnInfo) btnInfo.classList.add('active');
     
@@ -8110,6 +8145,8 @@ function mostrarVistaComision() {
     document.getElementById('vistaClientes').classList.remove('active');
     document.getElementById('vistaDetalle').classList.remove('active');
     document.getElementById('vistaInfoClientes').classList.remove('active');
+    const vistaEstadisticas = document.getElementById('vistaEstadisticas');
+    if (vistaEstadisticas) vistaEstadisticas.classList.remove('active');
     const vistaComision = document.getElementById('vistaComision');
     if (vistaComision) vistaComision.classList.add('active');
     
@@ -8117,6 +8154,8 @@ function mostrarVistaComision() {
     document.getElementById('btnVistaGeneral').classList.remove('active');
     document.getElementById('btnVistaClientes').classList.remove('active');
     document.getElementById('btnVistaInfoClientes').classList.remove('active');
+    const btnEstadisticas = document.getElementById('btnVistaEstadisticas');
+    if (btnEstadisticas) btnEstadisticas.classList.remove('active');
     const btnComision = document.getElementById('btnVistaComision');
     if (btnComision) btnComision.classList.add('active');
     
@@ -8927,6 +8966,213 @@ function exportarGrafico() {
     link.click();
     
     mostrarNotificacion('Gráfico exportado correctamente', 'success');
+}
+
+// ==================== ESTADÍSTICAS DEL CLIENTE ====================
+
+let chartClienteEvolucion = null;
+
+function mostrarEstadisticasCliente() {
+    if (clienteActual === null || clienteActual === undefined) {
+        mostrarNotificacion('Selecciona un cliente primero', 'warning');
+        return;
+    }
+    
+    const hoja = datosEditados?.hojas?.[hojaActual];
+    if (!hoja || !hoja.clientes || !hoja.clientes[clienteActual]) {
+        mostrarNotificacion('No hay datos del cliente', 'warning');
+        return;
+    }
+    
+    const cliente = hoja.clientes[clienteActual];
+    const datosCliente = cliente.datos || {};
+    const nombre = datosCliente['NOMBRE']?.valor || '';
+    const apellidos = datosCliente['APELLIDOS']?.valor || '';
+    const nombreCompleto = nombre || apellidos ? `${nombre} ${apellidos}`.trim() : `Cliente ${clienteActual + 1}`;
+    
+    // Obtener datos diarios del cliente
+    const datosDiarios = cliente.datos_diarios || [];
+    
+    // Calcular KPIs
+    const saldoInicial = cliente.saldo_inicial_mes || 0;
+    const saldoActual = cliente.saldo_actual || 0;
+    const incrementos = cliente.incrementos_total || 0;
+    const decrementos = cliente.decrementos_total || 0;
+    const beneficioEuro = saldoActual - saldoInicial - incrementos + decrementos;
+    const rentabilidad = saldoInicial > 0 ? ((saldoActual - incrementos + decrementos) / saldoInicial - 1) * 100 : 0;
+    
+    // Preparar datos para el gráfico de evolución del patrimonio
+    const evolucionData = prepararEvolucionPatrimonio(datosDiarios, saldoInicial);
+    
+    // Crear modal
+    const modalExistente = document.querySelector('.modal-stats-client');
+    if (modalExistente) modalExistente.remove();
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal-stats-client';
+    modal.innerHTML = `
+        <div class="modal-stats-client-content">
+            <div class="modal-stats-client-header">
+                <h2>📊 Estadísticas de ${nombreCompleto}</h2>
+                <button class="modal-stats-client-close" onclick="this.closest('.modal-stats-client').remove()">×</button>
+            </div>
+            
+            <div class="client-stats-kpis">
+                <div class="client-stat-card">
+                    <div class="label">Saldo Inicial</div>
+                    <div class="value">${formatearMoneda(saldoInicial)}</div>
+                </div>
+                <div class="client-stat-card">
+                    <div class="label">Saldo Actual</div>
+                    <div class="value">${formatearMoneda(saldoActual)}</div>
+                </div>
+                <div class="client-stat-card">
+                    <div class="label">Incrementos</div>
+                    <div class="value positive">+${formatearMoneda(incrementos)}</div>
+                </div>
+                <div class="client-stat-card">
+                    <div class="label">Decrementos</div>
+                    <div class="value negative">-${formatearMoneda(decrementos)}</div>
+                </div>
+                <div class="client-stat-card">
+                    <div class="label">Beneficio €</div>
+                    <div class="value ${beneficioEuro >= 0 ? 'positive' : 'negative'}">${beneficioEuro >= 0 ? '+' : ''}${formatearMoneda(beneficioEuro)}</div>
+                </div>
+                <div class="client-stat-card">
+                    <div class="label">Rentabilidad</div>
+                    <div class="value ${rentabilidad >= 0 ? 'positive' : 'negative'}">${rentabilidad >= 0 ? '+' : ''}${rentabilidad.toFixed(4)}%</div>
+                </div>
+            </div>
+            
+            <div class="client-chart-container">
+                <h3>📈 Evolución del Patrimonio</h3>
+                <div class="client-chart-wrapper">
+                    <canvas id="chartClienteEvolucion"></canvas>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Cerrar al hacer click fuera
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+    });
+    
+    // Renderizar gráfico
+    setTimeout(() => renderizarGraficoEvolucionCliente(evolucionData), 100);
+}
+
+function prepararEvolucionPatrimonio(datosDiarios, saldoInicial) {
+    const datos = [];
+    let saldoAcumulado = saldoInicial;
+    
+    // Filtrar solo filas de datos diarios (no resúmenes)
+    const filasValidas = datosDiarios
+        .filter(d => d && d.fila >= 15 && d.fecha)
+        .sort((a, b) => (a.fila || 0) - (b.fila || 0));
+    
+    // Añadir punto inicial
+    datos.push({
+        fecha: 'Inicio',
+        saldo: saldoInicial,
+        beneficio: 0
+    });
+    
+    for (const fila of filasValidas) {
+        const impFinal = fila.imp_final;
+        if (impFinal !== null && impFinal !== undefined && !isNaN(impFinal)) {
+            const fechaStr = fila.fecha ? new Date(fila.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : `Día ${datos.length}`;
+            const benefDia = (fila.benef_porcentaje || 0) * 100;
+            
+            datos.push({
+                fecha: fechaStr,
+                saldo: impFinal,
+                beneficio: benefDia
+            });
+        }
+    }
+    
+    return datos;
+}
+
+function renderizarGraficoEvolucionCliente(datos) {
+    const canvas = document.getElementById('chartClienteEvolucion');
+    if (!canvas || datos.length === 0) return;
+    
+    if (chartClienteEvolucion) {
+        chartClienteEvolucion.destroy();
+    }
+    
+    const ctx = canvas.getContext('2d');
+    const labels = datos.map(d => d.fecha);
+    const saldos = datos.map(d => d.saldo);
+    
+    // Calcular gradiente
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, 'rgba(0, 212, 255, 0.4)');
+    gradient.addColorStop(1, 'rgba(0, 212, 255, 0.0)');
+    
+    chartClienteEvolucion = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Patrimonio',
+                data: saldos,
+                borderColor: '#00d4ff',
+                backgroundColor: gradient,
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: '#00d4ff',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(26, 26, 46, 0.95)',
+                    titleFont: { size: 14, weight: 'bold' },
+                    titleColor: '#fff',
+                    bodyFont: { size: 13 },
+                    bodyColor: 'rgba(255,255,255,0.8)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: (ctx) => `Patrimonio: ${formatearMoneda(ctx.raw)}`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: {
+                        color: 'rgba(255,255,255,0.6)',
+                        callback: (v) => formatearMoneda(v)
+                    }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        color: 'rgba(255,255,255,0.6)',
+                        maxRotation: 45
+                    }
+                }
+            }
+        }
+    });
 }
 
 // ==================== RECALCULAR DIARIO WIND ====================
