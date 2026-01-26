@@ -9359,20 +9359,26 @@ function formatearMesCorto(mes) {
 
 function mostrarDetalleIncrementos() {
     const detalles = window._detallesIncrementosCliente || [];
-    if (detalles.length === 0) {
+    console.log('Detalles incrementos:', detalles);
+    // Filtrar solo los que tienen importe > 0
+    const detallesReales = detalles.filter(d => d.importe > 0);
+    if (detallesReales.length === 0) {
         mostrarNotificacion('No se han registrado inversiones de capital', 'info');
         return;
     }
-    mostrarPopupDetalles('Detalle de Inversiones', detalles, 'positive');
+    mostrarPopupDetalles('Detalle de Inversiones', detallesReales, 'positive');
 }
 
 function mostrarDetalleDecrementos() {
     const detalles = window._detallesDecrementosCliente || [];
-    if (detalles.length === 0) {
+    console.log('Detalles decrementos:', detalles);
+    // Filtrar solo los que tienen importe > 0
+    const detallesReales = detalles.filter(d => d.importe > 0);
+    if (detallesReales.length === 0) {
         mostrarNotificacion('No se ha realizado ninguna retirada de capital', 'info');
         return;
     }
-    mostrarPopupDetalles('Detalle de Retiradas', detalles, 'negative');
+    mostrarPopupDetalles('Detalle de Retiradas', detallesReales, 'negative');
 }
 
 function formatearSoloFecha(fecha) {
