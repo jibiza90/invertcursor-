@@ -9020,7 +9020,8 @@ async function mostrarEstadisticasCliente() {
     // Cargar datos de todos los meses del cliente
     try {
         const meses = mesesDisponibles[hojaActual] || [];
-        const datosClienteMeses = await calcularRentabilidadClientePorMes(hojaActual, clienteActual, meses);
+        const numeroCliente = cliente.numero_cliente || (clienteActual + 1);
+        const datosClienteMeses = await calcularRentabilidadClientePorMes(hojaActual, numeroCliente, meses);
         
         // Calcular KPIs totales (desde primer incremento hasta última fecha)
         const kpisTotales = calcularKPIsTotalesCliente(datosClienteMeses);
@@ -9035,7 +9036,7 @@ async function mostrarEstadisticasCliente() {
     }
 }
 
-async function calcularRentabilidadClientePorMes(hoja, clienteIndex, meses) {
+async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses) {
     const resultados = [];
     let benefAcumTotal = 0;
     let saldoInicialPrimero = null;
@@ -9043,36 +9044,62 @@ async function calcularRentabilidadClientePorMes(hoja, clienteIndex, meses) {
     let incrementosTotales = 0;
     let decrementosTotales = 0;
     
+    console.log(`📊 Calculando estadísticas para Cliente ${numeroCliente} en ${hoja}, meses:`, meses);
+    
     for (const mes of meses) {
         try {
             const response = await fetch(`/api/datos/${encodeURIComponent(hoja)}/${mes}`, { cache: 'no-store' });
-            if (!response.ok) continue;
+            if (!response.ok) {
+                console.warn(`No se pudo cargar ${mes}`);
+                continue;
+            }
             
             const data = await response.json();
             const clientes = data.clientes || [];
-            const clienteData = clientes[clienteIndex];
             
-            if (!clienteData) continue;
+            // Buscar cliente por numero_cliente (no por índice)
+            const clienteData = clientes.find(c => c && c.numero_cliente === numeroCliente);
+            
+            if (!clienteData) {
+                console.log(`Cliente ${numeroCliente} no encontrado en ${mes}`);
+                continue;
+            }
             
             const datosDiarios = clienteData.datos_diarios || [];
+            console.log(`${mes}: Cliente ${numeroCliente} tiene ${datosDiarios.length} filas de datos diarios`);
             
             // Filtrar filas válidas con benef_porcentaje
             const datosConBenef = datosDiarios
                 .filter(d => d && d.fila >= 15 && d.fila <= 1120)
                 .filter(d => typeof d.benef_porcentaje === 'number' && isFinite(d.benef_porcentaje));
             
-            if (datosConBenef.length === 0) continue;
+            console.log(`${mes}: ${datosConBenef.length} filas con benef_porcentaje válido`);
+            
+            if (datosConBenef.length === 0) {
+                // Aún así intentar obtener saldos del cliente
+                const saldoMes = clienteData.saldo_actual || 0;
+                if (saldoMes > 0) {
+                    if (saldoInicialPrimero === null) {
+                        saldoInicialPrimero = clienteData.saldo_inicial_mes || saldoMes;
+                    }
+                    saldoFinalUltimo = saldoMes;
+                }
+                continue;
+            }
             
             // Sumar rentabilidad del mes
             const rentabilidadMes = datosConBenef.reduce((sum, d) => sum + (d.benef_porcentaje * 100), 0);
             benefAcumTotal += rentabilidadMes;
             
             // Obtener saldo inicial del mes (primera fila con imp_inicial)
-            const primeraFila = datosConBenef.sort((a, b) => a.fila - b.fila)[0];
-            const ultimaFila = datosConBenef.sort((a, b) => b.fila - a.fila)[0];
+            const filasOrdenadas = [...datosConBenef].sort((a, b) => a.fila - b.fila);
+            const primeraFila = filasOrdenadas[0];
+            const ultimaFila = filasOrdenadas[filasOrdenadas.length - 1];
             
             const saldoInicialMes = clienteData.saldo_inicial_mes || primeraFila?.imp_inicial || 0;
             const saldoFinalMes = ultimaFila?.imp_final || clienteData.saldo_actual || 0;
+            
+            console.log(`${mes}: rentabilidad=${rentabilidadMes.toFixed(4)}%, saldoInicial=${saldoInicialMes}, saldoFinal=${saldoFinalMes}`);
             
             // Guardar saldo inicial del primer mes con datos
             if (saldoInicialPrimero === null && saldoInicialMes > 0) {
