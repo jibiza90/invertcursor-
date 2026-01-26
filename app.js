@@ -11482,17 +11482,12 @@ async function redistribuirSaldosClientesWIND(hoja) {
 
             while (st.ptr < st.rows.length && (st.rows[st.ptr]?.fila || 0) < fila) {
                 const r = st.rows[st.ptr];
-                if (typeof r?.saldo_diario === 'number' && isFinite(r.saldo_diario)) {
-                    st.lastSaldo = r.saldo_diario;
-                }
-                if (typeof r?._saldo_diario_guardado === 'number' && isFinite(r._saldo_diario_guardado)) {
-                    st.lastSaldo = r._saldo_diario_guardado;
-                }
-                if (typeof r?.beneficio_diario === 'number' && isFinite(r.beneficio_diario)) {
-                    st.cumBenef += r.beneficio_diario;
-                }
-                const incPtr = typeof r?.incremento === 'number' ? r.incremento : 0;
-                st.cumInv += incPtr;
+                // NO leer saldo_diario del JSON - puede estar contaminado
+                // Solo actualizar lastSaldo con incrementos/decrementos
+                const incPrev = typeof r?.incremento === 'number' ? r.incremento : 0;
+                const decPrev = typeof r?.decremento === 'number' ? r.decremento : 0;
+                // El beneficio se calculará en la redistribución, no leer del JSON
+                st.cumInv += incPrev;
                 st.ptr++;
             }
 
@@ -11501,6 +11496,7 @@ async function redistribuirSaldosClientesWIND(hoja) {
             const base = st.lastSaldo + inc - dec;
 
             // Si no hay base (<=0) y no hay movimientos en la fila, no debe entrar al reparto.
+            // Pero aún así actualizar el saldo del cliente (será 0 o negativo, sin beneficios)
             if (base > 0 || inc !== 0 || dec !== 0) {
                 clientesActivos.push({
                     cliente,
@@ -11509,6 +11505,11 @@ async function redistribuirSaldosClientesWIND(hoja) {
                     idx,
                     st
                 });
+            } else {
+                // Cliente sin base ni movimientos: mantener saldo anterior, sin beneficios
+                datoCliente.saldo_diario = st.lastSaldo;
+                datoCliente.beneficio_diario = 0;
+                datoCliente.beneficio_diario_pct = 0;
             }
 
             if (idx > 0 && (idx % 3) === 0) {
@@ -11549,9 +11550,13 @@ async function redistribuirSaldosClientesWIND(hoja) {
                 datoCliente.beneficio_diario_pct = beneficioPct;
                 datoCliente.saldo_diario = base + beneficioCliente;
                 
+                // CRÍTICO: Actualizar lastSaldo para la siguiente fila
+                st.lastSaldo = datoCliente.saldo_diario;
+                
                 // Actualizar beneficio acumulado
                 const benefAcumPrev = st ? st.cumBenef : 0;
                 datoCliente.beneficio_acumulado = benefAcumPrev + beneficioCliente;
+                st.cumBenef = datoCliente.beneficio_acumulado;
                 
                 // Calcular inversión acumulada para beneficio % acumulado
                 const inversionAcum = st ? (st.cumInv + (typeof datoCliente.incremento === 'number' ? datoCliente.incremento : 0)) : (cliente._saldoMesAnterior || 0);
