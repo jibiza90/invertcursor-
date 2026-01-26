@@ -9095,19 +9095,17 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses) {
             const saldoFinalMes = filaClienteUltima?.saldo_diario || filaClienteUltima?.imp_final || 0;
             const benefAcumEuroMes = filaClienteUltima?.beneficio_acumulado || 0;
             
-            // Recopilar incrementos/decrementos con fechas
-            datosDiariosCliente.forEach(d => {
-                if (d.incremento && d.incremento > 0 && d.fecha) {
-                    detallesIncrementos.push({ fecha: d.fecha, monto: d.incremento, mes });
-                }
-                if (d.decremento && d.decremento > 0 && d.fecha) {
-                    detallesDecrementos.push({ fecha: d.fecha, monto: d.decremento, mes });
-                }
-            });
-            
-            // Incrementos/decrementos totales del mes
+// Incrementos/decrementos totales del mes (los valores diarios están en null en JSON)
             const incrementosMes = clienteData.incrementos_total || 0;
             const decrementosMes = clienteData.decrementos_total || 0;
+            
+            // Guardar resumen por mes (no hay detalles diarios en JSON)
+            if (incrementosMes > 0) {
+                detallesIncrementos.push({ mes, monto: incrementosMes });
+            }
+            if (decrementosMes > 0) {
+                detallesDecrementos.push({ mes, monto: decrementosMes });
+            }
             
             console.log(`${mes}: rent=${rentabilidadMes.toFixed(4)}%, saldo=${saldoFinalMes}, benefAcum=${benefAcumEuroMes}, inc=${incrementosMes}, dec=${decrementosMes}`);
             
@@ -9203,21 +9201,21 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
     
     const mesesConDatos = datosMeses.filter(m => m && m.diasOperados > 0);
     
-    // Preparar detalles de incrementos para el popup
+    // Preparar detalles de incrementos para el popup (por mes)
     const detallesIncHtml = kpis.detallesIncrementos.length > 0 
         ? kpis.detallesIncrementos.map(d => {
-            const fecha = d.fecha ? new Date(d.fecha).toLocaleDateString('es-ES') : 'Sin fecha';
-            return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.1);"><span>${fecha}</span><span style="color:#00ff88;">+${formatearMoneda(d.monto)}</span></div>`;
+            const mesLabel = formatearMesCorto(d.mes);
+            return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.1);"><span style="color:#fff;font-weight:500;">${mesLabel}</span><span style="color:#00ff88;font-weight:600;">+${formatearMoneda(d.monto)}</span></div>`;
         }).join('')
-        : '<div style="color:rgba(255,255,255,0.5);">Sin incrementos registrados</div>';
+        : '<div style="color:rgba(255,255,255,0.5);text-align:center;padding:1rem;">Sin inversiones registradas</div>';
     
-    // Preparar detalles de decrementos para el popup
+    // Preparar detalles de decrementos para el popup (por mes)
     const detallesDecHtml = kpis.detallesDecrementos.length > 0 
         ? kpis.detallesDecrementos.map(d => {
-            const fecha = d.fecha ? new Date(d.fecha).toLocaleDateString('es-ES') : 'Sin fecha';
-            return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.1);"><span>${fecha}</span><span style="color:#ff6b6b;">-${formatearMoneda(d.monto)}</span></div>`;
+            const mesLabel = formatearMesCorto(d.mes);
+            return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.1);"><span style="color:#fff;font-weight:500;">${mesLabel}</span><span style="color:#ff6b6b;font-weight:600;">-${formatearMoneda(d.monto)}</span></div>`;
         }).join('')
-        : '<div style="color:rgba(255,255,255,0.5);">Sin decrementos registrados</div>';
+        : '<div style="color:rgba(255,255,255,0.5);text-align:center;padding:1rem;">Sin retiradas registradas</div>';
     
     // Color del peor mes: verde si es positivo, rojo si es negativo
     const peorMesPositivo = kpis.peorMes && kpis.peorMes.rentabilidad >= 0;
