@@ -10,7 +10,7 @@ import os
 import json
 import threading
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 from pathlib import Path
 import shutil
 
@@ -194,7 +194,8 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 mes = match.group(2)
                 return self.enviar_diagnostico_mes(hoja, mes)
         if parsed.path.startswith('/api/datos/'):
-            match = re.match(r'/api/datos/([^/]+)/(\d{4}-\d{2})', parsed.path)
+            decoded_path = unquote(parsed.path)
+            match = re.match(r'/api/datos/([^/]+)/(\d{4}-\d{2})', decoded_path)
             if match:
                 hoja = match.group(1).replace('_', ' ')
                 mes = match.group(2)

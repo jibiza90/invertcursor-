@@ -8411,42 +8411,36 @@ async function mostrarEstadisticas() {
 
 async function calcularRentabilidadPorMes(hoja, meses) {
     const resultados = [];
-    let benefAcumMesAnterior = 0;
+    let benefAcumAnual = 0;
     
     for (const mes of meses) {
         try {
             const response = await fetch(`/api/datos/${encodeURIComponent(hoja)}/${mes}`, { cache: 'no-store' });
-            if (!response.ok) continue;
+            if (!response.ok) {
+                resultados.push({ mes, rentabilidad: 0, benefAcumAnual });
+                continue;
+            }
             const data = await response.json();
             
             const datosGenerales = data.datos_diarios_generales || [];
             
-            // Buscar el último día con benef_porcentaje_acum (beneficio % acumulado del año)
+            // Sumar todos los benef_porcentaje diarios del mes (valor real sin redondear)
             const datosConBenef = datosGenerales
                 .filter(d => d && d.fila >= 15 && d.fila <= 1120)
-                .filter(d => typeof d.benef_porcentaje_acum === 'number' && isFinite(d.benef_porcentaje_acum))
-                .sort((a, b) => (b.fila || 0) - (a.fila || 0)); // Ordenar descendente para obtener el último
+                .filter(d => typeof d.benef_porcentaje === 'number' && isFinite(d.benef_porcentaje));
             
-            if (datosConBenef.length === 0) {
-                resultados.push({ mes, rentabilidad: 0, benefAcumAnual: benefAcumMesAnterior });
-                continue;
-            }
-            
-            // El benef_porcentaje_acum es el acumulado del AÑO
-            // Para obtener el beneficio del MES: benefAcumActual - benefAcumMesAnterior
-            const benefAcumActual = datosConBenef[0].benef_porcentaje_acum * 100; // Convertir a %
-            const rentabilidadMes = benefAcumActual - benefAcumMesAnterior;
+            // Sumar los beneficios % diarios del mes
+            const rentabilidadMes = datosConBenef.reduce((sum, d) => sum + (d.benef_porcentaje * 100), 0);
+            benefAcumAnual += rentabilidadMes;
             
             resultados.push({
                 mes,
                 rentabilidad: rentabilidadMes,  // Sin redondear - valor real
-                benefAcumAnual: benefAcumActual  // Sin redondear - valor real
+                benefAcumAnual: benefAcumAnual  // Acumulado del año
             });
-            
-            benefAcumMesAnterior = benefAcumActual;
         } catch (error) {
             console.warn(`Error cargando datos de ${mes}:`, error);
-            resultados.push({ mes, rentabilidad: 0, benefAcumAnual: benefAcumMesAnterior });
+            resultados.push({ mes, rentabilidad: 0, benefAcumAnual });
         }
     }
     
@@ -8517,15 +8511,37 @@ function renderizarGrafico(datos) {
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        callback: function(value) { return value + '%'; }
+                        callback: function(value) { return value.toFixed(2) + '%'; },
+                        font: { size: 11 }
                     },
                     grid: { color: 'rgba(0,0,0,0.05)' }
                 },
                 x: {
-                    grid: { display: false }
+                    grid: { display: false },
+                    ticks: {
+                        font: { size: 12, weight: 'bold' }
+                    }
                 }
             } : {}
-        }
+        },
+        plugins: [{
+            id: 'datalabels',
+            afterDatasetsDraw: function(chart) {
+                const ctx = chart.ctx;
+                chart.data.datasets.forEach((dataset, i) => {
+                    const meta = chart.getDatasetMeta(i);
+                    meta.data.forEach((bar, index) => {
+                        const value = dataset.data[index];
+                        ctx.fillStyle = value >= 0 ? '#1a7f37' : '#cf222e';
+                        ctx.font = 'bold 11px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = value >= 0 ? 'bottom' : 'top';
+                        const y = value >= 0 ? bar.y - 5 : bar.y + 5;
+                        ctx.fillText(value.toFixed(2) + '%', bar.x, y);
+                    });
+                });
+            }
+        }]
     };
     
     chartRentabilidad = new Chart(ctx, config);
