@@ -9056,18 +9056,17 @@ async function mostrarEstadisticasCliente() {
 }
 
 async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, clienteEnMemoria) {
-    // ESTRATEGIA: 
-    // - Rentabilidad: usar datos generales (benef_porcentaje)
-    // - Patrimonio: calcular hacia atrás desde saldo actual del cliente en memoria
-    // Los JSON no guardan valores calculados, solo el cliente actual en memoria los tiene
+    // ESTRATEGIA: Recalcular SIEMPRE desde 0
+    // - Cargar cada mes
+    // - Recalcular saldos del cliente basándose en incrementos/decrementos y benef_porcentaje
+    // - Obtener el saldo final real del mes
     
     const resultados = [];
     let benefAcumTotal = 0;
+    let saldoArrastre = 0; // Saldo que se arrastra al siguiente mes
     
-    console.log(`📊 Calculando estadísticas para Cliente ${numeroCliente} en ${hoja}, meses:`, meses);
+    console.log(`📊 Recalculando estadísticas desde 0 para Cliente ${numeroCliente} en ${hoja}, meses:`, meses);
     
-    // Primero, recopilar rentabilidades de cada mes y datos guardados del cliente
-    const datosMeses = [];
     for (const mes of meses) {
         try {
             const response = await fetch(`/api/datos/${encodeURIComponent(hoja)}/${mes}`, { cache: 'no-store' });
@@ -9083,82 +9082,84 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, cli
             const datosGenerales = data.datos_diarios_generales || [];
             const datosConBenef = datosGenerales
                 .filter(d => d && d.fila >= 15 && d.fila <= 1120)
-                .filter(d => typeof d.benef_porcentaje === 'number' && isFinite(d.benef_porcentaje));
+                .filter(d => typeof d.benef_porcentaje === 'number' && isFinite(d.benef_porcentaje))
+                .sort((a, b) => a.fila - b.fila);
             
             if (datosConBenef.length === 0) continue;
             
             const rentabilidadMes = datosConBenef.reduce((sum, d) => sum + (d.benef_porcentaje * 100), 0);
             benefAcumTotal += rentabilidadMes;
             
-            // Buscar último saldo guardado del cliente en este mes
-            // Usar _saldo_diario_guardado si existe, sino saldo_diario, sino saldo_actual
-            const datosDiariosCliente = clienteData.datos_diarios || [];
-            const ultimaFila = datosConBenef.sort((a, b) => b.fila - a.fila)[0]?.fila || 0;
-            const filaCliente = datosDiariosCliente.find(d => d.fila === ultimaFila);
+            // RECALCULAR saldos del cliente para este mes
+            const datosDiariosCliente = (clienteData.datos_diarios || [])
+                .filter(d => d.fila >= 15 && d.fila <= 1120)
+                .sort((a, b) => a.fila - b.fila);
             
-            // Prioridad: valor guardado > valor calculado > saldo_actual del cliente
-            let saldoMesGuardado = filaCliente?._saldo_diario_guardado || 
-                                   filaCliente?.saldo_diario || 
-                                   clienteData.saldo_actual || 0;
+            // Saldo inicial = arrastre del mes anterior
+            let saldoAnterior = saldoArrastre;
+            let saldoFinalMes = saldoArrastre;
+            let incrementosMes = 0;
+            let decrementosMes = 0;
+            let beneficioAcumMes = 0;
             
-            // Si saldoMesGuardado no es número válido, usar 0
-            if (typeof saldoMesGuardado !== 'number' || !isFinite(saldoMesGuardado)) {
-                saldoMesGuardado = clienteData.saldo_actual || 0;
+            // Crear mapa de benef_porcentaje por fila
+            const benefPctPorFila = {};
+            datosConBenef.forEach(d => {
+                benefPctPorFila[d.fila] = d.benef_porcentaje || 0;
+            });
+            
+            // Última fila con datos generales
+            const ultimaFilaGeneral = datosConBenef[datosConBenef.length - 1]?.fila || 0;
+            
+            // Recalcular cada fila del cliente
+            for (const filaCliente of datosDiariosCliente) {
+                if (filaCliente.fila > ultimaFilaGeneral) break;
+                
+                const inc = typeof filaCliente.incremento === 'number' ? filaCliente.incremento : 0;
+                const dec = typeof filaCliente.decremento === 'number' ? filaCliente.decremento : 0;
+                
+                incrementosMes += inc;
+                decrementosMes += dec;
+                
+                // Solo procesar si hay movimientos o saldo anterior
+                if (inc === 0 && dec === 0 && saldoAnterior === 0) continue;
+                
+                // Base = saldo anterior + incremento - decremento
+                const base = saldoAnterior + inc - dec;
+                
+                // Beneficio diario = base * benef_porcentaje
+                const benefPct = benefPctPorFila[filaCliente.fila] || 0;
+                const beneficioDiario = base * benefPct;
+                
+                // Saldo diario = base + beneficio diario
+                const saldoDiario = base + beneficioDiario;
+                
+                beneficioAcumMes += beneficioDiario;
+                saldoAnterior = saldoDiario;
+                saldoFinalMes = saldoDiario;
             }
             
-            datosMeses.push({
+            // Guardar saldo para arrastre al siguiente mes
+            saldoArrastre = saldoFinalMes;
+            
+            resultados.push({
                 mes,
                 rentabilidad: rentabilidadMes,
                 benefAcumTotal,
-                diasOperados: datosConBenef.length,
-                saldoGuardado: saldoMesGuardado,
-                incrementos: clienteData.incrementos_total || 0,
-                decrementos: clienteData.decrementos_total || 0
+                saldoFinalMes,
+                incrementos: incrementosMes,
+                decrementos: decrementosMes,
+                beneficioAcumMes,
+                diasOperados: datosConBenef.length
             });
             
-            console.log(`${mes}: rent=${rentabilidadMes.toFixed(4)}%, saldoGuardado=${saldoMesGuardado}`);
+            console.log(`${mes}: rent=${rentabilidadMes.toFixed(4)}%, saldo=${saldoFinalMes.toFixed(2)}, inc=${incrementosMes}, dec=${decrementosMes}`);
         } catch (error) {
             console.warn(`Error cargando ${mes}:`, error);
         }
     }
     
-    // Usar datos guardados cuando estén disponibles, sino usar datos en memoria
-    const saldoActualCliente = clienteEnMemoria?.saldo_actual || 0;
-    const inversionTotal = clienteEnMemoria?.incrementos_total || 0;
-    const retiradasTotal = clienteEnMemoria?.decrementos_total || 0;
-    const beneficioTotal = saldoActualCliente - inversionTotal + retiradasTotal;
-    
-    // Construir resultados usando saldoGuardado cuando esté disponible
-    for (let i = 0; i < datosMeses.length; i++) {
-        const d = datosMeses[i];
-        const esUltimoMes = (i === datosMeses.length - 1);
-        
-        // Para el último mes: usar datos en memoria (más actualizados)
-        // Para meses anteriores: usar saldoGuardado del JSON
-        let saldoFinalMes = d.saldoGuardado || 0;
-        if (esUltimoMes) {
-            saldoFinalMes = saldoActualCliente;
-        }
-        
-        resultados.push({
-            mes: d.mes,
-            rentabilidad: d.rentabilidad,
-            benefAcumTotal: d.benefAcumTotal,
-            saldoFinalMes: saldoFinalMes,
-            incrementos: d.incrementos,
-            decrementos: d.decrementos,
-            diasOperados: d.diasOperados
-        });
-        
-        console.log(`${d.mes}: rent=${d.rentabilidad.toFixed(4)}%, saldo=${saldoFinalMes}`);
-    }
-    
-    // El último mes tiene beneficio calculado
-    if (resultados.length > 0) {
-        resultados[resultados.length - 1].benefAcumEuroMes = beneficioTotal;
-    }
-    
-    console.log(`📊 Resultados mensuales:`, resultados);
+    console.log(`📊 Resultados mensuales recalculados:`, resultados);
     
     return resultados;
 }
@@ -9224,14 +9225,15 @@ function calcularKPIsTotalesCliente(datosClienteMeses, clienteEnMemoria) {
         };
     }
     
-    // INVERSIÓN = usar datos del cliente en MEMORIA (los JSON tienen 0)
-    const inversion = clienteEnMemoria?.incrementos_total || 0;
+    // INVERSIÓN = suma de incrementos de TODOS los meses (recalculados)
+    const inversion = mesesConDatos.reduce((sum, m) => sum + (m.incrementos || 0), 0);
     
-    // SALDO ACTUAL = usar datos del cliente en MEMORIA
-    const saldoActual = clienteEnMemoria?.saldo_actual || 0;
+    // SALDO ACTUAL = último saldoFinalMes recalculado
+    const ultimoMes = mesesConDatos[mesesConDatos.length - 1];
+    const saldoActual = ultimoMes?.saldoFinalMes || 0;
     
-    // DECREMENTOS = usar datos del cliente en MEMORIA
-    const decrementos = clienteEnMemoria?.decrementos_total || 0;
+    // DECREMENTOS = suma de decrementos de TODOS los meses (recalculados)
+    const decrementos = mesesConDatos.reduce((sum, m) => sum + (m.decrementos || 0), 0);
     
     // BENEFICIO TOTAL = saldo actual - inversión + retiradas
     const beneficioEuro = saldoActual - inversion + decrementos;
@@ -9244,7 +9246,7 @@ function calcularKPIsTotalesCliente(datosClienteMeses, clienteEnMemoria) {
     const peorMes = mesesConDatos.reduce((a, b) => a.rentabilidad < b.rentabilidad ? a : b);
     const promedioMensual = rentabilidadTotal / mesesConDatos.length;
     
-    console.log(`📊 KPIs: inversion=${inversion}, saldoActual=${saldoActual}, dec=${decrementos}, benef=${beneficioEuro}, rent=${rentabilidadTotal}%`);
+    console.log(`📊 KPIs recalculados: inversion=${inversion}, saldoActual=${saldoActual}, dec=${decrementos}, benef=${beneficioEuro}, rent=${rentabilidadTotal}%`);
     
     return {
         inversion,
