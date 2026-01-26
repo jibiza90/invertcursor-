@@ -8970,9 +8970,10 @@ function exportarGrafico() {
 
 // ==================== ESTADÍSTICAS DEL CLIENTE ====================
 
+let chartClienteRentabilidad = null;
 let chartClienteEvolucion = null;
 
-function mostrarEstadisticasCliente() {
+async function mostrarEstadisticasCliente() {
     if (clienteActual === null || clienteActual === undefined) {
         mostrarNotificacion('Selecciona un cliente primero', 'warning');
         return;
@@ -8990,21 +8991,7 @@ function mostrarEstadisticasCliente() {
     const apellidos = datosCliente['APELLIDOS']?.valor || '';
     const nombreCompleto = nombre || apellidos ? `${nombre} ${apellidos}`.trim() : `Cliente ${clienteActual + 1}`;
     
-    // Obtener datos diarios del cliente
-    const datosDiarios = cliente.datos_diarios || [];
-    
-    // Calcular KPIs
-    const saldoInicial = cliente.saldo_inicial_mes || 0;
-    const saldoActual = cliente.saldo_actual || 0;
-    const incrementos = cliente.incrementos_total || 0;
-    const decrementos = cliente.decrementos_total || 0;
-    const beneficioEuro = saldoActual - saldoInicial - incrementos + decrementos;
-    const rentabilidad = saldoInicial > 0 ? ((saldoActual - incrementos + decrementos) / saldoInicial - 1) * 100 : 0;
-    
-    // Preparar datos para el gráfico de evolución del patrimonio
-    const evolucionData = prepararEvolucionPatrimonio(datosDiarios, saldoInicial);
-    
-    // Crear modal
+    // Crear modal con loading
     const modalExistente = document.querySelector('.modal-stats-client');
     if (modalExistente) modalExistente.remove();
     
@@ -9016,39 +9003,9 @@ function mostrarEstadisticasCliente() {
                 <h2>📊 Estadísticas de ${nombreCompleto}</h2>
                 <button class="modal-stats-client-close" onclick="this.closest('.modal-stats-client').remove()">×</button>
             </div>
-            
-            <div class="client-stats-kpis">
-                <div class="client-stat-card">
-                    <div class="label">Saldo Inicial</div>
-                    <div class="value">${formatearMoneda(saldoInicial)}</div>
-                </div>
-                <div class="client-stat-card">
-                    <div class="label">Saldo Actual</div>
-                    <div class="value">${formatearMoneda(saldoActual)}</div>
-                </div>
-                <div class="client-stat-card">
-                    <div class="label">Incrementos</div>
-                    <div class="value positive">+${formatearMoneda(incrementos)}</div>
-                </div>
-                <div class="client-stat-card">
-                    <div class="label">Decrementos</div>
-                    <div class="value negative">-${formatearMoneda(decrementos)}</div>
-                </div>
-                <div class="client-stat-card">
-                    <div class="label">Beneficio €</div>
-                    <div class="value ${beneficioEuro >= 0 ? 'positive' : 'negative'}">${beneficioEuro >= 0 ? '+' : ''}${formatearMoneda(beneficioEuro)}</div>
-                </div>
-                <div class="client-stat-card">
-                    <div class="label">Rentabilidad</div>
-                    <div class="value ${rentabilidad >= 0 ? 'positive' : 'negative'}">${rentabilidad >= 0 ? '+' : ''}${rentabilidad.toFixed(4)}%</div>
-                </div>
-            </div>
-            
-            <div class="client-chart-container">
-                <h3>📈 Evolución del Patrimonio</h3>
-                <div class="client-chart-wrapper">
-                    <canvas id="chartClienteEvolucion"></canvas>
-                </div>
+            <div id="clientStatsContent" style="text-align: center; padding: 3rem;">
+                <div class="spinner-ring"></div>
+                <p style="color: rgba(255,255,255,0.6); margin-top: 1rem;">Cargando estadísticas de todos los meses...</p>
             </div>
         </div>
     `;
@@ -9060,41 +9017,298 @@ function mostrarEstadisticasCliente() {
         if (e.target === modal) modal.remove();
     });
     
-    // Renderizar gráfico
-    setTimeout(() => renderizarGraficoEvolucionCliente(evolucionData), 100);
+    // Cargar datos de todos los meses del cliente
+    try {
+        const mesesDisponibles = obtenerMesesDisponibles(hojaActual);
+        const datosClienteMeses = await calcularRentabilidadClientePorMes(hojaActual, clienteActual, mesesDisponibles);
+        
+        // Calcular KPIs totales (desde primer incremento hasta última fecha)
+        const kpisTotales = calcularKPIsTotalesCliente(datosClienteMeses);
+        
+        // Renderizar contenido
+        renderizarContenidoEstadisticasCliente(nombreCompleto, kpisTotales, datosClienteMeses);
+    } catch (error) {
+        console.error('Error cargando estadísticas del cliente:', error);
+        document.getElementById('clientStatsContent').innerHTML = `
+            <p style="color: #ff6b6b;">Error al cargar las estadísticas: ${error.message}</p>
+        `;
+    }
 }
 
-function prepararEvolucionPatrimonio(datosDiarios, saldoInicial) {
-    const datos = [];
-    let saldoAcumulado = saldoInicial;
+async function calcularRentabilidadClientePorMes(hoja, clienteIndex, meses) {
+    const resultados = [];
+    let benefAcumTotal = 0;
+    let saldoInicialPrimero = null;
+    let saldoFinalUltimo = 0;
+    let incrementosTotales = 0;
+    let decrementosTotales = 0;
     
-    // Filtrar solo filas de datos diarios (no resúmenes)
-    const filasValidas = datosDiarios
-        .filter(d => d && d.fila >= 15 && d.fecha)
-        .sort((a, b) => (a.fila || 0) - (b.fila || 0));
-    
-    // Añadir punto inicial
-    datos.push({
-        fecha: 'Inicio',
-        saldo: saldoInicial,
-        beneficio: 0
-    });
-    
-    for (const fila of filasValidas) {
-        const impFinal = fila.imp_final;
-        if (impFinal !== null && impFinal !== undefined && !isNaN(impFinal)) {
-            const fechaStr = fila.fecha ? new Date(fila.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : `Día ${datos.length}`;
-            const benefDia = (fila.benef_porcentaje || 0) * 100;
+    for (const mes of meses) {
+        try {
+            const response = await fetch(`/api/datos/${encodeURIComponent(hoja)}/${mes}`, { cache: 'no-store' });
+            if (!response.ok) continue;
             
-            datos.push({
-                fecha: fechaStr,
-                saldo: impFinal,
-                beneficio: benefDia
+            const data = await response.json();
+            const clientes = data.clientes || [];
+            const clienteData = clientes[clienteIndex];
+            
+            if (!clienteData) continue;
+            
+            const datosDiarios = clienteData.datos_diarios || [];
+            
+            // Filtrar filas válidas con benef_porcentaje
+            const datosConBenef = datosDiarios
+                .filter(d => d && d.fila >= 15 && d.fila <= 1120)
+                .filter(d => typeof d.benef_porcentaje === 'number' && isFinite(d.benef_porcentaje));
+            
+            if (datosConBenef.length === 0) continue;
+            
+            // Sumar rentabilidad del mes
+            const rentabilidadMes = datosConBenef.reduce((sum, d) => sum + (d.benef_porcentaje * 100), 0);
+            benefAcumTotal += rentabilidadMes;
+            
+            // Obtener saldo inicial del mes (primera fila con imp_inicial)
+            const primeraFila = datosConBenef.sort((a, b) => a.fila - b.fila)[0];
+            const ultimaFila = datosConBenef.sort((a, b) => b.fila - a.fila)[0];
+            
+            const saldoInicialMes = clienteData.saldo_inicial_mes || primeraFila?.imp_inicial || 0;
+            const saldoFinalMes = ultimaFila?.imp_final || clienteData.saldo_actual || 0;
+            
+            // Guardar saldo inicial del primer mes con datos
+            if (saldoInicialPrimero === null && saldoInicialMes > 0) {
+                saldoInicialPrimero = saldoInicialMes;
+            }
+            
+            saldoFinalUltimo = saldoFinalMes;
+            incrementosTotales += clienteData.incrementos_total || 0;
+            decrementosTotales += clienteData.decrementos_total || 0;
+            
+            resultados.push({
+                mes,
+                rentabilidad: rentabilidadMes,
+                benefAcumTotal: benefAcumTotal,
+                saldoInicial: saldoInicialMes,
+                saldoFinal: saldoFinalMes,
+                incrementos: clienteData.incrementos_total || 0,
+                decrementos: clienteData.decrementos_total || 0,
+                diasOperados: datosConBenef.length
             });
+        } catch (error) {
+            console.warn(`Error cargando datos del cliente para ${mes}:`, error);
         }
     }
     
-    return datos;
+    // Añadir totales a los resultados
+    resultados._totales = {
+        saldoInicialPrimero: saldoInicialPrimero || 0,
+        saldoFinalUltimo,
+        incrementosTotales,
+        decrementosTotales,
+        benefAcumTotal
+    };
+    
+    return resultados;
+}
+
+function calcularKPIsTotalesCliente(datosClienteMeses) {
+    const totales = datosClienteMeses._totales || {};
+    const saldoInicial = totales.saldoInicialPrimero || 0;
+    const saldoFinal = totales.saldoFinalUltimo || 0;
+    const incrementos = totales.incrementosTotales || 0;
+    const decrementos = totales.decrementosTotales || 0;
+    
+    // Beneficio = saldo final - saldo inicial - incrementos + decrementos
+    const beneficioEuro = saldoFinal - saldoInicial - incrementos + decrementos;
+    
+    // Rentabilidad total
+    const rentabilidadTotal = totales.benefAcumTotal || 0;
+    
+    // Mejor y peor mes
+    const mesesConDatos = datosClienteMeses.filter(m => m.diasOperados > 0);
+    const mejorMes = mesesConDatos.length > 0 ? mesesConDatos.reduce((a, b) => a.rentabilidad > b.rentabilidad ? a : b) : null;
+    const peorMes = mesesConDatos.length > 0 ? mesesConDatos.reduce((a, b) => a.rentabilidad < b.rentabilidad ? a : b) : null;
+    const promedioMensual = mesesConDatos.length > 0 ? rentabilidadTotal / mesesConDatos.length : 0;
+    
+    return {
+        saldoInicial,
+        saldoFinal,
+        incrementos,
+        decrementos,
+        beneficioEuro,
+        rentabilidadTotal,
+        mejorMes,
+        peorMes,
+        promedioMensual,
+        mesesOperados: mesesConDatos.length
+    };
+}
+
+function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses) {
+    const container = document.getElementById('clientStatsContent');
+    if (!container) return;
+    
+    const mesesConDatos = datosMeses.filter(m => m.diasOperados > 0);
+    
+    container.innerHTML = `
+        <div class="client-stats-kpis">
+            <div class="client-stat-card">
+                <div class="label">Saldo Inicial (Total)</div>
+                <div class="value">${formatearMoneda(kpis.saldoInicial)}</div>
+            </div>
+            <div class="client-stat-card">
+                <div class="label">Saldo Actual</div>
+                <div class="value">${formatearMoneda(kpis.saldoFinal)}</div>
+            </div>
+            <div class="client-stat-card">
+                <div class="label">Incrementos Totales</div>
+                <div class="value positive">+${formatearMoneda(kpis.incrementos)}</div>
+            </div>
+            <div class="client-stat-card">
+                <div class="label">Decrementos Totales</div>
+                <div class="value negative">-${formatearMoneda(kpis.decrementos)}</div>
+            </div>
+            <div class="client-stat-card">
+                <div class="label">Beneficio Total €</div>
+                <div class="value ${kpis.beneficioEuro >= 0 ? 'positive' : 'negative'}">${kpis.beneficioEuro >= 0 ? '+' : ''}${formatearMoneda(kpis.beneficioEuro)}</div>
+            </div>
+            <div class="client-stat-card">
+                <div class="label">Rentabilidad Total</div>
+                <div class="value ${kpis.rentabilidadTotal >= 0 ? 'positive' : 'negative'}">${kpis.rentabilidadTotal >= 0 ? '+' : ''}${kpis.rentabilidadTotal.toFixed(4)}%</div>
+            </div>
+        </div>
+        
+        <div class="client-stats-kpis" style="margin-top: 1rem;">
+            <div class="client-stat-card">
+                <div class="label">Mejor Mes</div>
+                <div class="value positive">${kpis.mejorMes ? formatearMesCorto(kpis.mejorMes.mes) + ': +' + kpis.mejorMes.rentabilidad.toFixed(2) + '%' : '-'}</div>
+            </div>
+            <div class="client-stat-card">
+                <div class="label">Peor Mes</div>
+                <div class="value negative">${kpis.peorMes ? formatearMesCorto(kpis.peorMes.mes) + ': ' + kpis.peorMes.rentabilidad.toFixed(2) + '%' : '-'}</div>
+            </div>
+            <div class="client-stat-card">
+                <div class="label">Promedio Mensual</div>
+                <div class="value ${kpis.promedioMensual >= 0 ? 'positive' : 'negative'}">${kpis.promedioMensual.toFixed(2)}%</div>
+            </div>
+            <div class="client-stat-card">
+                <div class="label">Meses Operados</div>
+                <div class="value">${kpis.mesesOperados}</div>
+            </div>
+        </div>
+        
+        <div class="client-chart-container">
+            <h3>📊 Rentabilidad Mensual</h3>
+            <div class="client-chart-wrapper">
+                <canvas id="chartClienteRentabilidad"></canvas>
+            </div>
+        </div>
+        
+        <div class="client-chart-container">
+            <h3>📈 Evolución del Patrimonio</h3>
+            <div class="client-chart-wrapper">
+                <canvas id="chartClienteEvolucion"></canvas>
+            </div>
+        </div>
+    `;
+    
+    // Renderizar gráficos
+    setTimeout(() => {
+        renderizarGraficoRentabilidadCliente(mesesConDatos);
+        renderizarGraficoEvolucionCliente(mesesConDatos);
+    }, 100);
+}
+
+function formatearMesCorto(mes) {
+    const [year, month] = mes.split('-');
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    return meses[parseInt(month) - 1] + ' ' + year.slice(2);
+}
+
+function renderizarGraficoRentabilidadCliente(datos) {
+    const canvas = document.getElementById('chartClienteRentabilidad');
+    if (!canvas || datos.length === 0) return;
+    
+    if (chartClienteRentabilidad) {
+        chartClienteRentabilidad.destroy();
+    }
+    
+    const ctx = canvas.getContext('2d');
+    const labels = datos.map(d => formatearMesCorto(d.mes));
+    const valores = datos.map(d => d.rentabilidad);
+    
+    chartClienteRentabilidad = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Rentabilidad %',
+                data: valores,
+                backgroundColor: valores.map(v => v >= 0 ? 'rgba(0, 255, 136, 0.8)' : 'rgba(255, 107, 107, 0.8)'),
+                borderColor: valores.map(v => v >= 0 ? 'rgb(0, 255, 136)' : 'rgb(255, 107, 107)'),
+                borderWidth: 2,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 1000, easing: 'easeOutQuart' },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(26, 26, 46, 0.95)',
+                    titleFont: { size: 14, weight: 'bold' },
+                    titleColor: '#fff',
+                    bodyFont: { size: 13 },
+                    bodyColor: 'rgba(255,255,255,0.8)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: (ctx) => {
+                            const idx = ctx.dataIndex;
+                            const d = datos[idx];
+                            return [
+                                `Rentabilidad: ${d.rentabilidad.toFixed(4)}%`,
+                                `Acumulado: ${d.benefAcumTotal.toFixed(4)}%`,
+                                `Días operados: ${d.diasOperados}`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: {
+                        color: 'rgba(255,255,255,0.6)',
+                        callback: (v) => v.toFixed(2) + '%'
+                    }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: 'rgba(255,255,255,0.6)' }
+                }
+            }
+        },
+        plugins: [{
+            id: 'datalabels',
+            afterDatasetsDraw: function(chart) {
+                const ctx = chart.ctx;
+                chart.data.datasets.forEach((dataset, i) => {
+                    const meta = chart.getDatasetMeta(i);
+                    meta.data.forEach((bar, index) => {
+                        const value = dataset.data[index];
+                        ctx.fillStyle = value >= 0 ? '#00ff88' : '#ff6b6b';
+                        ctx.font = 'bold 11px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = value >= 0 ? 'bottom' : 'top';
+                        const y = value >= 0 ? bar.y - 5 : bar.y + 5;
+                        ctx.fillText(value.toFixed(2) + '%', bar.x, y);
+                    });
+                });
+            }
+        }]
+    });
 }
 
 function renderizarGraficoEvolucionCliente(datos) {
@@ -9106,8 +9320,8 @@ function renderizarGraficoEvolucionCliente(datos) {
     }
     
     const ctx = canvas.getContext('2d');
-    const labels = datos.map(d => d.fecha);
-    const saldos = datos.map(d => d.saldo);
+    const labels = datos.map(d => formatearMesCorto(d.mes));
+    const saldos = datos.map(d => d.saldoFinal);
     
     // Calcular gradiente
     const gradient = ctx.createLinearGradient(0, 0, 0, 300);
@@ -9126,20 +9340,17 @@ function renderizarGraficoEvolucionCliente(datos) {
                 borderWidth: 3,
                 fill: true,
                 tension: 0.4,
-                pointRadius: 4,
+                pointRadius: 6,
                 pointBackgroundColor: '#00d4ff',
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,
-                pointHoverRadius: 8
+                pointHoverRadius: 10
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            animation: {
-                duration: 1000,
-                easing: 'easeOutQuart'
-            },
+            animation: { duration: 1000, easing: 'easeOutQuart' },
             plugins: {
                 legend: { display: false },
                 tooltip: {
@@ -9151,7 +9362,15 @@ function renderizarGraficoEvolucionCliente(datos) {
                     padding: 12,
                     cornerRadius: 8,
                     callbacks: {
-                        label: (ctx) => `Patrimonio: ${formatearMoneda(ctx.raw)}`
+                        label: (ctx) => {
+                            const idx = ctx.dataIndex;
+                            const d = datos[idx];
+                            return [
+                                `Patrimonio: ${formatearMoneda(d.saldoFinal)}`,
+                                `Incrementos: +${formatearMoneda(d.incrementos)}`,
+                                `Decrementos: -${formatearMoneda(d.decrementos)}`
+                            ];
+                        }
                     }
                 }
             },
@@ -9165,10 +9384,7 @@ function renderizarGraficoEvolucionCliente(datos) {
                 },
                 x: {
                     grid: { display: false },
-                    ticks: {
-                        color: 'rgba(255,255,255,0.6)',
-                        maxRotation: 45
-                    }
+                    ticks: { color: 'rgba(255,255,255,0.6)' }
                 }
             }
         }
