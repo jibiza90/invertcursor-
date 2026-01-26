@@ -12,6 +12,9 @@ let requiereRecalculoImpInicial = false;
 
 let __actualizarTodoPromise = null;
 
+let __lastAutoUpdateTs = 0;
+let __autoUpdateScheduled = false;
+
 let historialCambios = [];
 let indiceHistorial = -1;
 let __isUndoRedo = false;
@@ -29,6 +32,32 @@ function debounce(fn, waitMs, stateKey) {
     const timers = window.__debounceTimers;
     if (timers[stateKey]) clearTimeout(timers[stateKey]);
     timers[stateKey] = setTimeout(fn, waitMs);
+}
+
+function programarAutoActualizarVistaActual() {
+    const ahora = Date.now();
+    const minIntervalMs = 8000;
+    if (ahora - __lastAutoUpdateTs < minIntervalMs) return;
+    if (__autoUpdateScheduled) return;
+
+    const el = document.activeElement;
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+
+    __autoUpdateScheduled = true;
+    debounce(async () => {
+        __autoUpdateScheduled = false;
+        const ahora2 = Date.now();
+        if (ahora2 - __lastAutoUpdateTs < minIntervalMs) return;
+        if (__actualizarTodoPromise) return;
+        const el2 = document.activeElement;
+        if (el2 && (el2.tagName === 'INPUT' || el2.tagName === 'TEXTAREA' || el2.isContentEditable)) return;
+        __lastAutoUpdateTs = ahora2;
+        try {
+            await autoActualizarVistaActual();
+        } catch (e) {
+            console.warn('autoActualizarVistaActual error:', e);
+        }
+    }, 350, 'autoActualizarVistaActual');
 }
 
 function extraerEventosClientePorCampo(cliente, campo) {
@@ -1781,15 +1810,15 @@ function inicializarEventos() {
     inicializarInspectorCeldas();
 
     window.addEventListener('focus', () => {
-        void autoActualizarVistaActual();
+        programarAutoActualizarVistaActual();
     });
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
-            void autoActualizarVistaActual();
+            programarAutoActualizarVistaActual();
         }
     });
     window.addEventListener('pageshow', () => {
-        void autoActualizarVistaActual();
+        programarAutoActualizarVistaActual();
     });
 
     const btnActualizarTodo = document.getElementById('btnActualizarTodo');
