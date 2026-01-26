@@ -5086,8 +5086,11 @@ function renderVistaClientes() {
             const clienteMes = hoja?.clientes?.[idx];
             
             // Combinar datos anuales con datos del mes actual
+            // CRÍTICO: También copiar 'datos' del mes que tiene garantía actualizada
             return {
                 ...clienteAnual,
+                // Datos del cliente (nombre, garantía, etc.) - priorizar datos del mes actual
+                datos: clienteMes?.datos || clienteAnual?.datos || {},
                 // Datos mensuales (incrementos, decrementos, saldo)
                 incrementos_total: clienteMes?.incrementos_total || 0,
                 decrementos_total: clienteMes?.decrementos_total || 0,
@@ -7573,6 +7576,8 @@ function mostrarInfoClientes() {
             const clienteMes = hoja?.clientes?.[idx];
             return {
                 ...clienteAnual,
+                // Datos del cliente (nombre, garantía, etc.) - priorizar datos del mes actual
+                datos: clienteMes?.datos || clienteAnual?.datos || {},
                 incrementos_total: clienteMes?.incrementos_total || 0,
                 decrementos_total: clienteMes?.decrementos_total || 0,
                 saldo_actual: clienteMes?.saldo_actual || 0,
@@ -8112,6 +8117,8 @@ function mostrarComision() {
             const clienteMes = hoja?.clientes?.[idx];
             return {
                 ...clienteAnual,
+                // Datos del cliente (nombre, garantía, etc.) - priorizar datos del mes actual
+                datos: clienteMes?.datos || clienteAnual?.datos || {},
                 incrementos_total: clienteMes?.incrementos_total || 0,
                 decrementos_total: clienteMes?.decrementos_total || 0,
                 saldo_actual: clienteMes?.saldo_actual || 0,
