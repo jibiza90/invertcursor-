@@ -419,6 +419,7 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     if len(partes) == 2:
                         hoja = partes[0].replace('_', ' ')
                         mes = partes[1]
+                        # Para hojas anuales (IBI), el "mes" es el año completo
                         meses_por_hoja.setdefault(hoja, []).append(mes)
             for hoja in meses_por_hoja:
                 meses_por_hoja[hoja].sort()

@@ -52,6 +52,13 @@ let hojaInfoClientes = 'Diario STD'; // Hoja seleccionada en Info Clientes
 let vistaActual = 'general';
 let requiereRecalculoImpInicial = false;
 
+// Hojas anuales (sin selector de meses, todo el año en un solo JSON)
+const HOJAS_ANUALES = ['Diario IBI'];
+
+function esHojaAnual(nombreHoja) {
+    return HOJAS_ANUALES.includes(nombreHoja);
+}
+
 let clientesResumenAnualCache = {};
 let __clientesResumenAnualPromise = {};
 
@@ -1237,8 +1244,27 @@ function obtenerUltimaFechaImpFinalManual(hoja) {
 
 function actualizarSelectorMes() {
     const selectorMes = document.getElementById('selectorMes');
+    const btnMesAnterior = document.getElementById('btnMesAnterior');
+    const btnMesSiguiente = document.getElementById('btnMesSiguiente');
+    
     if (!selectorMes) return;
     selectorMes.innerHTML = '';
+    
+    // Para hojas anuales, ocultar selector de meses y navegación
+    if (esHojaAnual(hojaActual)) {
+        selectorMes.style.display = 'none';
+        if (btnMesAnterior) btnMesAnterior.style.display = 'none';
+        if (btnMesSiguiente) btnMesSiguiente.style.display = 'none';
+        const meses = mesesDisponibles[hojaActual] || [];
+        mesActual = meses.length > 0 ? meses[0] : '2026'; // Año completo
+        return;
+    }
+    
+    // Mostrar selector para hojas mensuales
+    selectorMes.style.display = '';
+    if (btnMesAnterior) btnMesAnterior.style.display = '';
+    if (btnMesSiguiente) btnMesSiguiente.style.display = '';
+    
     const meses = mesesDisponibles[hojaActual] || [];
     if (meses.length === 0) {
         const option = document.createElement('option');
@@ -1699,6 +1725,22 @@ function obtenerAcumDecClienteMesAnteriorDirecto(numeroCliente) {
 
 async function aplicarArrastreAnualAlCargar(nombreHoja, mes, dataMes) {
     if (!dataMes || !Array.isArray(dataMes.clientes)) return;
+    
+    // Para hojas anuales (IBI), no hay mes anterior - todo está en un solo JSON
+    if (esHojaAnual(nombreHoja)) {
+        __datosMesAnteriorCache = null;
+        __mesAnteriorCacheKey = null;
+        (dataMes.clientes || []).forEach((c, idx) => {
+            if (!c) return;
+            c._acumPrevInc = 0;
+            c._acumPrevDec = 0;
+            c._saldoMesAnterior = 0;
+            c.numero_cliente = typeof c.numero_cliente === 'number' ? c.numero_cliente : (idx + 1);
+            c.columna_inicio = 11 + (idx * 8);
+        });
+        return;
+    }
+    
     const mesAnterior = obtenerMesAnteriorDeHoja(nombreHoja, mes);
     if (!mesAnterior) {
         // Sin mes anterior, limpiar caché
@@ -1979,11 +2021,16 @@ function inicializarEventos() {
     if (tabWIND) {
         tabWIND.addEventListener('click', () => cambiarHojaInfoClientes('Diario WIND'));
     }
+    const tabIBI = document.getElementById('tabIBI');
+    if (tabIBI) {
+        tabIBI.addEventListener('click', () => cambiarHojaInfoClientes('Diario IBI'));
+    }
     
     // Tabs para seleccionar hoja en Comisión
     const tabSTDComision = document.getElementById('tabSTDComision');
     const tabVIPComision = document.getElementById('tabVIPComision');
     const tabWINDComision = document.getElementById('tabWINDComision');
+    const tabIBIComision = document.getElementById('tabIBIComision');
     if (tabSTDComision) {
         tabSTDComision.addEventListener('click', () => cambiarHojaComision('Diario STD'));
     }
@@ -1993,11 +2040,15 @@ function inicializarEventos() {
     if (tabWINDComision) {
         tabWINDComision.addEventListener('click', () => cambiarHojaComision('Diario WIND'));
     }
+    if (tabIBIComision) {
+        tabIBIComision.addEventListener('click', () => cambiarHojaComision('Diario IBI'));
+    }
     
     // Tabs para seleccionar hoja en Estadísticas
     const tabSTDStats = document.getElementById('tabSTDStats');
     const tabVIPStats = document.getElementById('tabVIPStats');
     const tabWINDStats = document.getElementById('tabWINDStats');
+    const tabIBIStats = document.getElementById('tabIBIStats');
     if (tabSTDStats) {
         tabSTDStats.addEventListener('click', () => cambiarHojaEstadisticas('Diario STD'));
     }
@@ -2006,6 +2057,9 @@ function inicializarEventos() {
     }
     if (tabWINDStats) {
         tabWINDStats.addEventListener('click', () => cambiarHojaEstadisticas('Diario WIND'));
+    }
+    if (tabIBIStats) {
+        tabIBIStats.addEventListener('click', () => cambiarHojaEstadisticas('Diario IBI'));
     }
     
     // Selector de tipo de gráfico
@@ -2300,9 +2354,9 @@ function mostrarVistaGeneral() {
     recalcularImpInicialSync(hoja);
     requiereRecalculoImpInicial = false;
     
-    // REDISTRIBUCIÓN AUTOMÁTICA PARA DIARIO WIND
+    // REDISTRIBUCIÓN AUTOMÁTICA PARA DIARIO WIND e IBI
     // Mantiene imp_final del general fijo y redistribuye saldos proporcionalmente entre clientes
-    if (hojaActual === 'Diario WIND') {
+    if (hojaActual === 'Diario WIND' || hojaActual === 'Diario IBI') {
         setTimeout(() => redistribuirSaldosClientesWIND(hoja), 100);
     }
     
@@ -3169,7 +3223,7 @@ function recalcularImpInicialSync(hoja) {
         if (!d.fecha || d.fecha === 'FECHA') return max;
         return Math.max(max, d.fila);
     }, 0);
-    const limiteCalculo = (hojaActual === 'Diario WIND' && ultimaFilaImpFinalManual > 0)
+    const limiteCalculo = ((hojaActual === 'Diario WIND' || hojaActual === 'Diario IBI') && ultimaFilaImpFinalManual > 0)
         ? ultimaFilaImpFinalManual
         : Math.max(
             (ultimaFilaImpFinalManual > 0 ? (ultimaFilaImpFinalManual + 1) : 0),
@@ -3196,7 +3250,7 @@ function recalcularImpInicialSync(hoja) {
         const fa = calcularFA(fila, hoja);
         
         // CRÍTICO: Solo calcular imp_inicial hasta la última fila con imp_final
-        if (hojaActual === 'Diario WIND' && ultimaFilaImpFinalManual > 0 && fila > ultimaFilaImpFinalManual) {
+        if ((hojaActual === 'Diario WIND' || hojaActual === 'Diario IBI') && ultimaFilaImpFinalManual > 0 && fila > ultimaFilaImpFinalManual) {
             // Limpiar imp_inicial después de la última fecha con imp_final
             filaData.imp_inicial = null;
             continue;
@@ -3228,7 +3282,7 @@ function recalcularImpInicialSync(hoja) {
     }
 
     // CRÍTICO: Limpiar imp_inicial de TODAS las filas después de la última con imp_final
-    if (hojaActual === 'Diario WIND' && ultimaFilaImpFinalManual > 0) {
+    if ((hojaActual === 'Diario WIND' || hojaActual === 'Diario IBI') && ultimaFilaImpFinalManual > 0) {
         for (const d of datosGen) {
             if (d && d.fila > ultimaFilaImpFinalManual) {
                 d.imp_inicial = null;
@@ -6010,7 +6064,7 @@ async function mostrarDetalleCliente(index) {
             setLoadingOverlayText('Recalculando (fase 1/2)...');
             await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_detalle' });
             if (navSeq !== __navDetalleSeq) return;
-            if (hojaActual === 'Diario WIND' && datosEditados?.hojas?.[hojaActual]) {
+            if ((hojaActual === 'Diario WIND' || hojaActual === 'Diario IBI') && datosEditados?.hojas?.[hojaActual]) {
                 const hoja = datosEditados.hojas[hojaActual];
                 setLoadingOverlayText('Recalculando (fase 2/2)...');
                 await redistribuirSaldosClientesWIND(hoja);
@@ -6840,7 +6894,7 @@ async function recalcularFormulasPorCambioClienteInterno(clienteIdx, filaIdx, ca
             
             // Límite: no calcular más allá de la última fila con datos relevantes
             // Si el cliente no tiene movimientos, no tocamos nada de ese cliente.
-            if (nombreHoja === 'Diario WIND' && ultimaFilaConMovimiento === 0) {
+            if ((nombreHoja === 'Diario WIND' || nombreHoja === 'Diario IBI') && ultimaFilaConMovimiento === 0) {
                 return;
             }
 
@@ -6905,7 +6959,7 @@ async function recalcularFormulasPorCambioClienteInterno(clienteIdx, filaIdx, ca
                 const datoGeneral = hoja.datos_diarios_generales?.find(g => g.fila === filaDataCliente.fila);
                 const tieneImpFinalGeneral = esImpFinalConValorGeneral(datoGeneral);
                 const benefPct = tieneImpFinalGeneral ? (datoGeneral?.benef_porcentaje || 0) : 0;
-                const esDiarioWind = nombreHoja === 'Diario WIND';
+                const esDiarioWind = nombreHoja === 'Diario WIND' || nombreHoja === 'Diario IBI';
                 
                 // Calcular base = saldo_anterior + incremento - decremento
                 const base = saldoAnterior + inc - dec;
@@ -7099,7 +7153,7 @@ async function recalcularFormulasGeneralesDesdeFila(filaInicio, hoja, skipImpFin
                 const sumaFA = calcularFA(fila, hoja);
                 const valorAnterior = filaData.imp_inicial;
                 // En WIND, el día 1 debe partir del cierre del mes anterior + FA
-                const baseMesAnterior = (hojaActual === 'Diario WIND' && typeof hoja._impFinalMesAnterior === 'number' && isFinite(hoja._impFinalMesAnterior))
+                const baseMesAnterior = ((hojaActual === 'Diario WIND' || hojaActual === 'Diario IBI') && typeof hoja._impFinalMesAnterior === 'number' && isFinite(hoja._impFinalMesAnterior))
                     ? hoja._impFinalMesAnterior
                     : 0;
                 const nuevoValor = baseMesAnterior + sumaFA;
@@ -7982,10 +8036,12 @@ function cambiarHojaInfoClientes(nuevaHoja) {
     const tabSTD = document.getElementById('tabSTD');
     const tabVIP = document.getElementById('tabVIP');
     const tabWIND = document.getElementById('tabWIND');
+    const tabIBI = document.getElementById('tabIBI');
     
     if (tabSTD) tabSTD.classList.toggle('active', nuevaHoja === 'Diario STD');
     if (tabVIP) tabVIP.classList.toggle('active', nuevaHoja === 'Diario VIP');
     if (tabWIND) tabWIND.classList.toggle('active', nuevaHoja === 'Diario WIND');
+    if (tabIBI) tabIBI.classList.toggle('active', nuevaHoja === 'Diario IBI');
     
     // Limpiar el buscador
     const buscarInput = document.getElementById('buscarInfoCliente');
@@ -8131,6 +8187,8 @@ function mostrarInfoClientes() {
             badgeHoja = '<span class="badge-vip">VIP</span>';
         } else if (hojaParaMostrar === 'Diario WIND') {
             badgeHoja = '<span class="badge-wind">WIND</span>';
+        } else if (hojaParaMostrar === 'Diario IBI') {
+            badgeHoja = '<span class="badge-ibi">IBI</span>';
         }
         
         // Crear ID seguro sin espacios
@@ -8538,10 +8596,12 @@ function cambiarHojaComision(nuevaHoja) {
     const tabSTD = document.getElementById('tabSTDComision');
     const tabVIP = document.getElementById('tabVIPComision');
     const tabWIND = document.getElementById('tabWINDComision');
+    const tabIBI = document.getElementById('tabIBIComision');
     
     if (tabSTD) tabSTD.classList.toggle('active', nuevaHoja === 'Diario STD');
     if (tabVIP) tabVIP.classList.toggle('active', nuevaHoja === 'Diario VIP');
     if (tabWIND) tabWIND.classList.toggle('active', nuevaHoja === 'Diario WIND');
+    if (tabIBI) tabIBI.classList.toggle('active', nuevaHoja === 'Diario IBI');
     
     // Recargar la vista de comisión
     mostrarComision();
@@ -8811,10 +8871,12 @@ function cambiarHojaEstadisticas(nuevaHoja) {
     const tabSTD = document.getElementById('tabSTDStats');
     const tabVIP = document.getElementById('tabVIPStats');
     const tabWIND = document.getElementById('tabWINDStats');
+    const tabIBI = document.getElementById('tabIBIStats');
     
     if (tabSTD) tabSTD.classList.toggle('active', nuevaHoja === 'Diario STD');
     if (tabVIP) tabVIP.classList.toggle('active', nuevaHoja === 'Diario VIP');
     if (tabWIND) tabWIND.classList.toggle('active', nuevaHoja === 'Diario WIND');
+    if (tabIBI) tabIBI.classList.toggle('active', nuevaHoja === 'Diario IBI');
     
     mostrarEstadisticas();
 }

@@ -2271,6 +2271,12 @@ input[type="text"]:focus {
     box-shadow: 0 2px 8px rgba(0, 184, 148, 0.3);
 }
 
+.badge-ibi {
+    background: linear-gradient(135deg, #e17055 0%, #fdcb6e 100%);
+    color: var(--white);
+    box-shadow: 0 2px 8px rgba(225, 112, 85, 0.3);
+}
+
 .cliente-toggle {
     color: #c9a227;
     font-size: 14px;
