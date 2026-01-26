@@ -9175,7 +9175,19 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, cli
                 // Si no hay saldo previo ni incrementos ni decrementos, saltar
                 if (inc === 0 && dec === 0 && saldoAnterior === 0) continue;
                 
-                const base = saldoAnterior + inc - dec;
+                // El decremento no puede ser mayor que (saldo + incremento)
+                const maxDecremento = saldoAnterior + inc;
+                const decrementoReal = Math.min(dec, maxDecremento);
+                
+                const base = saldoAnterior + inc - decrementoReal;
+                
+                // Si base es 0 o negativo, no aplicar beneficio
+                if (base <= 0) {
+                    saldoAnterior = 0;
+                    saldoFinalMes = 0;
+                    continue;
+                }
+                
                 const benefPct = benefPctPorFila[filaCliente.fila] || 0;
                 const beneficioDiario = base * benefPct;
                 const saldoDiario = base + beneficioDiario;
@@ -9183,6 +9195,11 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, cli
                 beneficioAcumMes += beneficioDiario;
                 saldoAnterior = saldoDiario;
                 saldoFinalMes = saldoDiario;
+            }
+            
+            // Si el saldo final es negativo o muy pequeño, resetear a 0
+            if (saldoFinalMes < 0.01) {
+                saldoFinalMes = 0;
             }
             
             console.log(`📅 ${mes}: FINAL saldoFinalMes=${saldoFinalMes.toFixed(2)}, inc=${incrementosMes}, dec=${decrementosMes}`);
