@@ -55,6 +55,10 @@ let requiereRecalculoImpInicial = false;
 let clientesResumenAnualCache = {};
 let __clientesResumenAnualPromise = {};
 
+// Caché del JSON del mes anterior (para lectura directa, no memoria)
+let __datosMesAnteriorCache = null;
+let __mesAnteriorCacheKey = null;
+
 let __actualizarTodoPromise = null;
 
 let __lastAutoUpdateTs = 0;
@@ -378,9 +382,11 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
 
     // Determinar hasta qué fila recalcular:
     // - Si hay movimientos: hasta la última fila con movimiento (capada por imp_final manual si existe)
-    // - Si NO hay movimientos pero hay saldo arrastrado (_saldoMesAnterior): recalcular igualmente
+    // - Si NO hay movimientos pero hay saldo arrastrado: recalcular igualmente
     //   usando como límite la última fila con fecha en general (permite día 1 y fines de semana)
-    const saldoArrastre = typeof cliente._saldoMesAnterior === 'number' ? cliente._saldoMesAnterior : 0;
+    // LEER DIRECTAMENTE del JSON del mes anterior (no memoria)
+    const numeroCliente = cliente.numero_cliente || (clienteIdx + 1);
+    const saldoArrastre = obtenerSaldoClienteMesAnteriorDirecto(numeroCliente);
     if (hayMovimientosCliente) {
         last = Math.max(lastMovimientoFila, ultimaFilaImpFinal || 0);
     } else if (saldoArrastre > 0) {
@@ -405,10 +411,11 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
     }
 
     // Recalcular solo filas de CÁLCULO (última fila del día), aplicando inc(1ª fila) y dec(2ª fila)
-    // Usar _saldoMesAnterior como punto de partida (arrastre entre meses)
-    let saldoAnterior = typeof cliente._saldoMesAnterior === 'number' ? cliente._saldoMesAnterior : 0;
+    // LEER saldo arrastre DIRECTAMENTE del JSON del mes anterior (no memoria)
+    let saldoAnterior = saldoArrastre;
     let benefAcumAnterior = 0;
-    let inversionAcum = typeof cliente._acumPrevInc === 'number' ? cliente._acumPrevInc : 0;
+    // LEER inversión acumulada DIRECTAMENTE del JSON del mes anterior
+    let inversionAcum = obtenerAcumIncClienteMesAnteriorDirecto(numeroCliente);
     const gruposOrdenados = Array.from(gruposPorFecha.values())
         .filter(g => g.rows && g.rows.length > 0)
         .sort((a, b) => (a.rows[0]?.fila || 0) - (b.rows[0]?.fila || 0));
@@ -1623,10 +1630,80 @@ function obtenerSaldoFinalClienteDeMes(cliente) {
     return 0;
 }
 
+// Función para leer saldo del mes anterior DIRECTAMENTE del JSON cacheado (no de memoria)
+function obtenerSaldoClienteMesAnteriorDirecto(numeroCliente) {
+    if (!__datosMesAnteriorCache || !__datosMesAnteriorCache.clientes) {
+        return 0;
+    }
+    
+    // Buscar cliente por numero_cliente en el JSON del mes anterior
+    const clientePrev = __datosMesAnteriorCache.clientes.find((c, idx) => {
+        if (!c) return false;
+        const num = (typeof c.numero_cliente === 'number' && isFinite(c.numero_cliente))
+            ? c.numero_cliente
+            : (idx + 1);
+        return num === numeroCliente;
+    });
+    
+    if (!clientePrev) {
+        return 0;
+    }
+    
+    // Leer el último saldo válido del JSON del mes anterior
+    return obtenerSaldoFinalClienteDeMes(clientePrev);
+}
+
+// Función para leer incrementos acumulados del mes anterior DIRECTAMENTE del JSON
+function obtenerAcumIncClienteMesAnteriorDirecto(numeroCliente) {
+    if (!__datosMesAnteriorCache || !__datosMesAnteriorCache.clientes) {
+        return 0;
+    }
+    
+    const clientePrev = __datosMesAnteriorCache.clientes.find((c, idx) => {
+        if (!c) return false;
+        const num = (typeof c.numero_cliente === 'number' && isFinite(c.numero_cliente))
+            ? c.numero_cliente
+            : (idx + 1);
+        return num === numeroCliente;
+    });
+    
+    if (!clientePrev) {
+        return 0;
+    }
+    
+    // Leer incrementos_total del cliente del mes anterior
+    return typeof clientePrev.incrementos_total === 'number' ? clientePrev.incrementos_total : 0;
+}
+
+// Función para leer decrementos acumulados del mes anterior DIRECTAMENTE del JSON
+function obtenerAcumDecClienteMesAnteriorDirecto(numeroCliente) {
+    if (!__datosMesAnteriorCache || !__datosMesAnteriorCache.clientes) {
+        return 0;
+    }
+    
+    const clientePrev = __datosMesAnteriorCache.clientes.find((c, idx) => {
+        if (!c) return false;
+        const num = (typeof c.numero_cliente === 'number' && isFinite(c.numero_cliente))
+            ? c.numero_cliente
+            : (idx + 1);
+        return num === numeroCliente;
+    });
+    
+    if (!clientePrev) {
+        return 0;
+    }
+    
+    // Leer decrementos_total del cliente del mes anterior
+    return typeof clientePrev.decrementos_total === 'number' ? clientePrev.decrementos_total : 0;
+}
+
 async function aplicarArrastreAnualAlCargar(nombreHoja, mes, dataMes) {
     if (!dataMes || !Array.isArray(dataMes.clientes)) return;
     const mesAnterior = obtenerMesAnteriorDeHoja(nombreHoja, mes);
     if (!mesAnterior) {
+        // Sin mes anterior, limpiar caché
+        __datosMesAnteriorCache = null;
+        __mesAnteriorCacheKey = null;
         (dataMes.clientes || []).forEach((c, idx) => {
             if (!c) return;
             c._acumPrevInc = 0;
@@ -1639,11 +1716,20 @@ async function aplicarArrastreAnualAlCargar(nombreHoja, mes, dataMes) {
     }
 
     try {
+        const cacheKey = `${nombreHoja}_${mesAnterior}`;
         const respPrev = await fetch(`/api/datos/${nombreHoja.replace(/\s/g, '_')}/${mesAnterior}`, { cache: 'no-store' });
         if (!respPrev.ok) {
+            __datosMesAnteriorCache = null;
+            __mesAnteriorCacheKey = null;
             return;
         }
         const dataPrev = await respPrev.json();
+        
+        // GUARDAR JSON del mes anterior en caché global para lectura directa
+        __datosMesAnteriorCache = dataPrev;
+        __mesAnteriorCacheKey = cacheKey;
+        console.log(`📂 Caché mes anterior cargado: ${cacheKey} (${dataPrev?.clientes?.length || 0} clientes)`);
+        
         const prevClientes = Array.isArray(dataPrev?.clientes) ? dataPrev.clientes : [];
 
         // Indexar clientes del mes anterior por numero_cliente para que el arrastre sea consistente
@@ -3680,14 +3766,16 @@ function obtenerValorCeldaCliente(referencia, filaIdx, clienteIdxActual, hoja) {
     const campo = campoMap[offsetColumna];
     
     // CASO ESPECIAL: Si se busca una fila anterior a la primera del mes (fila < 15)
-    // y es el campo saldo_diario, usar _saldoMesAnterior del cliente
+    // y es el campo saldo_diario, leer DIRECTAMENTE del JSON del mes anterior (no memoria)
     if (filaNum < 15 && campo === 'saldo_diario') {
         const hojaFuente = hoja || datosEditados?.hojas?.[hojaActual];
         const clientes = hojaFuente?.clientes || [];
         if (clienteIdx >= 0 && clienteIdx < clientes.length) {
             const cliente = clientes[clienteIdx];
-            const saldoAnterior = typeof cliente._saldoMesAnterior === 'number' ? cliente._saldoMesAnterior : 0;
-            console.log(`📅 Día 1: usando saldo mes anterior para cliente ${clienteIdx + 1}: ${saldoAnterior}`);
+            const numeroCliente = cliente.numero_cliente || (clienteIdx + 1);
+            // Leer del caché del mes anterior (JSON directo)
+            const saldoAnterior = obtenerSaldoClienteMesAnteriorDirecto(numeroCliente);
+            console.log(`📅 Día 1: leyendo saldo mes anterior DIRECTO del JSON para cliente ${numeroCliente}: ${saldoAnterior}`);
             return saldoAnterior;
         }
         return 0;
@@ -4220,11 +4308,13 @@ function calcularSaldoActualCliente(cliente) {
 
 // Calcular comisión (5%) atribuible al decremento de una fila concreta.
 // La comisión se aplica solo a la parte del decremento que excede los incrementos acumulados.
-function calcularComisionDeDecrementoEnFila(cliente, filaObjetivo, overrideDecremento = undefined) {
+function calcularComisionDeDecrementoEnFila(cliente, filaObjetivo, overrideDecremento = undefined, clienteIdx = -1) {
     if (!cliente || !cliente.datos_diarios) return 0;
 
-    let acumuladoIncrementos = typeof cliente._acumPrevInc === 'number' ? cliente._acumPrevInc : 0;
-    let acumuladoDecrementos = typeof cliente._acumPrevDec === 'number' ? cliente._acumPrevDec : 0;
+    // LEER DIRECTAMENTE del JSON del mes anterior (no memoria)
+    const numeroCliente = cliente.numero_cliente || (clienteIdx >= 0 ? clienteIdx + 1 : 0);
+    let acumuladoIncrementos = numeroCliente > 0 ? obtenerAcumIncClienteMesAnteriorDirecto(numeroCliente) : 0;
+    let acumuladoDecrementos = numeroCliente > 0 ? obtenerAcumDecClienteMesAnteriorDirecto(numeroCliente) : 0;
     let comisionFila = 0;
     const primeraFilaPorFecha = obtenerPrimeraFilaPorFechaCliente(cliente);
 
@@ -5385,15 +5475,17 @@ function calcularComisionSiRetiraTodoHoy(cliente) {
     return exceso * 0.05;
 }
 
-function calcularDetalleComisionesCobradas(cliente) {
+function calcularDetalleComisionesCobradas(cliente, clienteIdx = -1) {
     if (!cliente) return { totalCobrada: 0, eventos: [] };
 
     if (!cliente.incrementos_total && cliente.datos_diarios) {
-        recalcularTotalesCliente(cliente);
+        recalcularTotalesCliente(cliente, clienteIdx);
     }
 
-    let acumuladoIncrementos = typeof cliente._acumPrevInc === 'number' ? cliente._acumPrevInc : 0;
-    let acumuladoDecrementos = typeof cliente._acumPrevDec === 'number' ? cliente._acumPrevDec : 0;
+    // LEER DIRECTAMENTE del JSON del mes anterior (no memoria)
+    const numeroCliente = cliente.numero_cliente || (clienteIdx >= 0 ? clienteIdx + 1 : 0);
+    let acumuladoIncrementos = numeroCliente > 0 ? obtenerAcumIncClienteMesAnteriorDirecto(numeroCliente) : 0;
+    let acumuladoDecrementos = numeroCliente > 0 ? obtenerAcumDecClienteMesAnteriorDirecto(numeroCliente) : 0;
     const eventos = [];
 
     const datosOrdenados = [...(cliente.datos_diarios || [])]
@@ -6333,8 +6425,10 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
     let ultimaFilaMostrar = Math.max(ultimaFilaImpFinalGeneral || 0, ultimaFilaConFechaGeneral || 0);
 
     // Verificar si el cliente tiene saldo del mes anterior (arrastre)
-    // Usar _saldoMesAnterior que se calcula al cargar los datos
-    const tieneSaldoInicial = typeof cliente._saldoMesAnterior === 'number' && cliente._saldoMesAnterior > 0;
+    // LEER DIRECTAMENTE del JSON del mes anterior (no memoria)
+    const numeroClienteParaSaldo = cliente.numero_cliente || (clienteIdx + 1);
+    const saldoMesAnteriorDirecto = obtenerSaldoClienteMesAnteriorDirecto(numeroClienteParaSaldo);
+    const tieneSaldoInicial = saldoMesAnteriorDirecto > 0;
 
     let haEmpezado = false;
     for (let gi = 0; gi < gruposOrdenados.length; gi++) {
@@ -6624,11 +6718,13 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
 // Recalcular totales del cliente cuando se edita incremento/decremento
 // IMPORTANTE: Solo procesar filas de datos diarios reales (filas 15-1120), 
 // ignorando headers repetidos y tablas de resumen mensual
-function recalcularTotalesCliente(cliente) {
+function recalcularTotalesCliente(cliente, clienteIdx = -1) {
     if (!cliente.datos_diarios) return;
     
-    let sumaIncrementos = typeof cliente._acumPrevInc === 'number' ? cliente._acumPrevInc : 0;
-    let sumaDecrementos = typeof cliente._acumPrevDec === 'number' ? cliente._acumPrevDec : 0;
+    // LEER DIRECTAMENTE del JSON del mes anterior (no memoria)
+    const numeroCliente = cliente.numero_cliente || (clienteIdx >= 0 ? clienteIdx + 1 : 0);
+    let sumaIncrementos = numeroCliente > 0 ? obtenerAcumIncClienteMesAnteriorDirecto(numeroCliente) : 0;
+    let sumaDecrementos = numeroCliente > 0 ? obtenerAcumDecClienteMesAnteriorDirecto(numeroCliente) : 0;
     const primeraFilaPorFecha = obtenerPrimeraFilaPorFechaCliente(cliente);
     
     cliente.datos_diarios.forEach(dato => {
@@ -10833,7 +10929,7 @@ async function actualizarTodoElDiario(opts = {}) {
 
         for (let i = 0; i < clientes.length; i++) {
             recalcularSaldosClienteEnMemoria(hoja, i);
-            recalcularTotalesCliente(clientes[i]);
+            recalcularTotalesCliente(clientes[i], i);
             cambiosRealizados++;
 
             if (i > 0 && (i % 2) === 0) {
@@ -11311,8 +11407,10 @@ async function redistribuirSaldosClientesWIND(hoja) {
         const cliente = hoja.clientes[idx];
         if (!cliente) continue;
         
-        const tieneSaldoInicial = typeof cliente._saldoMesAnterior === 'number' && 
-            cliente._saldoMesAnterior > 0;
+        // LEER DIRECTAMENTE del JSON del mes anterior (no memoria)
+        const numeroCliente = cliente.numero_cliente || (idx + 1);
+        const saldoArrastreDirecto = obtenerSaldoClienteMesAnteriorDirecto(numeroCliente);
+        const tieneSaldoInicial = saldoArrastreDirecto > 0;
         
         if (!tieneSaldoInicial) continue;
         
@@ -11322,9 +11420,9 @@ async function redistribuirSaldosClientesWIND(hoja) {
         );
         
         if (datosConSaldo.length === 0) {
-            console.log(`🔧 Recalculando cliente ${cliente.numero_cliente || (idx + 1)} con saldo inicial ${cliente._saldoMesAnterior.toFixed(2)}€`);
+            console.log(`🔧 Recalculando cliente ${numeroCliente} con saldo inicial ${saldoArrastreDirecto.toFixed(2)}€ (directo del JSON)`);
             recalcularSaldosClienteEnMemoria(hoja, idx);
-            recalcularTotalesCliente(cliente);
+            recalcularTotalesCliente(cliente, idx);
             recalculosRealizados++;
         }
         if (idx > 0 && (idx % 2) === 0) {
@@ -11343,7 +11441,7 @@ async function redistribuirSaldosClientesWIND(hoja) {
     const datosConImpFinalOrd = [...datosConImpFinal].sort((a, b) => (a.fila || 0) - (b.fila || 0));
 
     // Precomputar estructuras por cliente para evitar filtros/sorts repetidos
-    const estadoClientes = hoja.clientes.map(cliente => {
+    const estadoClientes = hoja.clientes.map((cliente, idx) => {
         const rows = (cliente?.datos_diarios || [])
             .filter(d => d && typeof d.fila === 'number' && d.fila >= 15 && d.fila <= 1120)
             .sort((a, b) => (a.fila || 0) - (b.fila || 0));
@@ -11351,15 +11449,19 @@ async function redistribuirSaldosClientesWIND(hoja) {
         rows.forEach(r => {
             mapPorFila.set(r.fila, r);
         });
+        // LEER DIRECTAMENTE del JSON del mes anterior (no memoria)
+        const numeroCliente = cliente?.numero_cliente || (idx + 1);
+        const saldoArrastre = obtenerSaldoClienteMesAnteriorDirecto(numeroCliente);
+        const acumIncArrastre = obtenerAcumIncClienteMesAnteriorDirecto(numeroCliente);
         return {
             cliente,
             rows,
             mapPorFila,
             ptr: 0,
-            // NO usar saldo_inicial_mes - solo leer saldo_diario del JSON
-            lastSaldo: (typeof cliente?._saldoMesAnterior === 'number' && isFinite(cliente._saldoMesAnterior)) ? cliente._saldoMesAnterior : 0,
+            // Leer saldo arrastre DIRECTO del JSON mes anterior
+            lastSaldo: saldoArrastre,
             cumBenef: 0,
-            cumInv: (typeof cliente?._acumPrevInc === 'number' && isFinite(cliente._acumPrevInc)) ? cliente._acumPrevInc : 0
+            cumInv: acumIncArrastre
         };
     });
 
@@ -11506,8 +11608,10 @@ function validarYCorregirAutomaticoWIND_OLD(hoja) {
         hoja.clientes.forEach((cliente, idx) => {
             if (!cliente) return;
             
-            const tieneSaldoInicial = typeof cliente._saldoMesAnterior === 'number' && 
-                cliente._saldoMesAnterior > 0;
+            // LEER DIRECTAMENTE del JSON del mes anterior (no memoria)
+            const numeroCliente = cliente.numero_cliente || (idx + 1);
+            const saldoArrastreDirecto = obtenerSaldoClienteMesAnteriorDirecto(numeroCliente);
+            const tieneSaldoInicial = saldoArrastreDirecto > 0;
             
             const datosDiarios = cliente.datos_diarios || [];
             const datosConSaldo = datosDiarios.filter(d => 
@@ -11522,14 +11626,14 @@ function validarYCorregirAutomaticoWIND_OLD(hoja) {
                     problemas.push({
                         tipo: 'cliente_sin_datos',
                         cliente: idx + 1,
-                        saldo_inicial: cliente._saldoMesAnterior,
-                        mensaje: `Cliente ${cliente.numero_cliente || (idx + 1)} tiene saldo inicial ${cliente._saldoMesAnterior.toFixed(2)}€ pero no tiene datos diarios calculados`
+                        saldo_inicial: saldoArrastreDirecto,
+                        mensaje: `Cliente ${numeroCliente} tiene saldo inicial ${saldoArrastreDirecto.toFixed(2)}€ pero no tiene datos diarios calculados`
                     });
                     
                     // AUTO-CORRECCIÓN: Recalcular cliente
-                    console.log(`🔧 Auto-corrección: Recalculando cliente ${cliente.numero_cliente || (idx + 1)}`);
+                    console.log(`🔧 Auto-corrección: Recalculando cliente ${numeroCliente}`);
                     recalcularSaldosClienteEnMemoria(hoja, idx);
-                    recalcularTotalesCliente(cliente);
+                    recalcularTotalesCliente(cliente, idx);
                     recalculosRealizados++;
                 }
             }
