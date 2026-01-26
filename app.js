@@ -1,3 +1,45 @@
+// ============================================================================
+// CONSTANTES DE LA APLICACIÓN
+// ============================================================================
+const CONFIG = {
+    // Límites de filas de datos diarios (excluyendo cabeceras y resúmenes)
+    FILA_DATOS_INICIO: 15,
+    FILA_DATOS_FIN: 1120,
+    
+    // Tolerancias numéricas para comparaciones
+    TOLERANCIA_DECIMAL: 0.0001,
+    TOLERANCIA_VALIDACION: 0.01,
+    
+    // Intervalos de tiempo (ms)
+    AUTO_UPDATE_INTERVAL: 8000,
+    DEBOUNCE_DELAY: 350,
+    
+    // Versión de la aplicación
+    VERSION: 'V2.9.18'
+};
+
+// Helper: Filtrar datos diarios válidos (filas entre INICIO y FIN, con fecha válida)
+function filtrarDatosValidos(datosDiarios, requiereFecha = true) {
+    return (datosDiarios || []).filter(d => {
+        if (!d || typeof d.fila !== 'number') return false;
+        if (d.fila < CONFIG.FILA_DATOS_INICIO || d.fila > CONFIG.FILA_DATOS_FIN) return false;
+        if (requiereFecha) {
+            if (!d.fecha) return false;
+            if (typeof d.fecha === 'string' && d.fecha.toUpperCase() === 'FECHA') return false;
+        }
+        return true;
+    });
+}
+
+// Helper: Verificar si una fila está en rango válido
+function esFilaValida(fila) {
+    return typeof fila === 'number' && fila >= CONFIG.FILA_DATOS_INICIO && fila <= CONFIG.FILA_DATOS_FIN;
+}
+
+// ============================================================================
+// ESTADO DE LA APLICACIÓN
+// ============================================================================
+
 // Datos de la aplicación
 let datosCompletos = null;
 let datosEditados = null;

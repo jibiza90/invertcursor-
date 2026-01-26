@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tests - Portfolio Manager</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        h1 { color: #00d4ff; }
+        h2 { color: #888; margin-top: 30px; }
+        .success { color: #4caf50; font-weight: bold; }
+        .error { color: #f44336; font-weight: bold; }
+        ul { list-style: none; padding: 0; }
+        li { padding: 8px 12px; margin: 4px 0; border-radius: 4px; font-family: monospace; }
+        li.pass { background: #1b3d1b; border-left: 3px solid #4caf50; }
+        li.fail { background: #3d1b1b; border-left: 3px solid #f44336; }
+        #test-results { margin-top: 20px; }
+        .info { color: #888; font-size: 0.9em; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Tests de Cálculos Críticos</h1>
+    <p class="info">Portfolio Manager - Suite de pruebas unitarias</p>
+    
+    <div id="test-results">
+        <p>Ejecutando tests...</p>
+    </div>
+
+    <!-- Cargar módulos -->
+    <script src="../utils/fechas.js"></script>
+    <script src="../utils/numeros.js"></script>
+    <script src="../core/calculadora.js"></script>
+    
+    <!-- Ejecutar tests -->
+    <script src="calculadora.test.js"></script>
+</body>
+</html>
