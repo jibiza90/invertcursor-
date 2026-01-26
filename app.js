@@ -401,8 +401,8 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
     }
 
     // Recalcular solo filas de CÁLCULO (última fila del día), aplicando inc(1ª fila) y dec(2ª fila)
-    // Usar saldo_inicial_mes que debería estar actualizado por aplicarArrastreAnualAlCargar
-    let saldoAnterior = (typeof cliente.saldo_inicial_mes === 'number' && isFinite(cliente.saldo_inicial_mes)) ? cliente.saldo_inicial_mes : 0;
+    // NO usar saldo_inicial_mes - solo leer saldo_diario del JSON
+    let saldoAnterior = 0;
     let benefAcumAnterior = 0;
     let inversionAcum = 0;
     const gruposOrdenados = Array.from(gruposPorFecha.values())
@@ -605,7 +605,8 @@ function inicializarInspectorCeldas() {
         const actual = rows.find(d => d.fila === fila) || null;
         if (!actual) return null;
 
-        let saldoAnterior = (cliente && typeof cliente.saldo_inicial_mes === 'number' && isFinite(cliente.saldo_inicial_mes)) ? cliente.saldo_inicial_mes : 0;
+        // NO usar saldo_inicial_mes - solo leer saldo_diario del JSON
+        let saldoAnterior = 0;
         for (const d of rows) {
             if (d.fila >= fila) break;
             if (typeof d.saldo_diario === 'number') saldoAnterior = d.saldo_diario;
@@ -4137,46 +4138,26 @@ function calcularSumaRango(inicioRef, finRef, filaIdx, clienteIdx, hoja) {
     return suma;
 }
 
-// Calcular saldo actual del cliente (último valor de saldo_diario o cálculo directo)
+// Calcular saldo actual del cliente - SOLO lee del JSON, no usa memoria
 function calcularSaldoActualCliente(cliente) {
-    const datosDiarios = cliente.datos_diarios || [];
-    
-    // Ordenar por fila
-    const datosOrdenados = datosDiarios
-        .filter(d => d.fila >= 15 && d.fila <= 1120)
-        .sort((a, b) => (a.fila || 0) - (b.fila || 0));
-    
-    if (datosOrdenados.length === 0) {
-        return (cliente && typeof cliente.saldo_inicial_mes === 'number') ? cliente.saldo_inicial_mes : 0;
+    // SOLO leer último saldo_diario o imp_final válido del JSON
+    // NO usar fallbacks como saldo_inicial_mes que pueden estar mal
+    const datos = (cliente?.datos_diarios || [])
+        .filter(d => d && d.fila >= 15 && d.fila <= 1120)
+        .sort((a, b) => (b.fila || 0) - (a.fila || 0)); // Ordenar de mayor a menor fila
+
+    // Buscar el último saldo válido (saldo_diario o imp_final)
+    for (const d of datos) {
+        if (typeof d.saldo_diario === 'number' && d.saldo_diario > 0) {
+            return d.saldo_diario;
+        }
+        if (typeof d.imp_final === 'number' && d.imp_final > 0) {
+            return d.imp_final;
+        }
     }
     
-    // MÉTODO 1: Buscar el último saldo_diario válido
-    const datosConSaldo = datosOrdenados.filter(d => 
-        d.saldo_diario !== null && d.saldo_diario !== undefined && typeof d.saldo_diario === 'number'
-    );
-    
-    if (datosConSaldo.length > 0) {
-        const ultimoConSaldo = datosConSaldo[datosConSaldo.length - 1];
-        console.log(`💰 Saldo cliente (último saldo_diario en fila ${ultimoConSaldo.fila}): ${ultimoConSaldo.saldo_diario}`);
-        return ultimoConSaldo.saldo_diario;
-    }
-    
-    // MÉTODO 2: Calcular saldo manualmente si no hay saldo_diario guardado
-    // Saldo = saldo_inicial_mes + (inc_acum - dec_acum) + beneficios
-    let sumaIncrementos = typeof cliente._acumPrevInc === 'number' ? cliente._acumPrevInc : 0;
-    let sumaDecrementos = typeof cliente._acumPrevDec === 'number' ? cliente._acumPrevDec : 0;
-    let sumaBeneficios = 0;
-    
-    datosOrdenados.forEach(d => {
-        if (typeof d.incremento === 'number') sumaIncrementos += d.incremento;
-        if (typeof d.decremento === 'number') sumaDecrementos += d.decremento;
-        if (typeof d.beneficio_diario === 'number') sumaBeneficios += d.beneficio_diario;
-    });
-    
-    const saldoInicial = (cliente && typeof cliente.saldo_inicial_mes === 'number') ? cliente.saldo_inicial_mes : 0;
-    const saldoCalculado = saldoInicial + (sumaIncrementos - sumaDecrementos) + sumaBeneficios;
-    console.log(`💰 Saldo cliente (calculado): inc=${sumaIncrementos}, dec=${sumaDecrementos}, benef=${sumaBeneficios} => ${saldoCalculado}`);
-    return saldoCalculado;
+    // Si no hay saldos válidos, el cliente tiene 0
+    return 0;
 }
 
 // Calcular comisión (5%) atribuible al decremento de una fila concreta.
@@ -4751,7 +4732,8 @@ async function actualizarDatoGeneral(filaIdx, columna, nuevoValor) {
                             // Buscar saldo del día anterior
                             const datosDiariosOrdenados = [...datosDiariosCliente].sort((a, b) => (a.fila || 0) - (b.fila || 0));
                             const idxActual = datosDiariosOrdenados.findIndex(d => d.fila === filaIdx);
-                            let saldoAnterior = (typeof cliente.saldo_inicial_mes === 'number' && isFinite(cliente.saldo_inicial_mes)) ? cliente.saldo_inicial_mes : 0;
+                            // NO usar saldo_inicial_mes - solo leer saldo_diario del JSON
+                            let saldoAnterior = 0;
                             
                             for (let i = idxActual - 1; i >= 0; i--) {
                                 if (typeof datosDiariosOrdenados[i].saldo_diario === 'number') {
@@ -6460,7 +6442,8 @@ async function recalcularFormulasPorCambioClienteInterno(clienteIdx, filaIdx, ca
             // (en WIND también hay % diario por hoja general, así que deben verse beneficios y saldo propagado).
             const limiteCalculo = Math.max(ultimaFilaConMovimiento, ultimaFilaConImpFinal);
             
-            let saldoAnterior = (typeof clienteItem.saldo_inicial_mes === 'number' && isFinite(clienteItem.saldo_inicial_mes)) ? clienteItem.saldo_inicial_mes : 0;
+            // NO usar saldo_inicial_mes - solo leer saldo_diario del JSON
+            let saldoAnterior = 0;
             let benefAcumAnterior = 0;
             let inversionAcum = 0;
             
@@ -9985,7 +9968,8 @@ function validarHojaCompleta(nombreHoja, hoja) {
             .filter(d => d.fila >= 15)
             .sort((a, b) => a.fila - b.fila);
         
-        let saldoAnterior = (cliente && typeof cliente.saldo_inicial_mes === 'number' && isFinite(cliente.saldo_inicial_mes)) ? cliente.saldo_inicial_mes : 0;
+        // NO usar saldo_inicial_mes - solo leer saldo_diario del JSON
+        let saldoAnterior = 0;
         
         for (const d of datosCliente) {
             const fila = d.fila;
@@ -10562,7 +10546,8 @@ async function actualizarTodoElDiario(opts = {}) {
                     .filter(d => d && d.fila >= 15 && d.fila <= 1120)
                     .sort((a, b) => (a.fila || 0) - (b.fila || 0));
 
-                let saldoAnterior = (cliente && typeof cliente.saldo_inicial_mes === 'number' && isFinite(cliente.saldo_inicial_mes)) ? cliente.saldo_inicial_mes : 0;
+                // NO usar saldo_inicial_mes - solo leer saldo_diario del JSON
+                let saldoAnterior = 0;
                 let benefAcumAnterior = 0;
                 let inversionAcum = 0;
 
@@ -11064,9 +11049,10 @@ async function redistribuirSaldosClientesWIND(hoja) {
             rows,
             mapPorFila,
             ptr: 0,
-            lastSaldo: (cliente && typeof cliente.saldo_inicial_mes === 'number' && isFinite(cliente.saldo_inicial_mes)) ? cliente.saldo_inicial_mes : 0,
+            // NO usar saldo_inicial_mes - solo leer saldo_diario del JSON
+            lastSaldo: 0,
             cumBenef: 0,
-            cumInv: (cliente && typeof cliente.saldo_inicial_mes === 'number' && isFinite(cliente.saldo_inicial_mes)) ? cliente.saldo_inicial_mes : 0
+            cumInv: 0
         };
     });
 
