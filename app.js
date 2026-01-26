@@ -1597,11 +1597,16 @@ function obtenerSaldoFinalClienteDeMes(cliente) {
         return ultimo.saldo_diario;
     }
     
-    // Si no hay datos_diarios con saldo, usar saldo_actual del cliente
-    if (typeof cliente?.saldo_actual === 'number') {
-        return cliente.saldo_actual;
+    // CRÍTICO: Si no hay saldos diarios (cliente sin movimientos), 
+    // el saldo final es el saldo_inicial_mes (arrastre sin cambios)
+    // NO usar saldo_actual porque puede tener valor viejo de antes de borrar movimientos
+    if (typeof cliente?.saldo_inicial_mes === 'number' && cliente.saldo_inicial_mes > 0) {
+        console.log(`   - Cliente sin movimientos, saldo final = saldo_inicial_mes: ${cliente.saldo_inicial_mes}`);
+        return cliente.saldo_inicial_mes;
     }
     
+    // Cliente sin saldo inicial y sin movimientos = saldo 0
+    console.log(`   - Cliente sin saldo inicial ni movimientos, saldo final = 0`);
     return 0;
 }
 
