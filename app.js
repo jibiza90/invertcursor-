@@ -3632,6 +3632,33 @@ function obtenerValorCeldaCliente(referencia, filaIdx, clienteIdxActual, hoja) {
     // Validar que el índice de cliente es válido
     if (clienteIdx < 0) return null;
     
+    // Mapear offset de columna a campo (necesario antes para el caso especial)
+    const campoMap = {
+        0: 'incremento',      // K, S, AA...
+        1: 'decremento',      // L, T, AB...
+        2: 'base',            // M, U, AC...
+        3: 'saldo_diario',    // N, V, AD...
+        4: 'beneficio_diario', // O, W, AE...
+        5: 'beneficio_diario_pct', // P, X, AF...
+        6: 'beneficio_acumulado', // Q, Y, AG...
+        7: 'beneficio_acumulado_pct' // R, Z, AH...
+    };
+    const campo = campoMap[offsetColumna];
+    
+    // CASO ESPECIAL: Si se busca una fila anterior a la primera del mes (fila < 15)
+    // y es el campo saldo_diario, usar _saldoMesAnterior del cliente
+    if (filaNum < 15 && campo === 'saldo_diario') {
+        const hojaEditada = datosEditados?.hojas?.[hojaActual];
+        const clientes = hojaEditada?.clientes || hoja?.clientes || [];
+        if (clienteIdx >= 0 && clienteIdx < clientes.length) {
+            const cliente = clientes[clienteIdx];
+            const saldoAnterior = typeof cliente._saldoMesAnterior === 'number' ? cliente._saldoMesAnterior : 0;
+            console.log(`📅 Día 1: usando saldo mes anterior para cliente ${clienteIdx + 1}: ${saldoAnterior}`);
+            return saldoAnterior;
+        }
+        return 0;
+    }
+    
     // Usar datosEditados para obtener valores actualizados
     const hojaEditada = datosEditados?.hojas?.[hojaActual];
     let filaDataCliente = null;
@@ -3655,20 +3682,6 @@ function obtenerValorCeldaCliente(referencia, filaIdx, clienteIdxActual, hoja) {
     }
     
     if (!filaDataCliente) return null;
-    
-    // Mapear offset de columna a campo
-    const campoMap = {
-        0: 'incremento',      // K, S, AA...
-        1: 'decremento',      // L, T, AB...
-        2: 'base',            // M, U, AC...
-        3: 'saldo_diario',    // N, V, AD...
-        4: 'beneficio_diario', // O, W, AE...
-        5: 'beneficio_diario_pct', // P, X, AF...
-        6: 'beneficio_acumulado', // Q, Y, AG...
-        7: 'beneficio_acumulado_pct' // R, Z, AH...
-    };
-    
-    const campo = campoMap[offsetColumna];
     
     if (!campo) return null;
     
