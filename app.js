@@ -1467,11 +1467,6 @@ async function guardarDatosAutomatico(numFormulasGenerales = 0, numFormulasClien
         hoja.clientes.forEach((cliente, idx) => {
             if (!cliente) return;
             
-            // Si saldo_inicial_mes no está definido, usar 0 como fallback
-            if (cliente.saldo_inicial_mes === undefined || cliente.saldo_inicial_mes === null) {
-                cliente.saldo_inicial_mes = 0;
-            }
-            
             // Recalcular totales de incrementos/decrementos
             recalcularTotalesCliente(cliente);
             
@@ -1490,7 +1485,7 @@ async function guardarDatosAutomatico(numFormulasGenerales = 0, numFormulasClien
                 });
             }
             
-            console.log(`   Cliente ${idx + 1}: saldo_inicial_mes=${cliente.saldo_inicial_mes}, saldo_actual=${saldoFinal}, inc=${cliente.incrementos_total}, dec=${cliente.decrementos_total}`);
+            console.log(`   Cliente ${idx + 1}: _saldoMesAnterior=${cliente._saldoMesAnterior || 0}, saldo_actual=${saldoFinal}, inc=${cliente.incrementos_total}, dec=${cliente.decrementos_total}`);
         });
     }
     
@@ -1581,18 +1576,26 @@ function obtenerMesAnteriorDeHoja(nombreHoja, mes) {
 }
 
 function obtenerSaldoFinalClienteDeMes(cliente) {
-    // SOLO leer último saldo_diario o imp_final válido del JSON
-    // NO usar fallbacks como saldo_inicial_mes que pueden estar mal
+    // 1. Primero verificar si existe saldo_actual guardado (saldo final del mes)
+    if (typeof cliente?.saldo_actual === 'number' && cliente.saldo_actual >= 0) {
+        return cliente.saldo_actual;
+    }
+    
+    // 2. Buscar en datos_diarios
     const datos = (cliente?.datos_diarios || [])
         .filter(d => d && d.fila >= 15 && d.fila <= 1120)
         .sort((a, b) => (b.fila || 0) - (a.fila || 0)); // Ordenar de mayor a menor fila
     
-    // Buscar el último saldo válido (saldo_diario o imp_final)
+    // Buscar el último saldo válido
     // IMPORTANTE: usar >= 0 para detectar saldos de exactamente 0 (cliente retiró todo)
     for (const d of datos) {
         // Priorizar saldo_diario si existe
         if (typeof d.saldo_diario === 'number' && d.saldo_diario >= 0) {
             return d.saldo_diario;
+        }
+        // Fallback a _saldo_diario_guardado (persistido en JSON)
+        if (typeof d._saldo_diario_guardado === 'number' && d._saldo_diario_guardado >= 0) {
+            return d._saldo_diario_guardado;
         }
         // Fallback a imp_final si existe
         if (typeof d.imp_final === 'number' && d.imp_final >= 0) {
@@ -1612,7 +1615,7 @@ async function aplicarArrastreAnualAlCargar(nombreHoja, mes, dataMes) {
             if (!c) return;
             c._acumPrevInc = 0;
             c._acumPrevDec = 0;
-            c.saldo_inicial_mes = 0;
+            c._saldoMesAnterior = 0;
             c.numero_cliente = typeof c.numero_cliente === 'number' ? c.numero_cliente : (idx + 1);
             c.columna_inicio = 11 + (idx * 8);
         });
@@ -6028,9 +6031,9 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
     // El límite siempre es ultimaFilaImpFinalGeneral, nunca más allá
     const ultimaFilaMostrar = ultimaFilaImpFinalGeneral;
 
-    // NO usar saldo_inicial_mes (memoria) - solo mostrar valores si hay actividad real
-    // El cliente solo "tiene saldo" si hay saldo_diario o imp_final válido en el JSON
-    const tieneSaldoInicial = false; // Deshabilitado: solo mostrar si hay actividad real
+    // Verificar si el cliente tiene saldo del mes anterior (arrastre)
+    // Usar _saldoMesAnterior que se calcula al cargar los datos
+    const tieneSaldoInicial = typeof cliente._saldoMesAnterior === 'number' && cliente._saldoMesAnterior > 0;
 
     let haEmpezado = false;
     for (let gi = 0; gi < gruposOrdenados.length; gi++) {
@@ -7527,7 +7530,7 @@ async function limpiarDatosUsuarioMesActual() {
         c.saldo_actual = 0;
         c._acumPrevInc = 0;
         c._acumPrevDec = 0;
-        c.saldo_inicial_mes = 0;
+        c._saldoMesAnterior = 0;
     });
 
     requiereRecalculoImpInicial = true;
@@ -11007,9 +11010,8 @@ async function redistribuirSaldosClientesWIND(hoja) {
         const cliente = hoja.clientes[idx];
         if (!cliente) continue;
         
-        const tieneSaldoInicial = cliente.saldo_inicial_mes && 
-            typeof cliente.saldo_inicial_mes === 'number' && 
-            cliente.saldo_inicial_mes > 0;
+        const tieneSaldoInicial = typeof cliente._saldoMesAnterior === 'number' && 
+            cliente._saldoMesAnterior > 0;
         
         if (!tieneSaldoInicial) continue;
         
@@ -11019,7 +11021,7 @@ async function redistribuirSaldosClientesWIND(hoja) {
         );
         
         if (datosConSaldo.length === 0) {
-            console.log(`🔧 Recalculando cliente ${cliente.numero_cliente || (idx + 1)} con saldo inicial ${cliente.saldo_inicial_mes.toFixed(2)}€`);
+            console.log(`🔧 Recalculando cliente ${cliente.numero_cliente || (idx + 1)} con saldo inicial ${cliente._saldoMesAnterior.toFixed(2)}€`);
             recalcularClienteCompleto(
                 cliente,
                 hoja,
@@ -11138,7 +11140,7 @@ async function redistribuirSaldosClientesWIND(hoja) {
                 datoCliente.beneficio_acumulado = benefAcumPrev + beneficioCliente;
                 
                 // Calcular inversión acumulada para beneficio % acumulado
-                const inversionAcum = st ? (st.cumInv + (typeof datoCliente.incremento === 'number' ? datoCliente.incremento : 0)) : (cliente.saldo_inicial_mes || 0);
+                const inversionAcum = st ? (st.cumInv + (typeof datoCliente.incremento === 'number' ? datoCliente.incremento : 0)) : (cliente._saldoMesAnterior || 0);
                 
                 datoCliente.beneficio_acumulado_pct = inversionAcum > 0 
                     ? (datoCliente.beneficio_acumulado / inversionAcum) 
@@ -11193,9 +11195,8 @@ function validarYCorregirAutomaticoWIND_OLD(hoja) {
         hoja.clientes.forEach((cliente, idx) => {
             if (!cliente) return;
             
-            const tieneSaldoInicial = cliente.saldo_inicial_mes && 
-                typeof cliente.saldo_inicial_mes === 'number' && 
-                cliente.saldo_inicial_mes > 0;
+            const tieneSaldoInicial = typeof cliente._saldoMesAnterior === 'number' && 
+                cliente._saldoMesAnterior > 0;
             
             const datosDiarios = cliente.datos_diarios || [];
             const datosConSaldo = datosDiarios.filter(d => 
@@ -11210,8 +11211,8 @@ function validarYCorregirAutomaticoWIND_OLD(hoja) {
                     problemas.push({
                         tipo: 'cliente_sin_datos',
                         cliente: idx + 1,
-                        saldo_inicial: cliente.saldo_inicial_mes,
-                        mensaje: `Cliente ${cliente.numero_cliente || (idx + 1)} tiene saldo inicial ${cliente.saldo_inicial_mes.toFixed(2)}€ pero no tiene datos diarios calculados`
+                        saldo_inicial: cliente._saldoMesAnterior,
+                        mensaje: `Cliente ${cliente.numero_cliente || (idx + 1)} tiene saldo inicial ${cliente._saldoMesAnterior.toFixed(2)}€ pero no tiene datos diarios calculados`
                     });
                     
                     // AUTO-CORRECCIÓN: Recalcular cliente
