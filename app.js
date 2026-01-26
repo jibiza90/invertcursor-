@@ -9065,41 +9065,32 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses) {
                 continue;
             }
             
-            const datosDiarios = clienteData.datos_diarios || [];
-            console.log(`${mes}: Cliente ${numeroCliente} tiene ${datosDiarios.length} filas de datos diarios`);
+            // Obtener saldos del cliente para este mes
+            const saldoInicialMes = clienteData.saldo_inicial_mes || 0;
+            const saldoFinalMes = clienteData.saldo_actual || 0;
+            const incrementosMes = clienteData.incrementos_total || 0;
+            const decrementosMes = clienteData.decrementos_total || 0;
             
-            // Filtrar filas válidas con benef_porcentaje
-            const datosConBenef = datosDiarios
-                .filter(d => d && d.fila >= 15 && d.fila <= 1120)
-                .filter(d => typeof d.benef_porcentaje === 'number' && isFinite(d.benef_porcentaje));
+            console.log(`${mes}: Cliente ${numeroCliente} - saldoInicial=${saldoInicialMes}, saldoFinal=${saldoFinalMes}, inc=${incrementosMes}, dec=${decrementosMes}`);
             
-            console.log(`${mes}: ${datosConBenef.length} filas con benef_porcentaje válido`);
-            
-            if (datosConBenef.length === 0) {
-                // Aún así intentar obtener saldos del cliente
-                const saldoMes = clienteData.saldo_actual || 0;
-                if (saldoMes > 0) {
-                    if (saldoInicialPrimero === null) {
-                        saldoInicialPrimero = clienteData.saldo_inicial_mes || saldoMes;
-                    }
-                    saldoFinalUltimo = saldoMes;
-                }
+            // Si no hay saldo inicial, saltar este mes
+            if (saldoInicialMes <= 0 && saldoFinalMes <= 0) {
+                console.log(`${mes}: Sin saldos, saltando`);
                 continue;
             }
             
-            // Sumar rentabilidad del mes
-            const rentabilidadMes = datosConBenef.reduce((sum, d) => sum + (d.benef_porcentaje * 100), 0);
+            // Calcular rentabilidad del mes usando la fórmula:
+            // Rentabilidad = (Saldo Final - Saldo Inicial - Incrementos + Decrementos) / Saldo Inicial * 100
+            // Esto es: beneficio neto (sin movimientos de capital) / saldo inicial
+            let rentabilidadMes = 0;
+            if (saldoInicialMes > 0) {
+                const beneficioNeto = saldoFinalMes - saldoInicialMes - incrementosMes + decrementosMes;
+                rentabilidadMes = (beneficioNeto / saldoInicialMes) * 100;
+            }
+            
             benefAcumTotal += rentabilidadMes;
             
-            // Obtener saldo inicial del mes (primera fila con imp_inicial)
-            const filasOrdenadas = [...datosConBenef].sort((a, b) => a.fila - b.fila);
-            const primeraFila = filasOrdenadas[0];
-            const ultimaFila = filasOrdenadas[filasOrdenadas.length - 1];
-            
-            const saldoInicialMes = clienteData.saldo_inicial_mes || primeraFila?.imp_inicial || 0;
-            const saldoFinalMes = ultimaFila?.imp_final || clienteData.saldo_actual || 0;
-            
-            console.log(`${mes}: rentabilidad=${rentabilidadMes.toFixed(4)}%, saldoInicial=${saldoInicialMes}, saldoFinal=${saldoFinalMes}`);
+            console.log(`${mes}: rentabilidad=${rentabilidadMes.toFixed(4)}%`);
             
             // Guardar saldo inicial del primer mes con datos
             if (saldoInicialPrimero === null && saldoInicialMes > 0) {
@@ -9107,8 +9098,8 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses) {
             }
             
             saldoFinalUltimo = saldoFinalMes;
-            incrementosTotales += clienteData.incrementos_total || 0;
-            decrementosTotales += clienteData.decrementos_total || 0;
+            incrementosTotales += incrementosMes;
+            decrementosTotales += decrementosMes;
             
             resultados.push({
                 mes,
@@ -9116,9 +9107,8 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses) {
                 benefAcumTotal: benefAcumTotal,
                 saldoInicial: saldoInicialMes,
                 saldoFinal: saldoFinalMes,
-                incrementos: clienteData.incrementos_total || 0,
-                decrementos: clienteData.decrementos_total || 0,
-                diasOperados: datosConBenef.length
+                incrementos: incrementosMes,
+                decrementos: decrementosMes
             });
         } catch (error) {
             console.warn(`Error cargando datos del cliente para ${mes}:`, error);
@@ -9133,6 +9123,8 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses) {
         decrementosTotales,
         benefAcumTotal
     };
+    
+    console.log(`📊 Resultados finales:`, resultados);
     
     return resultados;
 }
