@@ -325,6 +325,13 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
         : datosDiariosGeneralesAlt;
     const ultimaFilaImpFinal = obtenerUltimaFilaImpFinalManual(hoja);
 
+    const ultimaFilaConFechaGeneral = (datosGeneralesParaImpFinal || []).reduce((m, d) => {
+        if (!d || typeof d.fila !== 'number') return m;
+        if (d.fila < 15 || d.fila > 1120) return m;
+        if (!d.fecha || d.fecha === 'FECHA') return m;
+        return Math.max(m, d.fila);
+    }, 0);
+
     // Map rápido fila->datoGeneral para acceder a benef_porcentaje/imp_final
     const mapGeneralPorFila = new Map();
     (datosGeneralesParaImpFinal || []).forEach(d => {
@@ -366,18 +373,42 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
         }
     });
 
-    // SOLO calcular si hay movimientos reales del cliente
-    // NO usar saldo_inicial_mes - solo actividad real (incrementos/decrementos)
+    // Determinar hasta qué fila recalcular:
+    // - Si hay movimientos: hasta la última fila con movimiento (capada por imp_final manual si existe)
+    // - Si NO hay movimientos pero hay saldo arrastrado (_saldoMesAnterior): recalcular igualmente
+    //   usando como límite la última fila con fecha en general (permite día 1 y fines de semana)
+    const saldoArrastre = typeof cliente._saldoMesAnterior === 'number' ? cliente._saldoMesAnterior : 0;
     if (hayMovimientosCliente) {
-        last = Math.max(lastMovimientoFila, ultimaFilaImpFinal);
+        last = Math.max(lastMovimientoFila, ultimaFilaImpFinal || 0);
+    } else if (saldoArrastre > 0) {
+        last = ultimaFilaConFechaGeneral;
+        if (ultimaFilaImpFinal > 0) last = Math.min(last, ultimaFilaImpFinal);
     }
 
-    // CRÍTICO: nunca calcular más allá de la última fila escrita en general (imp_final manual)
+    // Límite general: si hay imp_final manual, permitir incluir el fin de semana inmediatamente posterior
+    // (para que 31/01 o 01/02 puedan mostrar saldo aunque imp_final no exista esos días).
     if (ultimaFilaImpFinal > 0 && last > 0) {
-        last = Math.min(last, ultimaFilaImpFinal);
+        const filaImpFinal = mapGeneralPorFila.get(ultimaFilaImpFinal);
+        const fechaImpFinal = filaImpFinal?.fecha ? parsearFechaValor(filaImpFinal.fecha) : null;
+        if (fechaImpFinal) {
+            const limiteFecha = new Date(fechaImpFinal.getTime());
+            limiteFecha.setDate(limiteFecha.getDate() + 2);
+            const maxFilaHastaFinDeSemana = (datosGeneralesParaImpFinal || []).reduce((m, d) => {
+                if (!d || typeof d.fila !== 'number') return m;
+                if (d.fila < 15 || d.fila > 1120) return m;
+                if (!d.fecha || d.fecha === 'FECHA') return m;
+                const f = parsearFechaValor(d.fecha);
+                if (!f) return m;
+                if (f.getTime() <= limiteFecha.getTime()) return Math.max(m, d.fila);
+                return m;
+            }, 0);
+            if (maxFilaHastaFinDeSemana > 0) {
+                last = Math.min(Math.max(last, maxFilaHastaFinDeSemana), maxFilaHastaFinDeSemana);
+            }
+        }
     }
 
-    // Si no hay actividad ni saldo inicial, limpiar cualquier arrastre (evita "fantasmas" en clientes nuevos)
+    // Si no hay actividad ni saldo arrastrado, limpiar cualquier arrastre (evita "fantasmas" en clientes nuevos)
     if (last === 0) {
         for (const d of rows) {
             const campos = ['base', 'saldo_diario', 'beneficio_diario', 'beneficio_diario_pct', 'beneficio_acumulado', 'beneficio_acumulado_pct'];
@@ -3686,7 +3717,22 @@ function obtenerValorCeldaCliente(referencia, filaIdx, clienteIdxActual, hoja) {
     if (!campo) return null;
     
     const valor = filaDataCliente[campo];
-    return valor !== null && valor !== undefined ? valor : null;
+    if (valor !== null && valor !== undefined) return valor;
+
+    // Si el valor calculado no está presente, usar valores persistidos en JSON (guardados)
+    if (campo === 'saldo_diario') {
+        const v = filaDataCliente._saldo_diario_guardado;
+        return (typeof v === 'number' && isFinite(v)) ? v : null;
+    }
+    if (campo === 'beneficio_diario') {
+        const v = filaDataCliente._beneficio_diario_guardado;
+        return (typeof v === 'number' && isFinite(v)) ? v : null;
+    }
+    if (campo === 'beneficio_acumulado') {
+        const v = filaDataCliente._beneficio_acum_guardado;
+        return (typeof v === 'number' && isFinite(v)) ? v : null;
+    }
+    return null;
 }
 
 // Recalcular fórmulas dependientes cuando cambia un valor (con recálculo en cascada)
@@ -5966,7 +6012,13 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
         if (d.fila < 15 || d.fila > 1120) return m;
         if (!esImpFinalConValorGeneral(d)) return m;
         return Math.max(m, d.fila);
-        return m;
+    }, 0);
+
+    const ultimaFilaConFechaGeneral = datosDiariosGenerales.reduce((m, d) => {
+        if (!d || typeof d.fila !== 'number') return m;
+        if (d.fila < 15 || d.fila > 1120) return m;
+        if (!d.fecha || d.fecha === 'FECHA') return m;
+        return Math.max(m, d.fila);
     }, 0);
     
     // Filtrar solo datos diarios reales:
@@ -6040,9 +6092,31 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
             ultimaFilaActividad = Math.max(ultimaFilaActividad, g.filaCalculo.fila);
         }
     });
-    // CRÍTICO: NO mostrar nada por debajo de la última fecha con imp_final
-    // El límite siempre es ultimaFilaImpFinalGeneral, nunca más allá
-    const ultimaFilaMostrar = ultimaFilaImpFinalGeneral;
+    // Límite de visualización:
+    // - Preferir la última fila con imp_final
+    // - Si no hay imp_final aún, usar la última fila con fecha (para que el mes se vea)
+    // - Si hay imp_final, permitir mostrar hasta el fin de semana inmediatamente posterior
+    let ultimaFilaMostrar = ultimaFilaImpFinalGeneral > 0 ? ultimaFilaImpFinalGeneral : ultimaFilaConFechaGeneral;
+    if (ultimaFilaImpFinalGeneral > 0) {
+        const filaImpFinal = datosDiariosGenerales.find(d => d && d.fila === ultimaFilaImpFinalGeneral) || null;
+        const fechaImpFinal = filaImpFinal?.fecha ? parsearFechaValor(filaImpFinal.fecha) : null;
+        if (fechaImpFinal) {
+            const limiteFecha = new Date(fechaImpFinal.getTime());
+            limiteFecha.setDate(limiteFecha.getDate() + 2);
+            const maxFilaHastaFinDeSemana = datosDiariosGenerales.reduce((m, d) => {
+                if (!d || typeof d.fila !== 'number') return m;
+                if (d.fila < 15 || d.fila > 1120) return m;
+                if (!d.fecha || d.fecha === 'FECHA') return m;
+                const f = parsearFechaValor(d.fecha);
+                if (!f) return m;
+                if (f.getTime() <= limiteFecha.getTime()) return Math.max(m, d.fila);
+                return m;
+            }, 0);
+            if (maxFilaHastaFinDeSemana > 0) {
+                ultimaFilaMostrar = Math.max(ultimaFilaMostrar, maxFilaHastaFinDeSemana);
+            }
+        }
+    }
 
     // Verificar si el cliente tiene saldo del mes anterior (arrastre)
     // Usar _saldoMesAnterior que se calcula al cargar los datos
