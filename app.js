@@ -6506,8 +6506,8 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
     __virtualTableData = virtualData;
     
     // Calcular qué grupos mostrar inicialmente (visible + buffer)
-    const tablaContainer = document.getElementById('tablaDetalle')?.parentElement;
-    const containerHeight = tablaContainer?.clientHeight || 600;
+    const virtualContainer = document.getElementById('tablaDetalle')?.parentElement;
+    const containerHeight = virtualContainer?.clientHeight || 600;
     const rowHeight = 35; // Altura aproximada de fila
     const visibleRows = Math.ceil(containerHeight / rowHeight);
     const initialRenderCount = Math.min(gruposOrdenados.length, visibleRows + VIRTUAL_BUFFER_SIZE * 2);
