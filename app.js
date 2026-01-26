@@ -15,6 +15,15 @@ let __actualizarTodoPromise = null;
 let __lastAutoUpdateTs = 0;
 let __autoUpdateScheduled = false;
 
+let __dirtyRecalculoMasivo = true;
+let __recalculoVersion = 0;
+
+let __navDetalleSeq = 0;
+
+let __renderDetalleSeq = 0;
+
+let __loadingOverlayCount = 0;
+
 let historialCambios = [];
 let indiceHistorial = -1;
 let __isUndoRedo = false;
@@ -32,6 +41,22 @@ function debounce(fn, waitMs, stateKey) {
     const timers = window.__debounceTimers;
     if (timers[stateKey]) clearTimeout(timers[stateKey]);
     timers[stateKey] = setTimeout(fn, waitMs);
+}
+
+function marcarDirtyRecalculoMasivo() {
+    __dirtyRecalculoMasivo = true;
+    __recalculoVersion++;
+    __cacheSaldosWindKey = null;
+}
+
+function yieldToBrowser() {
+    return new Promise(resolve => setTimeout(resolve, 0));
+}
+
+function nextFrame() {
+    return new Promise(resolve => {
+        requestAnimationFrame(() => resolve());
+    });
 }
 
 function programarAutoActualizarVistaActual() {
@@ -215,7 +240,7 @@ async function aplicarCambioHistorial(cambio, usarValorNuevo) {
             await recalcularFormulasPorCambioClienteEnHoja(cambio.clienteIdx, cambio.fila, cambio.campo, hojaNombre);
 
             if (vistaActual === 'detalle' && clienteActual === cambio.clienteIdx) {
-                mostrarTablaEditableCliente(hoja.clientes[cambio.clienteIdx], hoja, cambio.clienteIdx);
+                void mostrarTablaEditableCliente(hoja.clientes[cambio.clienteIdx], hoja, cambio.clienteIdx);
             }
 
             await guardarDatosAutomatico(0, 1);
@@ -721,15 +746,30 @@ function mostrarLoadingOverlay() {
         `;
         document.body.appendChild(overlay);
     }
+    __loadingOverlayCount++;
     overlay.classList.remove('hidden');
+    overlay.style.display = 'flex';
+    overlay.style.visibility = 'visible';
+    overlay.style.opacity = '1';
+    void overlay.offsetHeight;
 }
 
 // Ocultar loading overlay
 function ocultarLoadingOverlay() {
     const overlay = document.getElementById('loadingOverlay');
     if (overlay) {
-        overlay.classList.add('hidden');
+        __loadingOverlayCount = Math.max(0, (__loadingOverlayCount || 0) - 1);
+        if (__loadingOverlayCount === 0) {
+            overlay.classList.add('hidden');
+        }
     }
+}
+
+function setLoadingOverlayText(texto) {
+    const overlay = document.getElementById('loadingOverlay');
+    if (!overlay) return;
+    const el = overlay.querySelector('.loading-text');
+    if (el) el.textContent = texto;
 }
 
 // Ocultar sidebar automáticamente en móviles
@@ -831,7 +871,7 @@ async function autoActualizarVistaActual() {
     if (vistaActual === 'detalle' && clienteActual !== null && clienteActual !== undefined) {
         const idx = parseInt(clienteActual);
         if (!isNaN(idx)) {
-            renderDetalleCliente(idx);
+            void renderDetalleCliente(idx);
         }
     }
 }
@@ -1241,7 +1281,7 @@ async function cambiarMesSiguiente() {
 // Función auxiliar para restaurar la vista después de cambiar de mes
 function restaurarVistaAnterior(vistaAnterior, clienteAnterior) {
     if (vistaAnterior === 'detalle' && clienteAnterior !== null) {
-        renderDetalleCliente(clienteAnterior);
+        void renderDetalleCliente(clienteAnterior);
     } else if (vistaAnterior === 'clientes') {
         mostrarVistaClientes();
     } else if (vistaAnterior === 'infoClientes' || vistaAnterior === 'info') {
@@ -1475,6 +1515,10 @@ async function cargarDatos() {
         
         datosCompletos.hojas[hojaActual] = data;
         datosEditados.hojas[hojaActual] = JSON.parse(JSON.stringify(data));
+
+        __dirtyRecalculoMasivo = true;
+        __recalculoVersion++;
+        __cacheSaldosWindKey = null;
         
         preservarBloqueadas(datosCompletos, datosEditados);
         
@@ -4449,6 +4493,8 @@ async function actualizarDatoGeneral(filaIdx, columna, nuevoValor) {
         // Actualizar el valor
         console.log(`📝 Actualizando ${columna} en fila ${filaIdx}: ${valorAnterior} -> ${nuevoValor}`);
         filaData[columna] = nuevoValor;
+
+        marcarDirtyRecalculoMasivo();
         
         // Restaurar bloqueadas y fórmulas después de actualizar
         if (bloqueadasOriginal) {
@@ -4825,7 +4871,7 @@ function seleccionarCliente() {
         return;
     }
     
-    mostrarDetalleCliente(index);
+    void mostrarDetalleCliente(index);
 }
 
 // Mostrar vista clientes
@@ -5271,7 +5317,7 @@ function renderVistaClientes() {
             ${proporcionLabel ? `<div class=\"cliente-card-row\"><div class=\"cliente-card-k\">Proporción del total</div><div class=\"cliente-card-v\">${proporcionLabel}</div></div>` : ''}
         `;
         card.addEventListener('click', () => {
-            mostrarDetalleCliente(it.idx);
+            void mostrarDetalleCliente(it.idx);
         });
         cardsContainer.appendChild(card);
     });
@@ -5390,7 +5436,8 @@ async function eliminarClienteActualDesdeUI() {
 }
 
 
-function renderDetalleCliente(index) {
+async function renderDetalleCliente(index) {
+    const renderSeq = ++__renderDetalleSeq;
     vistaActual = 'detalle';
     clienteActual = index;
     
@@ -5414,13 +5461,18 @@ function renderDetalleCliente(index) {
         
         // IMPORTANTE: Recalcular TODAS las fórmulas del cliente antes de mostrarlas
         // porque las fórmulas dependen de valores de la vista general que pueden haber cambiado
-        console.log(`🔄 Recalculando todas las fórmulas del cliente ${index + 1} antes de mostrar...`);
-        recalcularTodasFormulasCliente(cliente_calculado, index, hoja);
+        const necesitaRecalculoFormulas = cliente_calculado._lastFormulasVersion !== __recalculoVersion;
+        if (necesitaRecalculoFormulas) {
+            console.log(`🔄 Recalculando todas las fórmulas del cliente ${index + 1} antes de mostrar...`);
+            recalcularTodasFormulasCliente(cliente_calculado, index, hoja);
+            cliente_calculado._lastFormulasVersion = __recalculoVersion;
+        }
         
         // Recalcular totales del cliente (filtrando filas de resumen mensual)
         recalcularTotalesCliente(cliente_calculado);
-        
-        mostrarTablaEditableCliente(cliente_calculado, hoja, index);
+
+        if (renderSeq !== __renderDetalleSeq) return;
+        await mostrarTablaEditableCliente(cliente_calculado, hoja, index, renderSeq);
         // Scroll al inicio (día 1) - usar el contenedor de scroll
         setTimeout(() => {
             const scrollContainer = document.querySelector('.table-container-scroll');
@@ -5435,15 +5487,28 @@ function renderDetalleCliente(index) {
 
 // Mostrar detalle del cliente
 async function mostrarDetalleCliente(index) {
-    await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_detalle' });
-    
-    // REDISTRIBUCIÓN AUTOMÁTICA PARA DIARIO WIND antes de mostrar cliente
-    if (hojaActual === 'Diario WIND' && datosEditados?.hojas?.[hojaActual]) {
-        const hoja = datosEditados.hojas[hojaActual];
-        redistribuirSaldosClientesWIND(hoja);
+    const navSeq = ++__navDetalleSeq;
+    mostrarLoadingOverlay();
+    setLoadingOverlayText(`Cargando cliente ${index + 1}...`);
+    await nextFrame();
+    await yieldToBrowser();
+    try {
+        if (navSeq !== __navDetalleSeq) return;
+        if (__dirtyRecalculoMasivo) {
+            setLoadingOverlayText('Recalculando (fase 1/2)...');
+            await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_detalle' });
+            if (navSeq !== __navDetalleSeq) return;
+            if (hojaActual === 'Diario WIND' && datosEditados?.hojas?.[hojaActual]) {
+                const hoja = datosEditados.hojas[hojaActual];
+                setLoadingOverlayText('Recalculando (fase 2/2)...');
+                await redistribuirSaldosClientesWIND(hoja);
+            }
+        }
+        if (navSeq !== __navDetalleSeq) return;
+        await renderDetalleCliente(index);
+    } finally {
+        ocultarLoadingOverlay();
     }
-    
-    renderDetalleCliente(index);
 }
 
 // Recalcular TODAS las fórmulas de un cliente antes de mostrarlo
@@ -5524,7 +5589,7 @@ async function recalcularTodasFormulasCliente(cliente, clienteIdx, hoja) {
 }
 
 // Mostrar tabla editable del cliente
-function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
+async function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null, renderSeq = __renderDetalleSeq) {
     // Usar el índice pasado o calcular uno nuevo
     const clienteIdx = clienteIndex !== null ? clienteIndex : (hoja.clientes?.indexOf(cliente) ?? -1);
     const resumenDiv = document.getElementById('resumenCliente');
@@ -5554,7 +5619,13 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
     // Esto evita que se recalculen saldos en una hoja distinta y queden valores viejos en la UI.
     const hojaEnUso = hoja || datosEditados?.hojas?.[hojaActual] || null;
     if (hojaEnUso && hojaActual === 'Diario WIND') {
-        recalcularSaldosTodosClientesEnMemoria(hojaEnUso);
+        const key = `${hojaActual}|${mesActual || ''}|${__recalculoVersion}`;
+        if (__dirtyRecalculoMasivo || __cacheSaldosWindKey !== key) {
+            recalcularSaldosTodosClientesEnMemoria(hojaEnUso);
+            __cacheSaldosWindKey = key;
+        } else {
+            recalcularSaldosClienteEnMemoria(hojaEnUso, clienteIdx);
+        }
     } else if (hojaEnUso) {
         recalcularSaldosClienteEnMemoria(hojaEnUso, clienteIdx);
     }
@@ -5797,7 +5868,9 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
         return fa - fb;
     });
 
-    gruposOrdenados.forEach(g => {
+    for (let gi = 0; gi < gruposOrdenados.length; gi++) {
+        if (renderSeq !== __renderDetalleSeq) return;
+        const g = gruposOrdenados[gi];
         g.rows.sort((a, b) => (a.fila || 0) - (b.fila || 0));
         g.filaCalculo = g.rows[g.rows.length - 1];
         g.filaInc = g.rows[0];
@@ -5808,7 +5881,10 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
             const dec = typeof r.decremento === 'number' ? r.decremento : 0;
             return inc !== 0 || dec !== 0;
         });
-    });
+        if (gi > 0 && (gi % 10) === 0) {
+            await yieldToBrowser();
+        }
+    }
 
     let ultimaFilaActividad = 0;
     gruposOrdenados.forEach(g => {
@@ -5826,14 +5902,19 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
         cliente.saldo_inicial_mes > 0;
 
     let haEmpezado = false;
-    gruposOrdenados.forEach(g => {
+    let __renderRows = 0;
+    for (let gi = 0; gi < gruposOrdenados.length; gi++) {
+        if (renderSeq !== __renderDetalleSeq) return;
+        const g = gruposOrdenados[gi];
         if (!haEmpezado && g.hayActividad) haEmpezado = true;
         const dentroRangoActividad = ultimaFilaMostrar > 0 && (g.filaCalculo?.fila || 0) <= ultimaFilaMostrar;
         // Mostrar valores si: (ha empezado con movimientos) O (tiene saldo inicial y está dentro del rango)
         const mostrarValores = (haEmpezado && dentroRangoActividad) || (tieneSaldoInicial && dentroRangoActividad);
         const calcRow = g.filaCalculo;
 
-        g.rows.forEach(dato => {
+        for (let ri = 0; ri < g.rows.length; ri++) {
+            if (renderSeq !== __renderDetalleSeq) return;
+            const dato = g.rows[ri];
             const tr = document.createElement('tr');
             tr.dataset.fila = `${dato.fila}`;
             tr.dataset.clienteIdx = `${clienteIdx}`;
@@ -6104,8 +6185,18 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
         tr.appendChild(tdBenefAPct);
         
             tbody.appendChild(tr);
-        });
-    });
+            __renderRows++;
+            if (__renderRows > 0 && (__renderRows % 20) === 0) {
+                if (typeof __loadingOverlayCount === 'number' && __loadingOverlayCount > 0) {
+                    setLoadingOverlayText(`Renderizando tabla (${__renderRows} filas)...`);
+                }
+                await yieldToBrowser();
+            }
+        }
+        if (gi > 0 && (gi % 5) === 0) {
+            await yieldToBrowser();
+        }
+    }
 }
 
 // Recalcular totales del cliente cuando se edita incremento/decremento
@@ -6150,7 +6241,7 @@ function recalcularTotalesCliente(cliente) {
     if (resumenDiv && resumenDiv.style.display !== 'none') {
         const hoja = datosEditados.hojas[hojaActual];
         const clienteIndex = hoja.clientes?.indexOf(cliente) ?? clienteActual;
-        mostrarTablaEditableCliente(cliente, hoja, clienteIndex);
+        void mostrarTablaEditableCliente(cliente, hoja, clienteIndex);
     }
 }
 
@@ -6797,6 +6888,10 @@ async function actualizarDatoDiario(input, cliente, datoDiario, hojaExplicita = 
     // Actualizar el valor en el dato diario
     if (valoresDiferentes) {
         console.log(`📝 Actualizando ${campo} del cliente: fila ${datoDiario.fila}, valor anterior: ${valorAnterior}, nuevo valor: ${nuevoValor}`);
+
+        if (campo === 'incremento' || campo === 'decremento') {
+            marcarDirtyRecalculoMasivo();
+        }
         
         // Agregar al historial antes de cambiar
         estadoAnterior.valorNuevo = nuevoValor;
@@ -6944,7 +7039,7 @@ async function actualizarDatoDiario(input, cliente, datoDiario, hojaExplicita = 
             // Refrescar la tabla del cliente
             if (hoja.clientes && hoja.clientes[clienteIdx]) {
                 console.log(`🔄 Refrescando tabla del cliente ${clienteIdx + 1}...`);
-                mostrarTablaEditableCliente(hoja.clientes[clienteIdx], hoja, clienteIdx);
+                void mostrarTablaEditableCliente(hoja.clientes[clienteIdx], hoja, clienteIdx);
             }
 
             // Refrescar vistas dependientes
@@ -7220,7 +7315,7 @@ function guardarCambios() {
                     const hoja = datosEditados.hojas[hojaActual];
                     const cliente = hoja.clientes && hoja.clientes[clienteActual] ? hoja.clientes[clienteActual] : null;
                     if (cliente) {
-                        mostrarTablaEditableCliente(cliente, hoja, clienteActual);
+                        void mostrarTablaEditableCliente(cliente, hoja, clienteActual);
                     }
                 }
             } catch (error) {
@@ -7326,7 +7421,7 @@ async function limpiarDatosUsuarioMesActual() {
         renderVistaClientes();
     } else if (vistaActual === 'detalle' && clienteActual !== null && clienteActual !== undefined) {
         const idx = parseInt(clienteActual);
-        if (!isNaN(idx)) renderDetalleCliente(idx);
+        if (!isNaN(idx)) void renderDetalleCliente(idx);
     }
 
     mostrarNotificacion('Datos del mes limpiados', 'success');
@@ -8194,7 +8289,7 @@ async function deshacer() {
     else if (vistaActual === 'detalle' && clienteActual !== null) {
         const hoja = datosEditados?.hojas?.[hojaActual];
         if (hoja?.clientes?.[clienteActual]) {
-            mostrarTablaEditableCliente(hoja.clientes[clienteActual], hoja, clienteActual);
+            void mostrarTablaEditableCliente(hoja.clientes[clienteActual], hoja, clienteActual);
         }
     }
 }
@@ -8975,10 +9070,16 @@ async function actualizarTodoElDiario(opts = {}) {
         const clientes = hoja.clientes || [];
         const datosGen = hoja.datos_diarios_generales || [];
 
+        await yieldToBrowser();
+
         for (let i = 0; i < clientes.length; i++) {
             recalcularSaldosClienteEnMemoria(hoja, i);
             recalcularTotalesCliente(clientes[i]);
             cambiosRealizados++;
+
+            if (i > 0 && (i % 2) === 0) {
+                await yieldToBrowser();
+            }
         }
 
         recalcularImpInicialSync(hoja);
@@ -9004,7 +9105,8 @@ async function actualizarTodoElDiario(opts = {}) {
                 let benefAcumAnterior = 0;
                 let inversionAcum = 0;
 
-                for (const d of rows) {
+                for (let r = 0; r < rows.length; r++) {
+                    const d = rows[r];
                     const inc = typeof d.incremento === 'number' ? d.incremento : 0;
                     const dec = typeof d.decremento === 'number' ? d.decremento : 0;
 
@@ -9064,6 +9166,14 @@ async function actualizarTodoElDiario(opts = {}) {
                         });
                         saldoAnterior = base;
                     }
+
+                    if (r > 0 && (r % 80) === 0) {
+                        await yieldToBrowser();
+                    }
+                }
+
+                if (i > 0 && (i % 2) === 0) {
+                    await yieldToBrowser();
                 }
             }
         } else {
@@ -9076,7 +9186,8 @@ async function actualizarTodoElDiario(opts = {}) {
                 let inversionAcum = 0;
                 let benefAcum = 0;
 
-                for (const d of rows) {
+                for (let r = 0; r < rows.length; r++) {
+                    const d = rows[r];
                     const inc = typeof d.incremento === 'number' ? d.incremento : 0;
                     inversionAcum += inc;
 
@@ -9092,6 +9203,14 @@ async function actualizarTodoElDiario(opts = {}) {
                         d.beneficio_acumulado_pct = pctAcum;
                         cambiosRealizados++;
                     }
+
+                    if (r > 0 && (r % 100) === 0) {
+                        await yieldToBrowser();
+                    }
+                }
+
+                if (i > 0 && (i % 2) === 0) {
+                    await yieldToBrowser();
                 }
             }
         }
@@ -9107,6 +9226,8 @@ async function actualizarTodoElDiario(opts = {}) {
                 mostrarNotificacion('✓ Todas las casillas están correctas', 'success');
             }
         }
+
+        __dirtyRecalculoMasivo = false;
 
         if (!skipVistaRefresh) {
             if (vistaActual === 'general') {
@@ -9256,7 +9377,7 @@ function navegarACeldaInconsistencia(error, indice) {
         
     } else if (error.tipo === 'cliente') {
         // Ir a vista del cliente
-        mostrarDetalleCliente(error.clienteIdx);
+        void mostrarDetalleCliente(error.clienteIdx);
         
         // Esperar a que se renderice y buscar la celda
         setTimeout(() => {
@@ -9416,7 +9537,7 @@ window.ignorarYSiguiente = function(indice) {
 // REDISTRIBUCIÓN AUTOMÁTICA PARA DIARIO WIND
 // ============================================================================
 
-function redistribuirSaldosClientesWIND(hoja) {
+async function redistribuirSaldosClientesWIND(hoja) {
     if (!hoja || !hoja.clientes) return;
     
     console.log('🔄 WIND: Iniciando redistribución automática de saldos...');
@@ -9426,14 +9547,15 @@ function redistribuirSaldosClientesWIND(hoja) {
     let redistribucionesRealizadas = 0;
     
     // 1. RECALCULAR CLIENTES CON SALDO INICIAL PERO SIN DATOS
-    hoja.clientes.forEach((cliente, idx) => {
-        if (!cliente) return;
+    for (let idx = 0; idx < hoja.clientes.length; idx++) {
+        const cliente = hoja.clientes[idx];
+        if (!cliente) continue;
         
         const tieneSaldoInicial = cliente.saldo_inicial_mes && 
             typeof cliente.saldo_inicial_mes === 'number' && 
             cliente.saldo_inicial_mes > 0;
         
-        if (!tieneSaldoInicial) return;
+        if (!tieneSaldoInicial) continue;
         
         const datosDiarios = cliente.datos_diarios || [];
         const datosConSaldo = datosDiarios.filter(d => 
@@ -9452,7 +9574,10 @@ function redistribuirSaldosClientesWIND(hoja) {
             );
             recalculosRealizados++;
         }
-    });
+        if (idx > 0 && (idx % 2) === 0) {
+            await yieldToBrowser();
+        }
+    }
     
     // 2. REDISTRIBUIR SALDOS PARA MANTENER IMP_FINAL FIJO
     // Por cada fila con imp_final, verificar que la suma de saldos de clientes = imp_final
@@ -9461,42 +9586,76 @@ function redistribuirSaldosClientesWIND(hoja) {
         d.fecha && d.fecha !== 'FECHA' &&
         typeof d.imp_final === 'number' && isFinite(d.imp_final) && d.imp_final > 0
     );
-    
-    datosConImpFinal.forEach(datoGen => {
+
+    const datosConImpFinalOrd = [...datosConImpFinal].sort((a, b) => (a.fila || 0) - (b.fila || 0));
+
+    // Precomputar estructuras por cliente para evitar filtros/sorts repetidos
+    const estadoClientes = hoja.clientes.map(cliente => {
+        const rows = (cliente?.datos_diarios || [])
+            .filter(d => d && typeof d.fila === 'number' && d.fila >= 15 && d.fila <= 1120)
+            .sort((a, b) => (a.fila || 0) - (b.fila || 0));
+        const mapPorFila = new Map();
+        rows.forEach(r => {
+            mapPorFila.set(r.fila, r);
+        });
+        return {
+            cliente,
+            rows,
+            mapPorFila,
+            ptr: 0,
+            lastSaldo: (cliente && typeof cliente.saldo_inicial_mes === 'number' && isFinite(cliente.saldo_inicial_mes)) ? cliente.saldo_inicial_mes : 0,
+            cumBenef: 0,
+            cumInv: (cliente && typeof cliente.saldo_inicial_mes === 'number' && isFinite(cliente.saldo_inicial_mes)) ? cliente.saldo_inicial_mes : 0
+        };
+    });
+
+    for (let gIdx = 0; gIdx < datosConImpFinalOrd.length; gIdx++) {
+        const datoGen = datosConImpFinalOrd[gIdx];
         const fila = datoGen.fila;
         const impFinalGeneral = datoGen.imp_final;
         
         // Recopilar clientes activos en esta fila
         const clientesActivos = [];
-        hoja.clientes.forEach((cliente, idx) => {
-            if (!cliente || !cliente.datos_diarios) return;
-            
-            const datoCliente = cliente.datos_diarios.find(d => d && d.fila === fila);
-            if (datoCliente) {
-                // Calcular base del cliente (saldo anterior + inc - dec)
-                const inc = typeof datoCliente.incremento === 'number' ? datoCliente.incremento : 0;
-                const dec = typeof datoCliente.decremento === 'number' ? datoCliente.decremento : 0;
-                
-                // Obtener saldo anterior (del día anterior o saldo_inicial_mes)
-                const datosOrdenados = cliente.datos_diarios
-                    .filter(d => d && d.fila < fila && typeof d.saldo_diario === 'number')
-                    .sort((a, b) => b.fila - a.fila);
-                const saldoAnterior = datosOrdenados.length > 0 
-                    ? datosOrdenados[0].saldo_diario 
-                    : (cliente.saldo_inicial_mes || 0);
-                
-                const base = saldoAnterior + inc - dec;
-                
-                clientesActivos.push({
-                    cliente,
-                    datoCliente,
-                    base,
-                    idx
-                });
+        for (let idx = 0; idx < estadoClientes.length; idx++) {
+            const st = estadoClientes[idx];
+            const cliente = st.cliente;
+            if (!cliente) continue;
+            const datoCliente = st.mapPorFila.get(fila);
+            if (!datoCliente) continue;
+
+            while (st.ptr < st.rows.length && (st.rows[st.ptr]?.fila || 0) < fila) {
+                const r = st.rows[st.ptr];
+                if (typeof r?.saldo_diario === 'number' && isFinite(r.saldo_diario)) {
+                    st.lastSaldo = r.saldo_diario;
+                }
+                if (typeof r?.beneficio_diario === 'number' && isFinite(r.beneficio_diario)) {
+                    st.cumBenef += r.beneficio_diario;
+                }
+                const incPtr = typeof r?.incremento === 'number' ? r.incremento : 0;
+                st.cumInv += incPtr;
+                st.ptr++;
             }
-        });
+
+            const inc = typeof datoCliente.incremento === 'number' ? datoCliente.incremento : 0;
+            const dec = typeof datoCliente.decremento === 'number' ? datoCliente.decremento : 0;
+            const base = st.lastSaldo + inc - dec;
+
+            clientesActivos.push({
+                cliente,
+                datoCliente,
+                base,
+                idx,
+                st
+            });
+
+            if (idx > 0 && (idx % 3) === 0) {
+                await yieldToBrowser();
+            }
+        }
         
-        if (clientesActivos.length === 0) return;
+        if (clientesActivos.length === 0) {
+            continue;
+        }
         
         // Calcular suma de bases (sin beneficios)
         const sumaBase = clientesActivos.reduce((sum, c) => sum + c.base, 0);
@@ -9506,7 +9665,8 @@ function redistribuirSaldosClientesWIND(hoja) {
         
         // Redistribuir beneficio proporcionalmente según la base de cada cliente
         if (sumaBase > 0 && Math.abs(beneficioTotal) > 0.01) {
-            clientesActivos.forEach(({ cliente, datoCliente, base }) => {
+            for (let i = 0; i < clientesActivos.length; i++) {
+                const { cliente, datoCliente, base, st } = clientesActivos[i];
                 const proporcion = base / sumaBase;
                 const beneficioCliente = beneficioTotal * proporcion;
                 const beneficioPct = base > 0 ? (beneficioCliente / base) : 0;
@@ -9517,27 +9677,26 @@ function redistribuirSaldosClientesWIND(hoja) {
                 datoCliente.saldo_diario = base + beneficioCliente;
                 
                 // Actualizar beneficio acumulado
-                const datosAnteriores = cliente.datos_diarios
-                    .filter(d => d && d.fila < fila && typeof d.beneficio_diario === 'number')
-                    .reduce((sum, d) => sum + d.beneficio_diario, 0);
-                datoCliente.beneficio_acumulado = datosAnteriores + beneficioCliente;
+                const benefAcumPrev = st ? st.cumBenef : 0;
+                datoCliente.beneficio_acumulado = benefAcumPrev + beneficioCliente;
                 
                 // Calcular inversión acumulada para beneficio % acumulado
-                const inversionAcum = cliente.datos_diarios
-                    .filter(d => d && d.fila <= fila)
-                    .reduce((sum, d) => {
-                        const inc = typeof d.incremento === 'number' ? d.incremento : 0;
-                        return sum + inc;
-                    }, cliente.saldo_inicial_mes || 0);
+                const inversionAcum = st ? (st.cumInv + (typeof datoCliente.incremento === 'number' ? datoCliente.incremento : 0)) : (cliente.saldo_inicial_mes || 0);
                 
                 datoCliente.beneficio_acumulado_pct = inversionAcum > 0 
                     ? (datoCliente.beneficio_acumulado / inversionAcum) 
                     : 0;
-            });
+                if (i > 0 && (i % 3) === 0) {
+                    await yieldToBrowser();
+                }
+            }
             
             redistribucionesRealizadas++;
         }
-    });
+        if (gIdx > 0 && (gIdx % 2) === 0) {
+            await yieldToBrowser();
+        }
+    }
     
     if (recalculosRealizados > 0 || redistribucionesRealizadas > 0) {
         console.log(`✅ WIND: ${recalculosRealizados} cliente(s) recalculado(s), ${redistribucionesRealizadas} fila(s) redistribuida(s)`);
@@ -9546,7 +9705,7 @@ function redistribuirSaldosClientesWIND(hoja) {
         if (vistaActual === 'detalle' && clienteActual !== null) {
             const hoja = datosEditados.hojas[hojaActual];
             if (hoja && hoja.clientes && hoja.clientes[clienteActual]) {
-                mostrarDetalleCliente(clienteActual);
+                void renderDetalleCliente(clienteActual);
             }
         }
     } else {
