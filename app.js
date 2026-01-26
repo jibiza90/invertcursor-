@@ -389,10 +389,10 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
     }
 
     // Recalcular solo filas de CÁLCULO (última fila del día), aplicando inc(1ª fila) y dec(2ª fila)
-    // NO usar saldo_inicial_mes - solo leer saldo_diario del JSON
-    let saldoAnterior = 0;
+    // Usar _saldoMesAnterior como punto de partida (arrastre entre meses)
+    let saldoAnterior = typeof cliente._saldoMesAnterior === 'number' ? cliente._saldoMesAnterior : 0;
     let benefAcumAnterior = 0;
-    let inversionAcum = 0;
+    let inversionAcum = typeof cliente._acumPrevInc === 'number' ? cliente._acumPrevInc : 0;
     const gruposOrdenados = Array.from(gruposPorFecha.values())
         .filter(g => g.rows && g.rows.length > 0)
         .sort((a, b) => (a.rows[0]?.fila || 0) - (b.rows[0]?.fila || 0));
@@ -1686,7 +1686,7 @@ async function aplicarArrastreAnualAlCargar(nombreHoja, mes, dataMes) {
             const prevSaldo = prev ? obtenerSaldoFinalClienteDeMes(prev) : 0;
             c._acumPrevInc = prevInc;
             c._acumPrevDec = prevDec;
-            // NO asignar saldo_inicial_mes - no debe usarse
+            c._saldoMesAnterior = prevSaldo; // Saldo final del mes anterior para arrastre
             console.log(`   -> saldo anterior: ${prevSaldo}`);
 
             c.numero_cliente = typeof c.numero_cliente === 'number' ? c.numero_cliente : (idx + 1);
