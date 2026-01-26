@@ -9059,11 +9059,15 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, cli
     // ESTRATEGIA: Recalcular SIEMPRE desde 0
     // - Cargar cada mes
     // - Recalcular saldos del cliente basándose en incrementos/decrementos y benef_porcentaje
-    // - Obtener el saldo final real del mes
+    // - Guardar detalles de incrementos/decrementos por fecha
     
     const resultados = [];
     let benefAcumTotal = 0;
-    let saldoArrastre = 0; // Saldo que se arrastra al siguiente mes
+    let saldoArrastre = 0;
+    
+    // Arrays para guardar TODOS los detalles de incrementos/decrementos
+    const todosIncrementos = [];
+    const todosDecrementos = [];
     
     console.log(`📊 Recalculando estadísticas desde 0 para Cliente ${numeroCliente} en ${hoja}, meses:`, meses);
     
@@ -9090,48 +9094,53 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, cli
             const rentabilidadMes = datosConBenef.reduce((sum, d) => sum + (d.benef_porcentaje * 100), 0);
             benefAcumTotal += rentabilidadMes;
             
+            // Crear mapa de fechas por fila (desde datos generales)
+            const fechaPorFila = {};
+            datosGenerales.forEach(d => {
+                if (d.fecha && d.fecha !== 'FECHA') fechaPorFila[d.fila] = d.fecha;
+            });
+            
             // RECALCULAR saldos del cliente para este mes
             const datosDiariosCliente = (clienteData.datos_diarios || [])
                 .filter(d => d.fila >= 15 && d.fila <= 1120)
                 .sort((a, b) => a.fila - b.fila);
             
-            // Saldo inicial = arrastre del mes anterior
             let saldoAnterior = saldoArrastre;
             let saldoFinalMes = saldoArrastre;
             let incrementosMes = 0;
             let decrementosMes = 0;
             let beneficioAcumMes = 0;
             
-            // Crear mapa de benef_porcentaje por fila
             const benefPctPorFila = {};
             datosConBenef.forEach(d => {
                 benefPctPorFila[d.fila] = d.benef_porcentaje || 0;
             });
             
-            // Última fila con datos generales
             const ultimaFilaGeneral = datosConBenef[datosConBenef.length - 1]?.fila || 0;
             
-            // Recalcular cada fila del cliente
             for (const filaCliente of datosDiariosCliente) {
                 if (filaCliente.fila > ultimaFilaGeneral) break;
                 
                 const inc = typeof filaCliente.incremento === 'number' ? filaCliente.incremento : 0;
                 const dec = typeof filaCliente.decremento === 'number' ? filaCliente.decremento : 0;
+                const fecha = fechaPorFila[filaCliente.fila] || filaCliente.fecha || mes;
+                
+                // Guardar detalles de incrementos/decrementos
+                if (inc > 0) {
+                    todosIncrementos.push({ fecha, importe: inc, mes });
+                }
+                if (dec > 0) {
+                    todosDecrementos.push({ fecha, importe: dec, mes });
+                }
                 
                 incrementosMes += inc;
                 decrementosMes += dec;
                 
-                // Solo procesar si hay movimientos o saldo anterior
                 if (inc === 0 && dec === 0 && saldoAnterior === 0) continue;
                 
-                // Base = saldo anterior + incremento - decremento
                 const base = saldoAnterior + inc - dec;
-                
-                // Beneficio diario = base * benef_porcentaje
                 const benefPct = benefPctPorFila[filaCliente.fila] || 0;
                 const beneficioDiario = base * benefPct;
-                
-                // Saldo diario = base + beneficio diario
                 const saldoDiario = base + beneficioDiario;
                 
                 beneficioAcumMes += beneficioDiario;
@@ -9139,7 +9148,6 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, cli
                 saldoFinalMes = saldoDiario;
             }
             
-            // Guardar saldo para arrastre al siguiente mes
             saldoArrastre = saldoFinalMes;
             
             resultados.push({
@@ -9160,6 +9168,10 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, cli
     }
     
     console.log(`📊 Resultados mensuales recalculados:`, resultados);
+    
+    // Guardar detalles en variable global para acceso desde popup
+    window._detallesIncrementosCliente = todosIncrementos;
+    window._detallesDecrementosCliente = todosDecrementos;
     
     return resultados;
 }
@@ -9238,8 +9250,9 @@ function calcularKPIsTotalesCliente(datosClienteMeses, clienteEnMemoria) {
     // BENEFICIO TOTAL = saldo actual - inversión + retiradas
     const beneficioEuro = saldoActual - inversion + decrementos;
     
-    // Rentabilidad total = suma de rentabilidades mensuales (de datos generales)
-    const rentabilidadTotal = mesesConDatos.reduce((sum, m) => sum + (m.rentabilidad || 0), 0);
+    // RENTABILIDAD TOTAL = % entre saldo actual e inversión
+    // Fórmula: ((saldoActual + decrementos) / inversion - 1) * 100
+    const rentabilidadTotal = inversion > 0 ? ((saldoActual + decrementos) / inversion - 1) * 100 : 0;
     
     // Mejor y peor mes
     const mejorMes = mesesConDatos.reduce((a, b) => a.rentabilidad > b.rentabilidad ? a : b);
@@ -9275,7 +9288,7 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
     container.innerHTML = `
         <div class="client-stats-kpis">
             <div class="client-stat-card">
-                <div class="label">Inversión</div>
+                <div class="label">Inversión <button class="btn-detalle-stats" onclick="mostrarDetalleIncrementos()" title="Ver detalle">+</button></div>
                 <div class="value positive">+${formatearMoneda(kpis.inversion)}</div>
             </div>
             <div class="client-stat-card">
@@ -9283,7 +9296,7 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
                 <div class="value">${formatearMoneda(kpis.saldoActual)}</div>
             </div>
             <div class="client-stat-card">
-                <div class="label">Retiradas</div>
+                <div class="label">Retiradas <button class="btn-detalle-stats" onclick="mostrarDetalleDecrementos()" title="Ver detalle">+</button></div>
                 <div class="value negative">-${formatearMoneda(kpis.decrementos)}</div>
             </div>
             <div class="client-stat-card">
@@ -9292,7 +9305,7 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
             </div>
             <div class="client-stat-card">
                 <div class="label">Rentabilidad Total</div>
-                <div class="value ${kpis.rentabilidadTotal >= 0 ? 'positive' : 'negative'}">${kpis.rentabilidadTotal >= 0 ? '+' : ''}${kpis.rentabilidadTotal.toFixed(4)}%</div>
+                <div class="value ${kpis.rentabilidadTotal >= 0 ? 'positive' : 'negative'}">${kpis.rentabilidadTotal >= 0 ? '+' : ''}${kpis.rentabilidadTotal.toFixed(2)}%</div>
             </div>
         </div>
         
@@ -9342,6 +9355,77 @@ function formatearMesCorto(mes) {
     const [year, month] = mes.split('-');
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     return meses[parseInt(month) - 1] + ' ' + year.slice(2);
+}
+
+function mostrarDetalleIncrementos() {
+    const detalles = window._detallesIncrementosCliente || [];
+    mostrarPopupDetalles('Detalle de Inversiones', detalles, 'positive');
+}
+
+function mostrarDetalleDecrementos() {
+    const detalles = window._detallesDecrementosCliente || [];
+    mostrarPopupDetalles('Detalle de Retiradas', detalles, 'negative');
+}
+
+function mostrarPopupDetalles(titulo, detalles, tipo) {
+    // Eliminar popup existente
+    const existente = document.querySelector('.popup-detalles-cliente');
+    if (existente) existente.remove();
+    
+    if (detalles.length === 0) {
+        mostrarNotificacion('No hay movimientos registrados', 'info');
+        return;
+    }
+    
+    // Ordenar por fecha
+    const detOrdenados = [...detalles].sort((a, b) => {
+        const fechaA = a.fecha || '';
+        const fechaB = b.fecha || '';
+        return fechaA.localeCompare(fechaB);
+    });
+    
+    const total = detalles.reduce((sum, d) => sum + (d.importe || 0), 0);
+    
+    const popup = document.createElement('div');
+    popup.className = 'popup-detalles-cliente';
+    popup.innerHTML = `
+        <div class="popup-detalles-content">
+            <div class="popup-detalles-header">
+                <h3>${titulo}</h3>
+                <button class="popup-close" onclick="this.closest('.popup-detalles-cliente').remove()">×</button>
+            </div>
+            <div class="popup-detalles-body">
+                <table class="tabla-detalles">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Importe</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${detOrdenados.map(d => `
+                            <tr>
+                                <td>${d.fecha || '-'}</td>
+                                <td class="${tipo}">${tipo === 'positive' ? '+' : '-'}${formatearMoneda(d.importe)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td><strong>TOTAL</strong></td>
+                            <td class="${tipo}"><strong>${tipo === 'positive' ? '+' : '-'}${formatearMoneda(total)}</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(popup);
+    
+    popup.addEventListener('click', (e) => {
+        if (e.target === popup) popup.remove();
+    });
 }
 
 function renderizarGraficoRentabilidadCliente(datos) {
