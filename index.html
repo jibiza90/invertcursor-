@@ -25,7 +25,7 @@
 
     <div class="container">
         <header>
-            <h1>PORTFOLIO MANAGER <span style="font-size: 0.5em; color: #888; font-weight: 400;">V2.9.24</span></h1>
+            <h1>PORTFOLIO MANAGER <span style="font-size: 0.5em; color: #888; font-weight: 400;">V2.9.25</span></h1>
             <div class="header-actions">
                 <select id="selectorHoja" class="selector-hoja">
                     <option value="Diario STD">Diario STD</option>
@@ -238,18 +238,93 @@
                     </div>
                     
                     <div class="estadisticas-container" id="estadisticasContainer">
-                        <div class="chart-controls">
-                            <label>Tipo de gráfico:</label>
-                            <select id="tipoGrafico">
-                                <option value="bar" selected>Barras</option>
-                                <option value="line">Línea</option>
-                                <option value="radar">Radar</option>
-                            </select>
+                        <!-- Controles Premium -->
+                        <div class="chart-controls-premium">
+                            <div class="control-group">
+                                <label>Tipo de gráfico:</label>
+                                <select id="tipoGrafico">
+                                    <option value="bar" selected>Barras</option>
+                                    <option value="line">Línea</option>
+                                    <option value="radar">Radar</option>
+                                </select>
+                            </div>
+                            <div class="control-group">
+                                <label>Periodo:</label>
+                                <select id="periodoStats">
+                                    <option value="all" selected>Todo el año</option>
+                                    <option value="12">Últimos 12 meses</option>
+                                    <option value="6">Últimos 6 meses</option>
+                                    <option value="3">Últimos 3 meses</option>
+                                </select>
+                            </div>
+                            <div class="control-group">
+                                <label>Vista:</label>
+                                <div class="toggle-group">
+                                    <button class="toggle-btn active" id="btnVistaMensual">Mensual</button>
+                                    <button class="toggle-btn" id="btnVistaAcumulado">Acumulado</button>
+                                </div>
+                            </div>
+                            <div class="control-group">
+                                <label>Benchmark:</label>
+                                <input type="number" id="benchmarkInput" value="2" min="0" max="10" step="0.1" style="width:60px"> %/mes
+                            </div>
+                            <button class="btn-export" id="btnExportarGrafico" title="Exportar como imagen">
+                                📥 Exportar
+                            </button>
                         </div>
-                        <div class="chart-wrapper">
+
+                        <!-- Gráfico Principal -->
+                        <div class="chart-wrapper-premium">
                             <canvas id="chartRentabilidad"></canvas>
                         </div>
-                        <div class="stats-summary" id="statsSummary">
+
+                        <!-- Resumen de KPIs -->
+                        <div class="stats-summary-premium" id="statsSummary">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+
+                        <!-- Indicadores Avanzados -->
+                        <div class="stats-indicators" id="statsIndicators">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+
+                        <!-- Tabla Detallada -->
+                        <div class="stats-table-container">
+                            <h3>📋 Detalle Mensual</h3>
+                            <table class="stats-table" id="statsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Mes</th>
+                                        <th>Rentabilidad</th>
+                                        <th>Acumulado</th>
+                                        <th>vs Benchmark</th>
+                                        <th>Tendencia</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="statsTableBody">
+                                    <!-- Se llenará dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Comparativa entre hojas -->
+                        <div class="stats-comparison">
+                            <h3>📊 Comparativa STD vs VIP vs WIND</h3>
+                            <div class="chart-wrapper-small">
+                                <canvas id="chartComparativa"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- TOP 10 Clientes -->
+                        <div class="stats-top-clients">
+                            <h3>🏆 TOP 10 Clientes Más Rentables</h3>
+                            <div class="top-clients-list" id="topClientsList">
+                                <!-- Se llenará dinámicamente -->
+                            </div>
+                        </div>
+
+                        <!-- Proyección -->
+                        <div class="stats-projection" id="statsProjection">
                             <!-- Se llenará dinámicamente -->
                         </div>
                     </div>

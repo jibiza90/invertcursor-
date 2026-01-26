@@ -8344,10 +8344,13 @@ function mostrarComision() {
     container.appendChild(listaComisiones);
 }
 
-// ==================== VISTA ESTADÍSTICAS ====================
+// ==================== VISTA ESTADÍSTICAS PREMIUM ====================
 
 let hojaEstadisticas = 'Diario STD';
 let chartRentabilidad = null;
+let chartComparativa = null;
+let datosEstadisticasCache = {};
+let vistaAcumulado = false;
 
 function cambiarHojaEstadisticas(nuevaHoja) {
     hojaEstadisticas = nuevaHoja;
@@ -8384,7 +8387,49 @@ function mostrarVistaEstadisticas() {
     if (btnEstadisticas) btnEstadisticas.classList.add('active');
     
     hojaEstadisticas = hojaActual;
+    inicializarEventosEstadisticas();
     cambiarHojaEstadisticas(hojaEstadisticas);
+}
+
+function inicializarEventosEstadisticas() {
+    const periodoSelect = document.getElementById('periodoStats');
+    if (periodoSelect && !periodoSelect.dataset.initialized) {
+        periodoSelect.addEventListener('change', () => mostrarEstadisticas());
+        periodoSelect.dataset.initialized = 'true';
+    }
+    
+    const btnMensual = document.getElementById('btnVistaMensual');
+    const btnAcumulado = document.getElementById('btnVistaAcumulado');
+    if (btnMensual && !btnMensual.dataset.initialized) {
+        btnMensual.addEventListener('click', () => {
+            vistaAcumulado = false;
+            btnMensual.classList.add('active');
+            btnAcumulado.classList.remove('active');
+            mostrarEstadisticas();
+        });
+        btnMensual.dataset.initialized = 'true';
+    }
+    if (btnAcumulado && !btnAcumulado.dataset.initialized) {
+        btnAcumulado.addEventListener('click', () => {
+            vistaAcumulado = true;
+            btnAcumulado.classList.add('active');
+            btnMensual.classList.remove('active');
+            mostrarEstadisticas();
+        });
+        btnAcumulado.dataset.initialized = 'true';
+    }
+    
+    const benchmarkInput = document.getElementById('benchmarkInput');
+    if (benchmarkInput && !benchmarkInput.dataset.initialized) {
+        benchmarkInput.addEventListener('change', () => mostrarEstadisticas());
+        benchmarkInput.dataset.initialized = 'true';
+    }
+    
+    const btnExportar = document.getElementById('btnExportarGrafico');
+    if (btnExportar && !btnExportar.dataset.initialized) {
+        btnExportar.addEventListener('click', exportarGrafico);
+        btnExportar.dataset.initialized = 'true';
+    }
 }
 
 async function mostrarVistaEstadisticasAuto() {
@@ -8396,7 +8441,13 @@ async function mostrarEstadisticas() {
     if (!container) return;
     
     const hojaParaMostrar = hojaEstadisticas || 'Diario STD';
-    const meses = mesesDisponibles[hojaParaMostrar] || [];
+    let meses = mesesDisponibles[hojaParaMostrar] || [];
+    
+    const periodo = document.getElementById('periodoStats')?.value || 'all';
+    if (periodo !== 'all') {
+        const numMeses = parseInt(periodo);
+        meses = meses.slice(-numMeses);
+    }
     
     if (meses.length === 0) {
         container.innerHTML = '<div class="info-box"><p>No hay meses disponibles para esta hoja</p></div>';
@@ -8404,9 +8455,17 @@ async function mostrarEstadisticas() {
     }
     
     const rentabilidadMeses = await calcularRentabilidadPorMes(hojaParaMostrar, meses);
+    datosEstadisticasCache[hojaParaMostrar] = rentabilidadMeses;
     
-    renderizarGrafico(rentabilidadMeses);
+    const benchmark = parseFloat(document.getElementById('benchmarkInput')?.value) || 2;
+    
+    renderizarGraficoPremium(rentabilidadMeses, benchmark);
     renderizarResumenEstadisticas(container, rentabilidadMeses);
+    renderizarIndicadoresAvanzados(rentabilidadMeses);
+    renderizarTablaDetallada(rentabilidadMeses, benchmark);
+    renderizarComparativaHojas();
+    renderizarTopClientes();
+    renderizarProyeccion(rentabilidadMeses);
 }
 
 async function calcularRentabilidadPorMes(hoja, meses) {
@@ -8423,31 +8482,29 @@ async function calcularRentabilidadPorMes(hoja, meses) {
             const data = await response.json();
             
             const datosGenerales = data.datos_diarios_generales || [];
-            
-            // Sumar todos los benef_porcentaje diarios del mes (valor real sin redondear)
             const datosConBenef = datosGenerales
                 .filter(d => d && d.fila >= 15 && d.fila <= 1120)
                 .filter(d => typeof d.benef_porcentaje === 'number' && isFinite(d.benef_porcentaje));
             
-            // Sumar los beneficios % diarios del mes
             const rentabilidadMes = datosConBenef.reduce((sum, d) => sum + (d.benef_porcentaje * 100), 0);
             benefAcumAnual += rentabilidadMes;
             
             resultados.push({
                 mes,
-                rentabilidad: rentabilidadMes,  // Sin redondear - valor real
-                benefAcumAnual: benefAcumAnual  // Acumulado del año
+                rentabilidad: rentabilidadMes,
+                benefAcumAnual: benefAcumAnual,
+                diasOperados: datosConBenef.length
             });
         } catch (error) {
             console.warn(`Error cargando datos de ${mes}:`, error);
-            resultados.push({ mes, rentabilidad: 0, benefAcumAnual });
+            resultados.push({ mes, rentabilidad: 0, benefAcumAnual, diasOperados: 0 });
         }
     }
     
     return resultados;
 }
 
-function renderizarGrafico(datos) {
+function renderizarGraficoPremium(datos, benchmark) {
     const canvas = document.getElementById('chartRentabilidad');
     if (!canvas) return;
     
@@ -8464,44 +8521,95 @@ function renderizarGrafico(datos) {
         return meses[parseInt(month) - 1] + ' ' + year.slice(2);
     });
     
-    const valores = datos.map(d => d.rentabilidad);
-    const colores = valores.map(v => v >= 0 ? 'rgba(52, 199, 89, 0.8)' : 'rgba(255, 59, 48, 0.8)');
-    const bordeColores = valores.map(v => v >= 0 ? 'rgb(52, 199, 89)' : 'rgb(255, 59, 48)');
+    const valores = vistaAcumulado ? datos.map(d => d.benefAcumAnual) : datos.map(d => d.rentabilidad);
+    const benchmarkLine = vistaAcumulado ? datos.map((d, i) => benchmark * (i + 1)) : datos.map(() => benchmark);
+    
+    const datasets = [{
+        label: vistaAcumulado ? 'Acumulado %' : 'Rentabilidad %',
+        data: valores,
+        backgroundColor: tipoGrafico === 'bar' ? valores.map(v => {
+            if (v >= benchmark) return 'rgba(0, 255, 136, 0.8)';
+            if (v >= 0) return 'rgba(0, 212, 255, 0.8)';
+            return 'rgba(255, 107, 107, 0.8)';
+        }) : 'rgba(0, 212, 255, 0.1)',
+        borderColor: tipoGrafico === 'line' ? 'rgb(0, 212, 255)' : valores.map(v => v >= 0 ? 'rgb(0, 255, 136)' : 'rgb(255, 107, 107)'),
+        borderWidth: 2,
+        fill: tipoGrafico === 'line',
+        tension: 0.4,
+        pointRadius: 6,
+        pointHoverRadius: 10,
+        pointBackgroundColor: 'rgb(0, 212, 255)',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        borderRadius: 8,
+        order: 1
+    }];
+    
+    if (tipoGrafico !== 'radar') {
+        datasets.push({
+            label: 'Benchmark ' + benchmark + '%',
+            data: benchmarkLine,
+            type: 'line',
+            borderColor: 'rgba(255, 215, 0, 0.8)',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            fill: false,
+            pointRadius: 0,
+            order: 0
+        });
+        
+        if (!vistaAcumulado && datos.length > 2) {
+            const tendencia = calcularLineaTendencia(valores);
+            datasets.push({
+                label: 'Tendencia',
+                data: tendencia,
+                type: 'line',
+                borderColor: 'rgba(102, 126, 234, 0.6)',
+                borderWidth: 2,
+                fill: false,
+                pointRadius: 0,
+                order: 0
+            });
+        }
+    }
     
     const config = {
         type: tipoGrafico,
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Rentabilidad %',
-                data: valores,
-                backgroundColor: tipoGrafico === 'line' ? 'rgba(0, 122, 255, 0.1)' : colores,
-                borderColor: tipoGrafico === 'line' ? 'rgb(0, 122, 255)' : bordeColores,
-                borderWidth: 2,
-                fill: tipoGrafico === 'line',
-                tension: 0.3,
-                pointRadius: 6,
-                pointHoverRadius: 8
-            }]
-        },
+        data: { labels, datasets },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            },
             plugins: {
-                legend: { display: false },
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: { color: 'rgba(255,255,255,0.7)', font: { size: 11 } }
+                },
                 tooltip: {
-                    backgroundColor: 'rgba(29, 29, 31, 0.95)',
+                    backgroundColor: 'rgba(26, 26, 46, 0.95)',
                     titleFont: { size: 14, weight: 'bold' },
+                    titleColor: '#fff',
                     bodyFont: { size: 13 },
-                    padding: 12,
-                    cornerRadius: 8,
+                    bodyColor: 'rgba(255,255,255,0.8)',
+                    padding: 16,
+                    cornerRadius: 12,
+                    displayColors: false,
                     callbacks: {
+                        title: (items) => items[0]?.label || '',
                         label: function(context) {
+                            if (context.datasetIndex > 0) return null;
                             const idx = context.dataIndex;
                             const d = datos[idx];
+                            const vsBenchmark = d.rentabilidad - benchmark;
                             return [
-                                `Rentabilidad mes: ${d.rentabilidad.toFixed(4)}%`,
-                                `Acumulado año: ${d.benefAcumAnual.toFixed(4)}%`
+                                `Rentabilidad: ${d.rentabilidad.toFixed(4)}%`,
+                                `Acumulado: ${d.benefAcumAnual.toFixed(4)}%`,
+                                `vs Benchmark: ${vsBenchmark >= 0 ? '+' : ''}${vsBenchmark.toFixed(4)}%`,
+                                `Días operados: ${d.diasOperados}`
                             ];
                         }
                     }
@@ -8509,42 +8617,59 @@ function renderizarGrafico(datos) {
             },
             scales: tipoGrafico !== 'radar' ? {
                 y: {
-                    beginAtZero: true,
+                    beginAtZero: !vistaAcumulado,
+                    grid: { color: 'rgba(255,255,255,0.05)' },
                     ticks: {
-                        callback: function(value) { return value.toFixed(2) + '%'; },
+                        callback: (v) => v.toFixed(2) + '%',
+                        color: 'rgba(255,255,255,0.6)',
                         font: { size: 11 }
-                    },
-                    grid: { color: 'rgba(0,0,0,0.05)' }
+                    }
                 },
                 x: {
                     grid: { display: false },
                     ticks: {
+                        color: 'rgba(255,255,255,0.8)',
                         font: { size: 12, weight: 'bold' }
                     }
                 }
             } : {}
         },
         plugins: [{
-            id: 'datalabels',
+            id: 'customLabels',
             afterDatasetsDraw: function(chart) {
+                if (tipoGrafico !== 'bar') return;
                 const ctx = chart.ctx;
-                chart.data.datasets.forEach((dataset, i) => {
-                    const meta = chart.getDatasetMeta(i);
-                    meta.data.forEach((bar, index) => {
-                        const value = dataset.data[index];
-                        ctx.fillStyle = value >= 0 ? '#1a7f37' : '#cf222e';
-                        ctx.font = 'bold 11px Arial';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = value >= 0 ? 'bottom' : 'top';
-                        const y = value >= 0 ? bar.y - 5 : bar.y + 5;
-                        ctx.fillText(value.toFixed(2) + '%', bar.x, y);
-                    });
+                const meta = chart.getDatasetMeta(0);
+                meta.data.forEach((bar, index) => {
+                    const value = chart.data.datasets[0].data[index];
+                    ctx.save();
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = value >= 0 ? 'bottom' : 'top';
+                    const y = value >= 0 ? bar.y - 8 : bar.y + 8;
+                    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                    ctx.shadowBlur = 4;
+                    ctx.fillText(value.toFixed(2) + '%', bar.x, y);
+                    ctx.restore();
                 });
             }
         }]
     };
     
     chartRentabilidad = new Chart(ctx, config);
+}
+
+function calcularLineaTendencia(valores) {
+    const n = valores.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+    for (let i = 0; i < n; i++) {
+        sumX += i; sumY += valores[i];
+        sumXY += i * valores[i]; sumXX += i * i;
+    }
+    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+    return valores.map((_, i) => slope * i + intercept);
 }
 
 function actualizarTipoGrafico() {
@@ -8557,7 +8682,6 @@ function renderizarResumenEstadisticas(container, datos) {
         return;
     }
     
-    // El acumulado anual es el último benefAcumAnual
     const ultimoDato = datos[datos.length - 1];
     const acumuladoAnual = ultimoDato?.benefAcumAnual || 0;
     const mejorMes = datos.reduce((best, d) => d.rentabilidad > best.rentabilidad ? d : best, datos[0]);
@@ -8573,9 +8697,9 @@ function renderizarResumenEstadisticas(container, datos) {
     
     container.innerHTML = `
         <div class="stat-card">
-            <div class="stat-label">Rentabilidad Acumulada Año</div>
+            <div class="stat-label">Rentabilidad Acumulada</div>
             <div class="stat-value ${acumuladoAnual >= 0 ? 'positive' : 'negative'}">${acumuladoAnual.toFixed(4)}%</div>
-            <div class="stat-detail">${datos.length} meses</div>
+            <div class="stat-detail">${datos.length} meses analizados</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Promedio Mensual</div>
@@ -8593,6 +8717,216 @@ function renderizarResumenEstadisticas(container, datos) {
             <div class="stat-detail">${formatMes(peorMes.mes)}</div>
         </div>
     `;
+}
+
+function renderizarIndicadoresAvanzados(datos) {
+    const container = document.getElementById('statsIndicators');
+    if (!container || datos.length < 2) {
+        if (container) container.innerHTML = '';
+        return;
+    }
+    
+    const rentabilidades = datos.map(d => d.rentabilidad);
+    const media = rentabilidades.reduce((a, b) => a + b, 0) / rentabilidades.length;
+    const varianza = rentabilidades.reduce((sum, r) => sum + Math.pow(r - media, 2), 0) / rentabilidades.length;
+    const volatilidad = Math.sqrt(varianza);
+    
+    let maxDrawdown = 0, peak = datos[0].benefAcumAnual;
+    for (const d of datos) {
+        if (d.benefAcumAnual > peak) peak = d.benefAcumAnual;
+        const drawdown = peak - d.benefAcumAnual;
+        if (drawdown > maxDrawdown) maxDrawdown = drawdown;
+    }
+    
+    const sharpe = volatilidad > 0 ? (media / volatilidad) : 0;
+    const winRate = (datos.filter(d => d.rentabilidad > 0).length / datos.length) * 100;
+    const consistencia = 100 - (volatilidad / Math.abs(media || 1)) * 10;
+    
+    container.innerHTML = `
+        <div class="indicator-item">
+            <div class="indicator-label">Volatilidad</div>
+            <div class="indicator-value ${volatilidad > 3 ? 'danger' : volatilidad > 1.5 ? 'warning' : ''}">${volatilidad.toFixed(2)}%</div>
+        </div>
+        <div class="indicator-item">
+            <div class="indicator-label">Max Drawdown</div>
+            <div class="indicator-value ${maxDrawdown > 5 ? 'danger' : maxDrawdown > 2 ? 'warning' : ''}">${maxDrawdown.toFixed(2)}%</div>
+        </div>
+        <div class="indicator-item">
+            <div class="indicator-label">Ratio Sharpe</div>
+            <div class="indicator-value">${sharpe.toFixed(2)}</div>
+        </div>
+        <div class="indicator-item">
+            <div class="indicator-label">Win Rate</div>
+            <div class="indicator-value">${winRate.toFixed(0)}%</div>
+        </div>
+        <div class="indicator-item">
+            <div class="indicator-label">Consistencia</div>
+            <div class="indicator-value ${consistencia < 50 ? 'warning' : ''}">${Math.max(0, Math.min(100, consistencia)).toFixed(0)}%</div>
+        </div>
+    `;
+}
+
+function renderizarTablaDetallada(datos, benchmark) {
+    const tbody = document.getElementById('statsTableBody');
+    if (!tbody) return;
+    
+    const formatMes = (mes) => {
+        const [year, month] = mes.split('-');
+        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        return meses[parseInt(month) - 1] + ' ' + year;
+    };
+    
+    tbody.innerHTML = datos.map((d, i) => {
+        const vsBench = d.rentabilidad - benchmark;
+        const prevRent = i > 0 ? datos[i - 1].rentabilidad : d.rentabilidad;
+        const trend = d.rentabilidad > prevRent ? 'trend-up' : d.rentabilidad < prevRent ? 'trend-down' : 'trend-flat';
+        
+        return `
+            <tr>
+                <td>${formatMes(d.mes)}</td>
+                <td class="${d.rentabilidad >= 0 ? 'positive' : 'negative'}">${d.rentabilidad.toFixed(4)}%</td>
+                <td class="${d.benefAcumAnual >= 0 ? 'positive' : 'negative'}">${d.benefAcumAnual.toFixed(4)}%</td>
+                <td class="${vsBench >= 0 ? 'positive' : 'negative'}">${vsBench >= 0 ? '+' : ''}${vsBench.toFixed(4)}%</td>
+                <td class="${trend}"></td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function renderizarComparativaHojas() {
+    const canvas = document.getElementById('chartComparativa');
+    if (!canvas) return;
+    
+    if (chartComparativa) {
+        chartComparativa.destroy();
+    }
+    
+    const hojas = ['Diario STD', 'Diario VIP', 'Diario WIND'];
+    const colores = ['#00d4ff', '#ffd700', '#ff6b6b'];
+    const datasets = [];
+    
+    for (let i = 0; i < hojas.length; i++) {
+        const hoja = hojas[i];
+        const meses = mesesDisponibles[hoja] || [];
+        if (meses.length === 0) continue;
+        
+        let datos = datosEstadisticasCache[hoja];
+        if (!datos) {
+            datos = await calcularRentabilidadPorMes(hoja, meses);
+            datosEstadisticasCache[hoja] = datos;
+        }
+        
+        datasets.push({
+            label: hoja.replace('Diario ', ''),
+            data: datos.map(d => d.benefAcumAnual),
+            borderColor: colores[i],
+            backgroundColor: colores[i] + '20',
+            fill: false,
+            tension: 0.4,
+            pointRadius: 4
+        });
+    }
+    
+    if (datasets.length === 0) return;
+    
+    const maxLen = Math.max(...datasets.map(d => d.data.length));
+    const labels = Array.from({ length: maxLen }, (_, i) => `Mes ${i + 1}`);
+    
+    chartComparativa = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: { color: 'rgba(255,255,255,0.7)' }
+                }
+            },
+            scales: {
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: 'rgba(255,255,255,0.6)', callback: v => v.toFixed(1) + '%' }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: 'rgba(255,255,255,0.6)' }
+                }
+            }
+        }
+    });
+}
+
+function renderizarTopClientes() {
+    const container = document.getElementById('topClientsList');
+    if (!container) return;
+    
+    const hoja = datosEditados?.hojas?.[hojaEstadisticas];
+    if (!hoja || !hoja.clientes) {
+        container.innerHTML = '<p style="color: rgba(255,255,255,0.5)">No hay datos de clientes disponibles</p>';
+        return;
+    }
+    
+    const clientesConRent = hoja.clientes
+        .map((c, i) => ({
+            nombre: c.nombre || `Cliente ${i + 1}`,
+            rentabilidad: c.rentabilidad || 0,
+            saldo: c.saldo_actual || 0
+        }))
+        .filter(c => c.saldo > 0)
+        .sort((a, b) => b.rentabilidad - a.rentabilidad)
+        .slice(0, 10);
+    
+    if (clientesConRent.length === 0) {
+        container.innerHTML = '<p style="color: rgba(255,255,255,0.5)">No hay datos suficientes</p>';
+        return;
+    }
+    
+    container.innerHTML = clientesConRent.map((c, i) => {
+        const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : 'normal';
+        return `
+            <div class="top-client-item">
+                <div class="top-client-rank ${rankClass}">${i + 1}</div>
+                <div class="top-client-info">
+                    <div class="top-client-name">${c.nombre}</div>
+                    <div class="top-client-detail">Saldo: ${formatearMoneda(c.saldo)}</div>
+                </div>
+                <div class="top-client-value">+${c.rentabilidad.toFixed(2)}%</div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderizarProyeccion(datos) {
+    const container = document.getElementById('statsProjection');
+    if (!container || datos.length === 0) return;
+    
+    const ultimoDato = datos[datos.length - 1];
+    const promMensual = ultimoDato.benefAcumAnual / datos.length;
+    const mesesRestantes = 12 - datos.length;
+    const proyeccionAnual = ultimoDato.benefAcumAnual + (promMensual * mesesRestantes);
+    
+    container.innerHTML = `
+        <h3>🎯 Proyección Anual</h3>
+        <div class="projection-value">${proyeccionAnual.toFixed(2)}%</div>
+        <div class="projection-detail">
+            Si mantiene el promedio de ${promMensual.toFixed(2)}%/mes durante ${mesesRestantes} meses restantes
+        </div>
+    `;
+}
+
+function exportarGrafico() {
+    const canvas = document.getElementById('chartRentabilidad');
+    if (!canvas) return;
+    
+    const link = document.createElement('a');
+    link.download = `estadisticas_${hojaEstadisticas.replace(' ', '_')}_${new Date().toISOString().slice(0, 10)}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    
+    mostrarNotificacion('Gráfico exportado correctamente', 'success');
 }
 
 // ==================== RECALCULAR DIARIO WIND ====================
