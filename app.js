@@ -9019,8 +9019,8 @@ async function mostrarEstadisticasCliente() {
     
     // Cargar datos de todos los meses del cliente
     try {
-        const mesesDisponibles = obtenerMesesDisponibles(hojaActual);
-        const datosClienteMeses = await calcularRentabilidadClientePorMes(hojaActual, clienteActual, mesesDisponibles);
+        const meses = mesesDisponibles[hojaActual] || [];
+        const datosClienteMeses = await calcularRentabilidadClientePorMes(hojaActual, clienteActual, meses);
         
         // Calcular KPIs totales (desde primer incremento hasta última fecha)
         const kpisTotales = calcularKPIsTotalesCliente(datosClienteMeses);
