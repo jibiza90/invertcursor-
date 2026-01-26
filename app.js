@@ -9135,12 +9135,24 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, cli
             let decrementosMes = 0;
             let beneficioAcumMes = 0;
             
+            console.log(`📅 ${mes}: Iniciando con saldoArrastre=${saldoArrastre.toFixed(2)}, filas cliente=${datosDiariosCliente.length}`);
+            
             const benefPctPorFila = {};
             datosConBenef.forEach(d => {
                 benefPctPorFila[d.fila] = d.benef_porcentaje || 0;
             });
             
             const ultimaFilaGeneral = datosConBenef[datosConBenef.length - 1]?.fila || 0;
+            
+            // DEBUG: Ver si hay datos extraños en el cliente
+            const primerasFilas = datosDiariosCliente.slice(0, 3);
+            console.log(`📅 ${mes}: Primeras filas cliente:`, primerasFilas.map(f => ({
+                fila: f.fila,
+                inc: f.incremento,
+                dec: f.decremento,
+                saldo: f.saldo_diario,
+                impFinal: f.imp_final
+            })));
             
             for (const filaCliente of datosDiariosCliente) {
                 if (filaCliente.fila > ultimaFilaGeneral) break;
@@ -9160,6 +9172,7 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, cli
                 incrementosMes += inc;
                 decrementosMes += dec;
                 
+                // Si no hay saldo previo ni incrementos ni decrementos, saltar
                 if (inc === 0 && dec === 0 && saldoAnterior === 0) continue;
                 
                 const base = saldoAnterior + inc - dec;
@@ -9172,6 +9185,7 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, cli
                 saldoFinalMes = saldoDiario;
             }
             
+            console.log(`📅 ${mes}: FINAL saldoFinalMes=${saldoFinalMes.toFixed(2)}, inc=${incrementosMes}, dec=${decrementosMes}`);
             saldoArrastre = saldoFinalMes;
             
             resultados.push({
