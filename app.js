@@ -3682,8 +3682,8 @@ function obtenerValorCeldaCliente(referencia, filaIdx, clienteIdxActual, hoja) {
     // CASO ESPECIAL: Si se busca una fila anterior a la primera del mes (fila < 15)
     // y es el campo saldo_diario, usar _saldoMesAnterior del cliente
     if (filaNum < 15 && campo === 'saldo_diario') {
-        const hojaEditada = datosEditados?.hojas?.[hojaActual];
-        const clientes = hojaEditada?.clientes || hoja?.clientes || [];
+        const hojaFuente = hoja || datosEditados?.hojas?.[hojaActual];
+        const clientes = hojaFuente?.clientes || [];
         if (clienteIdx >= 0 && clienteIdx < clientes.length) {
             const cliente = clientes[clienteIdx];
             const saldoAnterior = typeof cliente._saldoMesAnterior === 'number' ? cliente._saldoMesAnterior : 0;
@@ -3694,7 +3694,7 @@ function obtenerValorCeldaCliente(referencia, filaIdx, clienteIdxActual, hoja) {
     }
     
     // Usar datosEditados para obtener valores actualizados
-    const hojaEditada = datosEditados?.hojas?.[hojaActual];
+    const hojaEditada = hoja || datosEditados?.hojas?.[hojaActual];
     let filaDataCliente = null;
     
     if (hojaEditada && hojaEditada.clientes) {
@@ -4462,7 +4462,12 @@ window.auditRuntimeWIND = async function(opts = {}) {
         }
 
         await aplicarArrastreAnualAlCargar(hojaNombre, mes, data);
-        await redistribuirSaldosClientesWIND(data);
+        try {
+            await redistribuirSaldosClientesWIND(data);
+        } catch (e) {
+            issues.push({ type: 'redistribuir_error', mes, error: String(e) });
+            if (issues.length >= maxIssues) break;
+        }
         recalcularSaldosTodosClientesEnMemoria(data);
 
         const ultimaFilaMes = getUltimaFilaConFechaGeneral(data);
@@ -11318,14 +11323,8 @@ async function redistribuirSaldosClientesWIND(hoja) {
         
         if (datosConSaldo.length === 0) {
             console.log(`🔧 Recalculando cliente ${cliente.numero_cliente || (idx + 1)} con saldo inicial ${cliente._saldoMesAnterior.toFixed(2)}€`);
-            recalcularClienteCompleto(
-                cliente,
-                hoja,
-                hoja.datos_generales,
-                hoja.datos_diarios_generales,
-                null,
-                'Diario WIND'
-            );
+            recalcularSaldosClienteEnMemoria(hoja, idx);
+            recalcularTotalesCliente(cliente);
             recalculosRealizados++;
         }
         if (idx > 0 && (idx % 2) === 0) {
@@ -11529,14 +11528,8 @@ function validarYCorregirAutomaticoWIND_OLD(hoja) {
                     
                     // AUTO-CORRECCIÓN: Recalcular cliente
                     console.log(`🔧 Auto-corrección: Recalculando cliente ${cliente.numero_cliente || (idx + 1)}`);
-                    recalcularClienteCompleto(
-                        cliente,
-                        hoja,
-                        hoja.datos_generales,
-                        hoja.datos_diarios_generales,
-                        null,
-                        'Diario WIND'
-                    );
+                    recalcularSaldosClienteEnMemoria(hoja, idx);
+                    recalcularTotalesCliente(cliente);
                     recalculosRealizados++;
                 }
             }
