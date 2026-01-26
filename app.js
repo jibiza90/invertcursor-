@@ -366,27 +366,15 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
         }
     });
 
-    // Si el cliente no tiene movimientos (inc/dec), verificar si tiene saldo_inicial_mes
-    // Si tiene saldo inicial > 0, calcular hasta el último imp_final para mostrar arrastre
-    const tieneSaldoInicial = cliente.saldo_inicial_mes && typeof cliente.saldo_inicial_mes === 'number' && cliente.saldo_inicial_mes > 0;
-    
+    // SOLO calcular si hay movimientos reales del cliente
+    // NO usar saldo_inicial_mes - solo actividad real (incrementos/decrementos)
     if (hayMovimientosCliente) {
         last = Math.max(lastMovimientoFila, ultimaFilaImpFinal);
-    } else if (tieneSaldoInicial && ultimaFilaImpFinal > 0) {
-        // Cliente sin movimientos pero con saldo inicial: calcular hasta última fila con imp_final
-        last = ultimaFilaImpFinal;
-        console.log(`  Cliente sin movimientos pero con saldo_inicial_mes=${cliente.saldo_inicial_mes}, calculando hasta fila ${last}`);
     }
 
     // CRÍTICO: nunca calcular más allá de la última fila escrita en general (imp_final manual)
-    // PERO si el cliente tiene saldo_inicial_mes, debe calcular al menos hasta donde haya imp_final
-    if (ultimaFilaImpFinal > 0) {
-        if (last > 0) {
-            last = Math.min(last, ultimaFilaImpFinal);
-        } else if (tieneSaldoInicial) {
-            // Cliente sin movimientos pero con saldo inicial: calcular hasta última fila con imp_final
-            last = ultimaFilaImpFinal;
-        }
+    if (ultimaFilaImpFinal > 0 && last > 0) {
+        last = Math.min(last, ultimaFilaImpFinal);
     }
 
     // Si no hay actividad ni saldo inicial, limpiar cualquier arrastre (evita "fantasmas" en clientes nuevos)
@@ -479,20 +467,13 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
             // Buscar el último saldo válido anterior
             let saldoAnteriorValido = null;
             
-            // CRÍTICO: Si no hay filas anteriores en este mes (primer día del mes),
-            // usar saldo_inicial_mes en lugar de buscar en rows
-            let hayFilasAnteriores = false;
+            // Buscar saldo anterior en filas previas del JSON
+            // NO usar saldo_inicial_mes - solo leer del JSON
             for (let j = i - 1; j >= 0; j--) {
                 if (rows[j] && typeof rows[j].saldo_diario === 'number') {
                     saldoAnteriorValido = rows[j].saldo_diario;
-                    hayFilasAnteriores = true;
                     break;
                 }
-            }
-            
-            // Si no hay filas anteriores con saldo, usar saldo_inicial_mes
-            if (!hayFilasAnteriores && typeof cliente.saldo_inicial_mes === 'number') {
-                saldoAnteriorValido = cliente.saldo_inicial_mes;
             }
             
             // Si encontramos un saldo anterior, copiarlo
@@ -1607,13 +1588,14 @@ function obtenerSaldoFinalClienteDeMes(cliente) {
         .sort((a, b) => (b.fila || 0) - (a.fila || 0)); // Ordenar de mayor a menor fila
     
     // Buscar el último saldo válido (saldo_diario o imp_final)
+    // IMPORTANTE: usar >= 0 para detectar saldos de exactamente 0 (cliente retiró todo)
     for (const d of datos) {
-        // Priorizar saldo_diario si existe y es válido
-        if (typeof d.saldo_diario === 'number' && d.saldo_diario > 0) {
+        // Priorizar saldo_diario si existe
+        if (typeof d.saldo_diario === 'number' && d.saldo_diario >= 0) {
             return d.saldo_diario;
         }
         // Fallback a imp_final si existe
-        if (typeof d.imp_final === 'number' && d.imp_final > 0) {
+        if (typeof d.imp_final === 'number' && d.imp_final >= 0) {
             return d.imp_final;
         }
     }
@@ -1688,14 +1670,24 @@ async function aplicarArrastreAnualAlCargar(nombreHoja, mes, dataMes) {
                 }
             }
 
-            const prevInc = prev && typeof prev.incrementos_total === 'number' ? prev.incrementos_total : 0;
-            const prevDec = prev && typeof prev.decrementos_total === 'number' ? prev.decrementos_total : 0;
-            console.log(`📊 Cliente ${idx + 1} - Calculando saldo_inicial_mes desde mes anterior:`);
+            // Calcular incrementos/decrementos acumulados sumando directamente del JSON
+            // NO usar incrementos_total/decrementos_total de memoria
+            let prevInc = 0;
+            let prevDec = 0;
+            if (prev && prev.datos_diarios) {
+                for (const d of prev.datos_diarios) {
+                    if (d && d.fila >= 15 && d.fila <= 1120) {
+                        if (typeof d.incremento === 'number') prevInc += d.incremento;
+                        if (typeof d.decremento === 'number') prevDec += d.decremento;
+                    }
+                }
+            }
+            console.log(`📊 Cliente ${idx + 1} - Acumulados del mes anterior (JSON): inc=${prevInc}, dec=${prevDec}`);
             const prevSaldo = prev ? obtenerSaldoFinalClienteDeMes(prev) : 0;
             c._acumPrevInc = prevInc;
             c._acumPrevDec = prevDec;
-            c.saldo_inicial_mes = prevSaldo;
-            console.log(`   -> saldo_inicial_mes asignado: ${prevSaldo}`);
+            // NO asignar saldo_inicial_mes - no debe usarse
+            console.log(`   -> saldo anterior: ${prevSaldo}`);
 
             c.numero_cliente = typeof c.numero_cliente === 'number' ? c.numero_cliente : (idx + 1);
             c.columna_inicio = 11 + (idx * 8);
@@ -4147,11 +4139,12 @@ function calcularSaldoActualCliente(cliente) {
         .sort((a, b) => (b.fila || 0) - (a.fila || 0)); // Ordenar de mayor a menor fila
 
     // Buscar el último saldo válido (saldo_diario o imp_final)
+    // IMPORTANTE: usar >= 0 para detectar saldos de exactamente 0
     for (const d of datos) {
-        if (typeof d.saldo_diario === 'number' && d.saldo_diario > 0) {
+        if (typeof d.saldo_diario === 'number' && d.saldo_diario >= 0) {
             return d.saldo_diario;
         }
-        if (typeof d.imp_final === 'number' && d.imp_final > 0) {
+        if (typeof d.imp_final === 'number' && d.imp_final >= 0) {
             return d.imp_final;
         }
     }
@@ -5040,11 +5033,12 @@ function obtenerSaldoActualClienteSinLogs(cliente) {
         .sort((a, b) => (b.fila || 0) - (a.fila || 0)); // Ordenar de mayor a menor fila
 
     // Buscar el último saldo válido (saldo_diario o imp_final)
+    // IMPORTANTE: usar >= 0 para detectar saldos de exactamente 0
     for (const d of datos) {
-        if (typeof d.saldo_diario === 'number' && d.saldo_diario > 0) {
+        if (typeof d.saldo_diario === 'number' && d.saldo_diario >= 0) {
             return d.saldo_diario;
         }
-        if (typeof d.imp_final === 'number' && d.imp_final > 0) {
+        if (typeof d.imp_final === 'number' && d.imp_final >= 0) {
             return d.imp_final;
         }
     }
@@ -5142,8 +5136,8 @@ function renderVistaClientes() {
                 saldo_actual: clienteMes?.saldo_actual || 0,
                 datos_diarios: clienteMes?.datos_diarios || [],
                 _acumPrevInc: clienteMes?._acumPrevInc || 0,
-                _acumPrevDec: clienteMes?._acumPrevDec || 0,
-                saldo_inicial_mes: clienteMes?.saldo_inicial_mes || 0
+                _acumPrevDec: clienteMes?._acumPrevDec || 0
+                // NO incluir saldo_inicial_mes - no debe usarse
             };
         });
     } else {
@@ -7644,8 +7638,8 @@ function mostrarInfoClientes() {
                 saldo_actual: clienteMes?.saldo_actual || 0,
                 datos_diarios: clienteMes?.datos_diarios || [],
                 _acumPrevInc: clienteMes?._acumPrevInc || 0,
-                _acumPrevDec: clienteMes?._acumPrevDec || 0,
-                saldo_inicial_mes: clienteMes?.saldo_inicial_mes || 0
+                _acumPrevDec: clienteMes?._acumPrevDec || 0
+                // NO incluir saldo_inicial_mes - no debe usarse
             };
         });
     } else {
@@ -7814,15 +7808,16 @@ function cargarInfoClienteDetalle(index, container, hojaParaUsar) {
     }
     
     // Calcular saldo actual: SOLO leer último saldo_diario o imp_final del JSON
+    // IMPORTANTE: usar >= 0 para detectar saldos de exactamente 0
     let saldoActual = 0;
     const datosDiariosOrdenados = [...datosDiarios].sort((a, b) => (b.fila || 0) - (a.fila || 0));
     
     for (const d of datosDiariosOrdenados) {
-        if (typeof d.saldo_diario === 'number' && d.saldo_diario > 0) {
+        if (typeof d.saldo_diario === 'number' && d.saldo_diario >= 0) {
             saldoActual = d.saldo_diario;
             break;
         }
-        if (typeof d.imp_final === 'number' && d.imp_final > 0) {
+        if (typeof d.imp_final === 'number' && d.imp_final >= 0) {
             saldoActual = d.imp_final;
             break;
         }
@@ -8187,8 +8182,8 @@ function mostrarComision() {
                 saldo_actual: clienteMes?.saldo_actual || 0,
                 datos_diarios: clienteMes?.datos_diarios || [],
                 _acumPrevInc: clienteMes?._acumPrevInc || 0,
-                _acumPrevDec: clienteMes?._acumPrevDec || 0,
-                saldo_inicial_mes: clienteMes?.saldo_inicial_mes || 0
+                _acumPrevDec: clienteMes?._acumPrevDec || 0
+                // NO incluir saldo_inicial_mes - no debe usarse
             };
         });
     } else {
@@ -9118,9 +9113,10 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, cli
             .sort((a, b) => b.fila - a.fila); // Ordenar de mayor a menor fila
         
         // Buscar el último saldo_diario o imp_final válido
+        // IMPORTANTE: usar >= 0 para detectar saldos de exactamente 0
         for (const fila of datosDiarios) {
             const saldo = fila.saldo_diario ?? fila.imp_final ?? null;
-            if (typeof saldo === 'number' && saldo > 0) {
+            if (typeof saldo === 'number' && saldo >= 0) {
                 console.log(`📌 Encontrado saldo anterior: ${saldo.toFixed(2)} en fila ${fila.fila}`);
                 return saldo;
             }
