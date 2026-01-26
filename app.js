@@ -52,6 +52,9 @@ let hojaInfoClientes = 'Diario STD'; // Hoja seleccionada en Info Clientes
 let vistaActual = 'general';
 let requiereRecalculoImpInicial = false;
 
+let clientesResumenAnualCache = {};
+let __clientesResumenAnualPromise = {};
+
 let __actualizarTodoPromise = null;
 
 let __lastAutoUpdateTs = 0;
@@ -5084,6 +5087,91 @@ function columnaANumero(col) {
     return num;
 }
 
+async function obtenerClientesResumenAnual(hojaNombre) {
+    const meses = mesesDisponibles?.[hojaNombre] || [];
+    const mesRef = meses.length > 0 ? meses[meses.length - 1] : null;
+    const cacheKey = hojaNombre || '';
+    const cache = clientesResumenAnualCache[cacheKey];
+    if (cache && cache.mesRef === mesRef && Array.isArray(cache.clientes)) {
+        return cache;
+    }
+
+    if (__clientesResumenAnualPromise[cacheKey]) {
+        return __clientesResumenAnualPromise[cacheKey];
+    }
+
+    __clientesResumenAnualPromise[cacheKey] = (async () => {
+        if (!clientesAnuales || clientesAnuales.length === 0 || !mesRef) {
+            const res = { mesRef, hojaRef: null, clientes: [] };
+            clientesResumenAnualCache[cacheKey] = res;
+            return res;
+        }
+
+        const totalsPorNumero = new Map();
+        for (let i = 0; i < clientesAnuales.length; i++) {
+            const c = clientesAnuales[i];
+            if (!c) continue;
+            const num = typeof c.numero_cliente === 'number' ? c.numero_cliente : (i + 1);
+            totalsPorNumero.set(num, { inc: 0, dec: 0, saldo: 0 });
+        }
+
+        let dataRef = null;
+        for (const mes of meses) {
+            try {
+                const response = await fetch(`/api/datos/${encodeURIComponent(hojaNombre.replace(/\s/g, '_'))}/${mes}`, { cache: 'no-store' });
+                if (!response.ok) continue;
+                const dataMes = await response.json();
+                if (mes === mesRef) dataRef = dataMes;
+
+                const clientesMes = Array.isArray(dataMes?.clientes) ? dataMes.clientes : [];
+                for (let idx = 0; idx < clientesMes.length; idx++) {
+                    const cm = clientesMes[idx];
+                    if (!cm) continue;
+                    const num = (typeof cm.numero_cliente === 'number' && isFinite(cm.numero_cliente)) ? cm.numero_cliente : (idx + 1);
+                    if (!totalsPorNumero.has(num)) {
+                        totalsPorNumero.set(num, { inc: 0, dec: 0, saldo: 0 });
+                    }
+                    const totals = totalsPorNumero.get(num);
+
+                    const datosDiarios = (cm.datos_diarios || []).filter(d => d && d.fila >= 15 && d.fila <= 1120);
+                    for (const d of datosDiarios) {
+                        if (typeof d.incremento === 'number') totals.inc += d.incremento;
+                        if (typeof d.decremento === 'number') totals.dec += d.decremento;
+                    }
+
+                    if (mes === mesRef) {
+                        totals.saldo = obtenerSaldoFinalClienteDeMes(cm);
+                    }
+                }
+            } catch {
+                continue;
+            }
+        }
+
+        const clientes = clientesAnuales.map((clienteAnual, idx) => {
+            const num = typeof clienteAnual?.numero_cliente === 'number' ? clienteAnual.numero_cliente : (idx + 1);
+            const totals = totalsPorNumero.get(num) || { inc: 0, dec: 0, saldo: 0 };
+            return {
+                ...clienteAnual,
+                incrementos_total: totals.inc,
+                decrementos_total: totals.dec,
+                saldo_actual: totals.saldo,
+                datos_diarios: [],
+                _acumPrevInc: 0,
+                _acumPrevDec: 0
+            };
+        });
+
+        const res = { mesRef, hojaRef: dataRef, clientes };
+        clientesResumenAnualCache[cacheKey] = res;
+        return res;
+    })().finally(() => {
+        __clientesResumenAnualPromise[cacheKey] = null;
+    });
+
+    return __clientesResumenAnualPromise[cacheKey];
+}
+
 function desplazarFormulaCliente(formula, colInicioBloque, colFinBloque, deltaCols) {
     if (!formula || typeof formula !== 'string' || deltaCols === 0) return formula;
 
@@ -5211,42 +5299,37 @@ function calcularDetalleComisionesCobradas(cliente) {
     return { totalCobrada, eventos };
 }
 
-function renderVistaClientes() {
+async function renderVistaClientes() {
     // Usar clientes anuales si están disponibles, sino usar del mes actual
     let clientes = [];
+    let hojaParaProporcion = null;
     
     if (clientesAnuales && clientesAnuales.length > 0) {
-        // MODO ANUAL: Usar lista de clientes del año completo
-        clientes = clientesAnuales.map((clienteAnual, idx) => {
-            // Agregar datos de TODOS los meses para este cliente
-            const hoja = datosEditados?.hojas?.[hojaActual];
-            const clienteMes = hoja?.clientes?.[idx];
-            
-            // Combinar datos anuales con datos del mes actual
-            // CRÍTICO: También copiar 'datos' del mes que tiene garantía actualizada
-            return {
+        const resumen = await obtenerClientesResumenAnual(hojaActual);
+        if (resumen && Array.isArray(resumen.clientes) && resumen.clientes.length > 0) {
+            clientes = resumen.clientes;
+            hojaParaProporcion = resumen.hojaRef;
+        } else {
+            clientes = clientesAnuales.map((clienteAnual) => ({
                 ...clienteAnual,
-                // Datos del cliente (nombre, garantía, etc.) - priorizar datos del mes actual
-                datos: clienteMes?.datos || clienteAnual?.datos || {},
-                // Datos mensuales (incrementos, decrementos, saldo)
-                incrementos_total: clienteMes?.incrementos_total || 0,
-                decrementos_total: clienteMes?.decrementos_total || 0,
-                saldo_actual: clienteMes?.saldo_actual || 0,
-                datos_diarios: clienteMes?.datos_diarios || [],
-                _acumPrevInc: clienteMes?._acumPrevInc || 0,
-                _acumPrevDec: clienteMes?._acumPrevDec || 0
-                // NO incluir saldo_inicial_mes - no debe usarse
-            };
-        });
+                incrementos_total: 0,
+                decrementos_total: 0,
+                saldo_actual: 0,
+                datos_diarios: [],
+                _acumPrevInc: 0,
+                _acumPrevDec: 0
+            }));
+        }
     } else {
         // MODO MENSUAL (fallback): Usar clientes del mes actual
         const hoja = datosEditados?.hojas?.[hojaActual];
         if (!hoja) return;
         clientes = hoja.clientes || [];
+        hojaParaProporcion = hoja;
     }
 
     // Obtener hoja para cálculos de proporción
-    const hoja = datosEditados?.hojas?.[hojaActual];
+    const hoja = hojaParaProporcion || datosEditados?.hojas?.[hojaActual];
 
     const selectorPlantilla = document.getElementById('selectorPlantillaCliente');
     if (selectorPlantilla) {
@@ -5274,12 +5357,18 @@ function renderVistaClientes() {
         if (!c.incrementos_total && c.datos_diarios) {
             recalcularTotalesCliente(c);
         }
-        const saldo = obtenerSaldoActualClienteSinLogs(c);
-        const garantiaPendiente = obtenerGarantiaActualCliente(c);
-        const comisionSiRetira = calcularComisionSiRetiraTodoHoy(c);
-
         const inc = typeof c.incrementos_total === 'number' ? c.incrementos_total : 0;
         const dec = typeof c.decrementos_total === 'number' ? c.decrementos_total : 0;
+        const saldo = typeof c.saldo_actual === 'number' ? c.saldo_actual : obtenerSaldoActualClienteSinLogs(c);
+
+        const datosCliente = c?.datos || {};
+        const gIniRaw = datosCliente['GARANTIA_INICIAL']?.valor ?? datosCliente['GARANTIA']?.valor ?? 0;
+        const gIni = typeof gIniRaw === 'number' ? gIniRaw : (parseFloat(gIniRaw) || 0);
+        const garantiaPendiente = Math.max(0, gIni - dec);
+
+        const totalDecSiRetira = dec + Math.max(0, saldo);
+        const excesoSiRetira = Math.max(0, totalDecSiRetira - inc);
+        const comisionSiRetira = excesoSiRetira * 0.05;
         const excesoYaRetirado = Math.max(0, dec - inc);
         const comisionCobrada = excesoYaRetirado * 0.05;
         const comisionPendiente = Math.max(0, comisionSiRetira - comisionCobrada);
