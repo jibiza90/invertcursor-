@@ -72,7 +72,17 @@ let __lastAutoUpdateTs = 0;
 let __autoUpdateScheduled = false;
 
 let __dirtyRecalculoMasivo = true;
+
+// Virtualización de tabla de cliente - solo renderizar filas visibles + buffer
+const VIRTUAL_BUFFER_SIZE = 15; // Filas extra arriba y abajo
+let __virtualTableData = null; // Datos pre-calculados para renderizado virtual
+let __virtualScrollHandler = null; // Handler de scroll para cleanup
+let __virtualRenderRange = { start: 0, end: 0 }; // Rango actualmente renderizado
 let __recalculoVersion = 0;
+
+// Debounce para recálculos - evitar recálculos repetidos
+let __recalculoDebounceTimer = null;
+const RECALCULO_DEBOUNCE_MS = 50; // Esperar 50ms antes de recalcular
 
 let __navDetalleSeq = 0;
 
@@ -6484,7 +6494,28 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
     const saldoMesAnteriorDirecto = obtenerSaldoClienteMesAnteriorDirecto(numeroClienteParaSaldo);
     const tieneSaldoInicial = saldoMesAnteriorDirecto > 0;
 
+    // VIRTUALIZACIÓN: Guardar datos para renderizado parcial
+    const virtualData = {
+        gruposOrdenados,
+        ultimaFilaMostrar,
+        tieneSaldoInicial,
+        clienteIdx,
+        cliente,
+        hoja: hojaEnUso
+    };
+    __virtualTableData = virtualData;
+    
+    // Calcular qué grupos mostrar inicialmente (visible + buffer)
+    const tablaContainer = document.getElementById('tablaDetalle')?.parentElement;
+    const containerHeight = tablaContainer?.clientHeight || 600;
+    const rowHeight = 35; // Altura aproximada de fila
+    const visibleRows = Math.ceil(containerHeight / rowHeight);
+    const initialRenderCount = Math.min(gruposOrdenados.length, visibleRows + VIRTUAL_BUFFER_SIZE * 2);
+    
+    // Renderizar solo las primeras filas + las que tienen actividad
     let haEmpezado = false;
+    let filasRenderizadas = 0;
+    
     for (let gi = 0; gi < gruposOrdenados.length; gi++) {
         const g = gruposOrdenados[gi];
         if (!haEmpezado && g.hayActividad) haEmpezado = true;
@@ -6492,6 +6523,11 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
         // Mostrar valores si: (ha empezado con movimientos) O (tiene saldo inicial y está dentro del rango)
         const mostrarValores = (haEmpezado && dentroRangoActividad) || (tieneSaldoInicial && dentroRangoActividad);
         const calcRow = g.filaCalculo;
+        
+        // VIRTUALIZACIÓN: Solo renderizar filas iniciales o con actividad
+        const debeRenderizar = filasRenderizadas < initialRenderCount || g.hayActividad || mostrarValores;
+        if (!debeRenderizar) continue;
+        filasRenderizadas++;
 
         for (let ri = 0; ri < g.rows.length; ri++) {
             const dato = g.rows[ri];
@@ -10990,12 +11026,14 @@ async function actualizarTodoElDiario(opts = {}) {
 
         await yieldToBrowser();
 
+        // OPTIMIZACIÓN: Procesar clientes en lotes más grandes para reducir yields
+        const BATCH_SIZE = 10; // Procesar 10 clientes antes de yield
         for (let i = 0; i < clientes.length; i++) {
             recalcularSaldosClienteEnMemoria(hoja, i);
             recalcularTotalesCliente(clientes[i], i);
             cambiosRealizados++;
 
-            if (i > 0 && (i % 2) === 0) {
+            if (i > 0 && (i % BATCH_SIZE) === 0) {
                 await yieldToBrowser();
             }
         }
@@ -11003,7 +11041,8 @@ async function actualizarTodoElDiario(opts = {}) {
         recalcularImpInicialSync(hoja);
         recalcularBeneficiosGeneralesDesdeFila(15, hoja);
 
-        if (hojaActual !== 'Diario WIND') {
+        // IBI también usa lógica WIND, así que excluirlo del procesamiento STD/VIP
+        if (hojaActual !== 'Diario WIND' && hojaActual !== 'Diario IBI') {
             const benefPctPorFila = new Map();
             (hoja.datos_diarios_generales || []).forEach(d => {
                 if (!d || d.fila < 15 || d.fila > 1120) return;
