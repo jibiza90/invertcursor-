@@ -9080,20 +9080,68 @@ async function mostrarEstadisticasCliente() {
 }
 
 async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, clienteEnMemoria) {
-    // ESTRATEGIA: Recalcular SIEMPRE desde 0
-    // - Cargar cada mes
-    // - Recalcular saldos del cliente basándose en incrementos/decrementos y benef_porcentaje
-    // - Guardar detalles de incrementos/decrementos por fecha
+    // ESTRATEGIA: Leer saldo del día anterior desde JSON, NO de memoria
+    // - Para cada mes, buscar el último saldo del mes anterior
+    // - Recalcular saldos basándose en el saldo leído + incrementos/decrementos + benef_porcentaje
     
     const resultados = [];
     let benefAcumTotal = 0;
-    let saldoArrastre = 0;
     
     // Arrays para guardar TODOS los detalles de incrementos/decrementos
     const todosIncrementos = [];
     const todosDecrementos = [];
     
-    console.log(`📊 Recalculando estadísticas desde 0 para Cliente ${numeroCliente} en ${hoja}, meses:`, meses);
+    // Cache de datos de meses para buscar saldo anterior
+    const datosMesesCache = {};
+    
+    console.log(`📊 Recalculando estadísticas para Cliente ${numeroCliente} en ${hoja}, meses:`, meses);
+    
+    // Función para obtener el último saldo del mes anterior desde JSON
+    async function obtenerSaldoFinalMesAnterior(mesActual) {
+        const [year, month] = mesActual.split('-').map(Number);
+        const mesAnterior = month === 1 
+            ? `${year - 1}-12` 
+            : `${year}-${String(month - 1).padStart(2, '0')}`;
+        
+        // Si ya tenemos los datos en cache
+        if (datosMesesCache[mesAnterior]) {
+            return buscarUltimoSaldoEnDatos(datosMesesCache[mesAnterior]);
+        }
+        
+        // Cargar mes anterior
+        try {
+            const response = await fetch(`/api/datos/${encodeURIComponent(hoja)}/${mesAnterior}`, { cache: 'no-store' });
+            if (!response.ok) return 0;
+            
+            const data = await response.json();
+            datosMesesCache[mesAnterior] = data;
+            return buscarUltimoSaldoEnDatos(data);
+        } catch (error) {
+            console.warn(`No se pudo cargar mes anterior ${mesAnterior}:`, error);
+            return 0;
+        }
+    }
+    
+    // Buscar el último saldo válido del cliente en los datos de un mes
+    function buscarUltimoSaldoEnDatos(data) {
+        const clientes = data.clientes || [];
+        const clienteData = clientes.find(c => c && c.numero_cliente === numeroCliente);
+        if (!clienteData) return 0;
+        
+        const datosDiarios = (clienteData.datos_diarios || [])
+            .filter(d => d.fila >= 15 && d.fila <= 1120)
+            .sort((a, b) => b.fila - a.fila); // Ordenar de mayor a menor fila
+        
+        // Buscar el último saldo_diario o imp_final válido
+        for (const fila of datosDiarios) {
+            const saldo = fila.saldo_diario ?? fila.imp_final ?? null;
+            if (typeof saldo === 'number' && saldo > 0) {
+                console.log(`📌 Encontrado saldo anterior: ${saldo.toFixed(2)} en fila ${fila.fila}`);
+                return saldo;
+            }
+        }
+        return 0;
+    }
     
     for (const mes of meses) {
         try {
@@ -9129,13 +9177,19 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, cli
                 .filter(d => d.fila >= 15 && d.fila <= 1120)
                 .sort((a, b) => a.fila - b.fila);
             
-            let saldoAnterior = saldoArrastre;
-            let saldoFinalMes = saldoArrastre;
+            // Guardar datos en cache para búsquedas posteriores
+            datosMesesCache[mes] = data;
+            
+            // OBTENER SALDO DEL MES ANTERIOR DESDE JSON (no de memoria)
+            const saldoMesAnterior = await obtenerSaldoFinalMesAnterior(mes);
+            
+            let saldoAnterior = saldoMesAnterior;
+            let saldoFinalMes = saldoMesAnterior;
             let incrementosMes = 0;
             let decrementosMes = 0;
             let beneficioAcumMes = 0;
             
-            console.log(`📅 ${mes}: Iniciando con saldoArrastre=${saldoArrastre.toFixed(2)}, filas cliente=${datosDiariosCliente.length}`);
+            console.log(`📅 ${mes}: Saldo leído del mes anterior (JSON)=${saldoMesAnterior.toFixed(2)}, filas cliente=${datosDiariosCliente.length}`);
             
             const benefPctPorFila = {};
             datosConBenef.forEach(d => {
@@ -9203,7 +9257,6 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, cli
             }
             
             console.log(`📅 ${mes}: FINAL saldoFinalMes=${saldoFinalMes.toFixed(2)}, inc=${incrementosMes}, dec=${decrementosMes}`);
-            saldoArrastre = saldoFinalMes;
             
             resultados.push({
                 mes,
