@@ -8439,8 +8439,8 @@ async function calcularRentabilidadPorMes(hoja, meses) {
             
             resultados.push({
                 mes,
-                rentabilidad: Math.round(rentabilidadMes * 100) / 100,
-                benefAcumAnual: Math.round(benefAcumActual * 100) / 100
+                rentabilidad: rentabilidadMes,  // Sin redondear - valor real
+                benefAcumAnual: benefAcumActual  // Sin redondear - valor real
             });
             
             benefAcumMesAnterior = benefAcumActual;
@@ -8506,8 +8506,8 @@ function renderizarGrafico(datos) {
                             const idx = context.dataIndex;
                             const d = datos[idx];
                             return [
-                                `Rentabilidad mes: ${d.rentabilidad.toFixed(2)}%`,
-                                `Acumulado año: ${d.benefAcumAnual.toFixed(2)}%`
+                                `Rentabilidad mes: ${d.rentabilidad.toFixed(4)}%`,
+                                `Acumulado año: ${d.benefAcumAnual.toFixed(4)}%`
                             ];
                         }
                     }
@@ -8558,22 +8558,22 @@ function renderizarResumenEstadisticas(container, datos) {
     container.innerHTML = `
         <div class="stat-card">
             <div class="stat-label">Rentabilidad Acumulada Año</div>
-            <div class="stat-value ${acumuladoAnual >= 0 ? 'positive' : 'negative'}">${acumuladoAnual.toFixed(2)}%</div>
+            <div class="stat-value ${acumuladoAnual >= 0 ? 'positive' : 'negative'}">${acumuladoAnual.toFixed(4)}%</div>
             <div class="stat-detail">${datos.length} meses</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Promedio Mensual</div>
-            <div class="stat-value ${promedio >= 0 ? 'positive' : 'negative'}">${promedio.toFixed(2)}%</div>
+            <div class="stat-value ${promedio >= 0 ? 'positive' : 'negative'}">${promedio.toFixed(4)}%</div>
             <div class="stat-detail">${mesesPositivos}/${datos.length} meses positivos</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Mejor Mes</div>
-            <div class="stat-value positive">+${mejorMes.rentabilidad.toFixed(2)}%</div>
+            <div class="stat-value positive">+${mejorMes.rentabilidad.toFixed(4)}%</div>
             <div class="stat-detail">${formatMes(mejorMes.mes)}</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Peor Mes</div>
-            <div class="stat-value ${peorMes.rentabilidad >= 0 ? 'positive' : 'negative'}">${peorMes.rentabilidad.toFixed(2)}%</div>
+            <div class="stat-value ${peorMes.rentabilidad >= 0 ? 'positive' : 'negative'}">${peorMes.rentabilidad.toFixed(4)}%</div>
             <div class="stat-detail">${formatMes(peorMes.mes)}</div>
         </div>
     `;
