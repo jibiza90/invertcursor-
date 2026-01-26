@@ -388,27 +388,9 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
         if (ultimaFilaImpFinal > 0) last = Math.min(last, ultimaFilaImpFinal);
     }
 
-    // Límite general: si hay imp_final manual, permitir incluir el fin de semana inmediatamente posterior
-    // (para que 31/01 o 01/02 puedan mostrar saldo aunque imp_final no exista esos días).
-    if (ultimaFilaImpFinal > 0 && last > 0) {
-        const filaImpFinal = mapGeneralPorFila.get(ultimaFilaImpFinal);
-        const fechaImpFinal = filaImpFinal?.fecha ? parsearFechaValor(filaImpFinal.fecha) : null;
-        if (fechaImpFinal) {
-            const limiteFecha = new Date(fechaImpFinal.getTime());
-            limiteFecha.setDate(limiteFecha.getDate() + 2);
-            const maxFilaHastaFinDeSemana = (datosGeneralesParaImpFinal || []).reduce((m, d) => {
-                if (!d || typeof d.fila !== 'number') return m;
-                if (d.fila < 15 || d.fila > 1120) return m;
-                if (!d.fecha || d.fecha === 'FECHA') return m;
-                const f = parsearFechaValor(d.fecha);
-                if (!f) return m;
-                if (f.getTime() <= limiteFecha.getTime()) return Math.max(m, d.fila);
-                return m;
-            }, 0);
-            if (maxFilaHastaFinDeSemana > 0) {
-                last = Math.min(Math.max(last, maxFilaHastaFinDeSemana), maxFilaHastaFinDeSemana);
-            }
-        }
+    // Si hay saldo (por arrastre o movimientos), recalcular hasta la última fila con fecha del mes.
+    if (last > 0 && ultimaFilaConFechaGeneral > 0) {
+        last = Math.max(last, ultimaFilaConFechaGeneral);
     }
 
     // Si no hay actividad ni saldo arrastrado, limpiar cualquier arrastre (evita "fantasmas" en clientes nuevos)
@@ -1610,12 +1592,7 @@ function obtenerMesAnteriorDeHoja(nombreHoja, mes) {
 }
 
 function obtenerSaldoFinalClienteDeMes(cliente) {
-    // 1. Primero verificar si existe saldo_actual guardado (saldo final del mes)
-    if (typeof cliente?.saldo_actual === 'number' && cliente.saldo_actual >= 0) {
-        return cliente.saldo_actual;
-    }
-    
-    // 2. Buscar en datos_diarios
+    // 1. Buscar en datos_diarios (fuente de verdad si existe)
     const datos = (cliente?.datos_diarios || [])
         .filter(d => d && d.fila >= 15 && d.fila <= 1120)
         .sort((a, b) => (b.fila || 0) - (a.fila || 0)); // Ordenar de mayor a menor fila
@@ -1635,6 +1612,11 @@ function obtenerSaldoFinalClienteDeMes(cliente) {
         if (typeof d.imp_final === 'number' && d.imp_final >= 0) {
             return d.imp_final;
         }
+    }
+
+    // 2. Fallback a saldo_actual guardado (puede estar a 0 si no se guardó el recálculo)
+    if (typeof cliente?.saldo_actual === 'number' && cliente.saldo_actual >= 0) {
+        return cliente.saldo_actual;
     }
     
     // Si no hay saldos válidos en datos_diarios, el cliente tiene 0
@@ -4422,6 +4404,150 @@ function cerrarAlertaSaldoExcedidoReal() {
 // Alias global para compatibilidad
 window.cerrarAlertaSaldoExcedido = cerrarAlertaSaldoExcedidoReal;
 
+window.auditRuntimeWIND = async function(opts = {}) {
+    const hojaNombre = 'Diario WIND';
+    const meses = (mesesDisponibles?.[hojaNombre] || []).slice();
+    if (meses.length === 0) {
+        console.warn('auditRuntimeWIND: no hay mesesDisponibles para', hojaNombre);
+        return { ok: false, issues: [{ type: 'no_months' }] };
+    }
+
+    const maxIssues = typeof opts.maxIssues === 'number' ? opts.maxIssues : 500;
+    const eps = typeof opts.eps === 'number' ? opts.eps : 0.02;
+    const issues = [];
+
+    const getUltimaFilaConFechaGeneral = (dataMes) => {
+        const datos = Array.isArray(dataMes?.datos_diarios_generales) ? dataMes.datos_diarios_generales : [];
+        let m = 0;
+        for (const d of datos) {
+            if (!d || typeof d.fila !== 'number') continue;
+            if (d.fila < 15 || d.fila > 1120) continue;
+            if (!d.fecha || d.fecha === 'FECHA') continue;
+            m = Math.max(m, d.fila);
+        }
+        return m;
+    };
+
+    const getFilaCliente = (cliente, fila) => {
+        const rows = Array.isArray(cliente?.datos_diarios) ? cliente.datos_diarios : [];
+        return rows.find(x => x && x.fila === fila) || null;
+    };
+
+    const getSaldoEnFila = (cliente, fila) => {
+        const r = getFilaCliente(cliente, fila);
+        if (!r) return null;
+        if (typeof r.saldo_diario === 'number' && isFinite(r.saldo_diario)) return r.saldo_diario;
+        if (typeof r._saldo_diario_guardado === 'number' && isFinite(r._saldo_diario_guardado)) return r._saldo_diario_guardado;
+        return null;
+    };
+
+    let prevMonthData = null;
+    let prevMonth = null;
+
+    for (let mi = 0; mi < meses.length; mi++) {
+        const mes = meses[mi];
+        let data;
+        try {
+            const resp = await fetch(`/api/datos/${hojaNombre.replace(/\s/g, '_')}/${mes}`, { cache: 'no-store' });
+            if (!resp.ok) {
+                issues.push({ type: 'fetch_failed', mes, status: resp.status });
+                if (issues.length >= maxIssues) break;
+                continue;
+            }
+            data = await resp.json();
+        } catch (e) {
+            issues.push({ type: 'fetch_error', mes, error: String(e) });
+            if (issues.length >= maxIssues) break;
+            continue;
+        }
+
+        await aplicarArrastreAnualAlCargar(hojaNombre, mes, data);
+        await redistribuirSaldosClientesWIND(data);
+        recalcularSaldosTodosClientesEnMemoria(data);
+
+        const ultimaFilaMes = getUltimaFilaConFechaGeneral(data);
+        const clientes = Array.isArray(data?.clientes) ? data.clientes : [];
+
+        // Checks por cliente
+        for (let ci = 0; ci < clientes.length; ci++) {
+            const c = clientes[ci];
+            if (!c) continue;
+            const num = typeof c.numero_cliente === 'number' ? c.numero_cliente : (ci + 1);
+            const arr = (typeof c._saldoMesAnterior === 'number' && isFinite(c._saldoMesAnterior)) ? c._saldoMesAnterior : 0;
+
+            // 1) Si hay arrastre, debe existir saldo en la última fecha del mes (para que el siguiente mes pueda leer "día anterior")
+            const saldoUltimo = ultimaFilaMes > 0 ? getSaldoEnFila(c, ultimaFilaMes) : null;
+            if (arr > 0 && (saldoUltimo === null || !(typeof saldoUltimo === 'number' && isFinite(saldoUltimo)))) {
+                issues.push({ type: 'missing_end_of_month_saldo', mes, cliente: num, ultimaFilaMes, arrastre: arr });
+                if (issues.length >= maxIssues) break;
+            }
+
+            // 2) Día 1 (fila 15): si hay arrastre y no hay movimientos, base debería ser ~arrastre
+            const f15 = getFilaCliente(c, 15);
+            if (arr > 0 && f15 && typeof f15.base === 'number' && isFinite(f15.base)) {
+                const inc15 = typeof f15.incremento === 'number' ? f15.incremento : 0;
+                const dec15 = typeof f15.decremento === 'number' ? f15.decremento : 0;
+                const baseEsperada = arr + inc15 - dec15;
+                if (Math.abs(f15.base - baseEsperada) > 0.5) {
+                    issues.push({ type: 'day1_base_mismatch', mes, cliente: num, fila: 15, base: f15.base, baseEsperada, arrastre: arr });
+                    if (issues.length >= maxIssues) break;
+                }
+            }
+
+            // 3) Beneficio no debe existir con base <= 0
+            const rows = Array.isArray(c.datos_diarios) ? c.datos_diarios : [];
+            for (const r of rows) {
+                if (!r || typeof r.fila !== 'number' || r.fila < 15 || r.fila > 1120) continue;
+                const base = (typeof r.base === 'number' && isFinite(r.base)) ? r.base : null;
+                const ben = (typeof r.beneficio_diario === 'number' && isFinite(r.beneficio_diario)) ? r.beneficio_diario : null;
+                if (base !== null && base <= 0 && ben !== null && Math.abs(ben) > eps) {
+                    issues.push({ type: 'benefit_with_non_positive_base', mes, cliente: num, fila: r.fila, base, beneficio: ben });
+                    if (issues.length >= maxIssues) break;
+                }
+            }
+            if (issues.length >= maxIssues) break;
+        }
+
+        // 4) Arrastre entre meses: el saldo del último día del mes anterior debe coincidir con _saldoMesAnterior del mes actual
+        if (prevMonthData) {
+            const ultimaFilaPrev = getUltimaFilaConFechaGeneral(prevMonthData);
+            const prevClientes = Array.isArray(prevMonthData?.clientes) ? prevMonthData.clientes : [];
+            const prevByNum = new Map();
+            prevClientes.forEach((pc, idx) => {
+                if (!pc) return;
+                const n = typeof pc.numero_cliente === 'number' ? pc.numero_cliente : (idx + 1);
+                prevByNum.set(n, pc);
+            });
+
+            const curClientes = Array.isArray(data?.clientes) ? data.clientes : [];
+            for (let ci = 0; ci < curClientes.length; ci++) {
+                const cur = curClientes[ci];
+                if (!cur) continue;
+                const n = typeof cur.numero_cliente === 'number' ? cur.numero_cliente : (ci + 1);
+                const prev = prevByNum.get(n);
+                if (!prev) continue;
+                const prevSaldoUlt = ultimaFilaPrev > 0 ? getSaldoEnFila(prev, ultimaFilaPrev) : null;
+                if (typeof prevSaldoUlt === 'number' && isFinite(prevSaldoUlt)) {
+                    const arr = (typeof cur._saldoMesAnterior === 'number' && isFinite(cur._saldoMesAnterior)) ? cur._saldoMesAnterior : 0;
+                    if (Math.abs(prevSaldoUlt - arr) > 0.5) {
+                        issues.push({ type: 'carry_mismatch', mes, mesPrev: prevMonth, cliente: n, prevSaldoUlt, arrastre: arr });
+                        if (issues.length >= maxIssues) break;
+                    }
+                }
+            }
+        }
+
+        prevMonthData = data;
+        prevMonth = mes;
+
+        if (issues.length >= maxIssues) break;
+    }
+
+    const ok = issues.length === 0;
+    console.log('auditRuntimeWIND result', { ok, issues: issues.length, first: issues.slice(0, 30) });
+    return { ok, issues };
+};
+
 function mostrarNotificacionComision(mensaje) {
     let bubble = document.getElementById('notificacionComision');
     if (!bubble) {
@@ -6199,31 +6325,7 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
             ultimaFilaActividad = Math.max(ultimaFilaActividad, g.filaCalculo.fila);
         }
     });
-    // Límite de visualización:
-    // - Preferir la última fila con imp_final
-    // - Si no hay imp_final aún, usar la última fila con fecha (para que el mes se vea)
-    // - Si hay imp_final, permitir mostrar hasta el fin de semana inmediatamente posterior
-    let ultimaFilaMostrar = ultimaFilaImpFinalGeneral > 0 ? ultimaFilaImpFinalGeneral : ultimaFilaConFechaGeneral;
-    if (ultimaFilaImpFinalGeneral > 0) {
-        const filaImpFinal = datosDiariosGenerales.find(d => d && d.fila === ultimaFilaImpFinalGeneral) || null;
-        const fechaImpFinal = filaImpFinal?.fecha ? parsearFechaValor(filaImpFinal.fecha) : null;
-        if (fechaImpFinal) {
-            const limiteFecha = new Date(fechaImpFinal.getTime());
-            limiteFecha.setDate(limiteFecha.getDate() + 2);
-            const maxFilaHastaFinDeSemana = datosDiariosGenerales.reduce((m, d) => {
-                if (!d || typeof d.fila !== 'number') return m;
-                if (d.fila < 15 || d.fila > 1120) return m;
-                if (!d.fecha || d.fecha === 'FECHA') return m;
-                const f = parsearFechaValor(d.fecha);
-                if (!f) return m;
-                if (f.getTime() <= limiteFecha.getTime()) return Math.max(m, d.fila);
-                return m;
-            }, 0);
-            if (maxFilaHastaFinDeSemana > 0) {
-                ultimaFilaMostrar = Math.max(ultimaFilaMostrar, maxFilaHastaFinDeSemana);
-            }
-        }
-    }
+    let ultimaFilaMostrar = Math.max(ultimaFilaImpFinalGeneral || 0, ultimaFilaConFechaGeneral || 0);
 
     // Verificar si el cliente tiene saldo del mes anterior (arrastre)
     // Usar _saldoMesAnterior que se calcula al cargar los datos
