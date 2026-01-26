@@ -20,8 +20,6 @@ let __recalculoVersion = 0;
 
 let __navDetalleSeq = 0;
 
-let __renderDetalleSeq = 0;
-
 let __loadingOverlayCount = 0;
 
 let historialCambios = [];
@@ -5436,8 +5434,7 @@ async function eliminarClienteActualDesdeUI() {
 }
 
 
-async function renderDetalleCliente(index) {
-    const renderSeq = ++__renderDetalleSeq;
+function renderDetalleCliente(index) {
     vistaActual = 'detalle';
     clienteActual = index;
     
@@ -5471,8 +5468,7 @@ async function renderDetalleCliente(index) {
         // Recalcular totales del cliente (filtrando filas de resumen mensual)
         recalcularTotalesCliente(cliente_calculado);
 
-        if (renderSeq !== __renderDetalleSeq) return;
-        await mostrarTablaEditableCliente(cliente_calculado, hoja, index, renderSeq);
+        mostrarTablaEditableCliente(cliente_calculado, hoja, index);
         // Scroll al inicio (día 1) - usar el contenedor de scroll
         setTimeout(() => {
             const scrollContainer = document.querySelector('.table-container-scroll');
@@ -5505,7 +5501,7 @@ async function mostrarDetalleCliente(index) {
             }
         }
         if (navSeq !== __navDetalleSeq) return;
-        await renderDetalleCliente(index);
+        renderDetalleCliente(index);
     } finally {
         ocultarLoadingOverlay();
     }
@@ -5589,7 +5585,7 @@ async function recalcularTodasFormulasCliente(cliente, clienteIdx, hoja) {
 }
 
 // Mostrar tabla editable del cliente
-async function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null, renderSeq = __renderDetalleSeq) {
+function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
     // Usar el índice pasado o calcular uno nuevo
     const clienteIdx = clienteIndex !== null ? clienteIndex : (hoja.clientes?.indexOf(cliente) ?? -1);
     const resumenDiv = document.getElementById('resumenCliente');
@@ -5842,6 +5838,8 @@ async function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null, r
     // - Con fecha válida (no null/undefined)
     // - Dentro del rango de filas de datos diarios (15-1120)
     // - No son headers repetidos (donde fecha es string "FECHA")
+    // - Deduplicar por número de fila (evitar filas repetidas)
+    const filasVistas = new Set();
     const datosConFecha = datosDiarios.filter(d => {
         // Debe tener fecha
         if (d.fecha === null || d.fecha === undefined) return false;
@@ -5849,6 +5847,9 @@ async function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null, r
         if (d.fila < 15 || d.fila > 1120) return false;
         // No debe ser un header repetido (donde fecha es literalmente "FECHA")
         if (typeof d.fecha === 'string' && d.fecha.toUpperCase() === 'FECHA') return false;
+        // Deduplicar: si ya vimos esta fila, ignorarla
+        if (filasVistas.has(d.fila)) return false;
+        filasVistas.add(d.fila);
         return true;
     }).sort((a, b) => (a.fila || 0) - (b.fila || 0));
     
@@ -5869,7 +5870,6 @@ async function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null, r
     });
 
     for (let gi = 0; gi < gruposOrdenados.length; gi++) {
-        if (renderSeq !== __renderDetalleSeq) return;
         const g = gruposOrdenados[gi];
         g.rows.sort((a, b) => (a.fila || 0) - (b.fila || 0));
         g.filaCalculo = g.rows[g.rows.length - 1];
@@ -5881,9 +5881,6 @@ async function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null, r
             const dec = typeof r.decremento === 'number' ? r.decremento : 0;
             return inc !== 0 || dec !== 0;
         });
-        if (gi > 0 && (gi % 10) === 0) {
-            await yieldToBrowser();
-        }
     }
 
     let ultimaFilaActividad = 0;
@@ -5902,9 +5899,7 @@ async function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null, r
         cliente.saldo_inicial_mes > 0;
 
     let haEmpezado = false;
-    let __renderRows = 0;
     for (let gi = 0; gi < gruposOrdenados.length; gi++) {
-        if (renderSeq !== __renderDetalleSeq) return;
         const g = gruposOrdenados[gi];
         if (!haEmpezado && g.hayActividad) haEmpezado = true;
         const dentroRangoActividad = ultimaFilaMostrar > 0 && (g.filaCalculo?.fila || 0) <= ultimaFilaMostrar;
@@ -5913,7 +5908,6 @@ async function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null, r
         const calcRow = g.filaCalculo;
 
         for (let ri = 0; ri < g.rows.length; ri++) {
-            if (renderSeq !== __renderDetalleSeq) return;
             const dato = g.rows[ri];
             const tr = document.createElement('tr');
             tr.dataset.fila = `${dato.fila}`;
@@ -6185,16 +6179,6 @@ async function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null, r
         tr.appendChild(tdBenefAPct);
         
             tbody.appendChild(tr);
-            __renderRows++;
-            if (__renderRows > 0 && (__renderRows % 20) === 0) {
-                if (typeof __loadingOverlayCount === 'number' && __loadingOverlayCount > 0) {
-                    setLoadingOverlayText(`Renderizando tabla (${__renderRows} filas)...`);
-                }
-                await yieldToBrowser();
-            }
-        }
-        if (gi > 0 && (gi % 5) === 0) {
-            await yieldToBrowser();
         }
     }
 }
