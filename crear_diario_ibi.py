@@ -113,17 +113,17 @@ def crear_diario_ibi_anual():
         
         data["clientes"].append(cliente)
     
-    return data
-
-if __name__ == "__main__":
-    print("Creando Diario IBI anual 2026...")
-    data = crear_diario_ibi_anual()
     
     # Guardar JSON
-    with open("datos_mensuales/Diario_IBI_2026.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, separators=(',', ':'))
+    with open('datos_mensuales/Diario_IBI_2026.json', 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False)
     
-    print(f"✅ Creado Diario_IBI_2026.json")
-    print(f"   - Días: {len(data['datos_diarios_generales'])}")
-    print(f"   - Clientes: {len(data['clientes'])}")
-    print(f"   - Filas por cliente: {len(data['clientes'][0]['datos_diarios'])}")
+    print(f"✅ Diario IBI 2026 creado:")
+    print(f"   - {len(data['datos_diarios_generales'])} días generales")
+    print(f"   - {len(data['clientes'])} clientes")
+    print(f"   - Cada cliente con {len(data['clientes'][0]['datos_diarios'])} días")
+    print(f"   - Fines de semana bloqueados para incrementos/decrementos")
+    print(f"   - Sin datos, solo estructura y fórmulas")
+
+if __name__ == "__main__":
+    crear_diario_ibi_anual()
