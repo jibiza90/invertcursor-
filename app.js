@@ -9024,7 +9024,8 @@ async function mostrarEstadisticasCliente() {
         const datosClienteMeses = await calcularRentabilidadClientePorMes(hojaActual, numeroCliente, meses);
         
         // Calcular KPIs totales (desde primer incremento hasta última fecha)
-        const kpisTotales = calcularKPIsTotalesCliente(datosClienteMeses);
+        // Pasar el cliente en memoria para obtener saldos calculados
+        const kpisTotales = calcularKPIsTotalesCliente(datosClienteMeses, cliente);
         
         // Renderizar contenido
         renderizarContenidoEstadisticasCliente(nombreCompleto, kpisTotales, datosClienteMeses);
@@ -9037,12 +9038,12 @@ async function mostrarEstadisticasCliente() {
 }
 
 async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses) {
+    // ESTRATEGIA: Usar rentabilidad GENERAL (igual para todos los clientes)
+    // Los datos de saldos en JSON están en null, se calculan en memoria
+    // Por eso usamos datos_diarios_generales para la rentabilidad
+    
     const resultados = [];
     let benefAcumTotal = 0;
-    let saldoInicialPrimero = null;
-    let saldoFinalUltimo = 0;
-    let incrementosTotales = 0;
-    let decrementosTotales = 0;
     
     console.log(`📊 Calculando estadísticas para Cliente ${numeroCliente} en ${hoja}, meses:`, meses);
     
@@ -9055,9 +9056,9 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses) {
             }
             
             const data = await response.json();
-            const clientes = data.clientes || [];
             
-            // Buscar cliente por numero_cliente (no por índice)
+            // Verificar que el cliente existe en este mes
+            const clientes = data.clientes || [];
             const clienteData = clientes.find(c => c && c.numero_cliente === numeroCliente);
             
             if (!clienteData) {
@@ -9065,73 +9066,51 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses) {
                 continue;
             }
             
-            // Obtener saldos del cliente para este mes
-            const saldoInicialMes = clienteData.saldo_inicial_mes || 0;
-            const saldoFinalMes = clienteData.saldo_actual || 0;
-            const incrementosMes = clienteData.incrementos_total || 0;
-            const decrementosMes = clienteData.decrementos_total || 0;
+            // Usar RENTABILIDAD GENERAL del mes (igual para todos los clientes)
+            // Los clientes comparten el mismo % de beneficio
+            const datosGenerales = data.datos_diarios_generales || [];
+            const datosConBenef = datosGenerales
+                .filter(d => d && d.fila >= 15 && d.fila <= 1120)
+                .filter(d => typeof d.benef_porcentaje === 'number' && isFinite(d.benef_porcentaje));
             
-            console.log(`${mes}: Cliente ${numeroCliente} - saldoInicial=${saldoInicialMes}, saldoFinal=${saldoFinalMes}, inc=${incrementosMes}, dec=${decrementosMes}`);
+            // Sumar benef_porcentaje diarios del mes
+            const rentabilidadMes = datosConBenef.reduce((sum, d) => sum + (d.benef_porcentaje * 100), 0);
             
-            // Si no hay saldo inicial, saltar este mes
-            if (saldoInicialMes <= 0 && saldoFinalMes <= 0) {
-                console.log(`${mes}: Sin saldos, saltando`);
+            // Si no hay rentabilidad calculada, el mes no tiene datos operados
+            if (datosConBenef.length === 0) {
+                console.log(`${mes}: Sin datos de rentabilidad general`);
                 continue;
-            }
-            
-            // Calcular rentabilidad del mes usando la fórmula:
-            // Rentabilidad = (Saldo Final - Saldo Inicial - Incrementos + Decrementos) / Saldo Inicial * 100
-            // Esto es: beneficio neto (sin movimientos de capital) / saldo inicial
-            let rentabilidadMes = 0;
-            if (saldoInicialMes > 0) {
-                const beneficioNeto = saldoFinalMes - saldoInicialMes - incrementosMes + decrementosMes;
-                rentabilidadMes = (beneficioNeto / saldoInicialMes) * 100;
             }
             
             benefAcumTotal += rentabilidadMes;
             
-            console.log(`${mes}: rentabilidad=${rentabilidadMes.toFixed(4)}%`);
+            // Incrementos/decrementos del cliente SÍ están guardados
+            const incrementosMes = clienteData.incrementos_total || 0;
+            const decrementosMes = clienteData.decrementos_total || 0;
             
-            // Guardar saldo inicial del primer mes con datos
-            if (saldoInicialPrimero === null && saldoInicialMes > 0) {
-                saldoInicialPrimero = saldoInicialMes;
-            }
-            
-            saldoFinalUltimo = saldoFinalMes;
-            incrementosTotales += incrementosMes;
-            decrementosTotales += decrementosMes;
+            console.log(`${mes}: rentabilidad=${rentabilidadMes.toFixed(4)}%, inc=${incrementosMes}, dec=${decrementosMes}`);
             
             resultados.push({
                 mes,
                 rentabilidad: rentabilidadMes,
                 benefAcumTotal: benefAcumTotal,
-                saldoInicial: saldoInicialMes,
-                saldoFinal: saldoFinalMes,
                 incrementos: incrementosMes,
-                decrementos: decrementosMes
+                decrementos: decrementosMes,
+                diasOperados: datosConBenef.length
             });
         } catch (error) {
             console.warn(`Error cargando datos del cliente para ${mes}:`, error);
         }
     }
     
-    // Añadir totales a los resultados
-    resultados._totales = {
-        saldoInicialPrimero: saldoInicialPrimero || 0,
-        saldoFinalUltimo,
-        incrementosTotales,
-        decrementosTotales,
-        benefAcumTotal
-    };
-    
-    console.log(`📊 Resultados finales:`, resultados);
+    console.log(`📊 Resultados mensuales:`, resultados);
     
     return resultados;
 }
 
-function calcularKPIsTotalesCliente(datosClienteMeses) {
-    // Filtrar solo meses con datos reales (saldo > 0)
-    const mesesConDatos = datosClienteMeses.filter(m => m && (m.saldoInicial > 0 || m.saldoFinal > 0));
+function calcularKPIsTotalesCliente(datosClienteMeses, clienteEnMemoria) {
+    // Filtrar meses con datos de rentabilidad
+    const mesesConDatos = datosClienteMeses.filter(m => m && m.diasOperados > 0);
     
     if (mesesConDatos.length === 0) {
         return {
@@ -9148,22 +9127,19 @@ function calcularKPIsTotalesCliente(datosClienteMeses) {
         };
     }
     
-    // Primer mes con datos = saldo inicial
-    const primerMes = mesesConDatos[0];
-    const saldoInicial = primerMes.saldoInicial || 0;
+    // SALDOS: usar datos del cliente en memoria (el actual cargado)
+    // porque los JSON no guardan saldos calculados
+    const saldoInicial = clienteEnMemoria?.saldo_inicial_mes || 0;
+    const saldoFinal = clienteEnMemoria?.saldo_actual || 0;
     
-    // Último mes con datos = saldo actual
-    const ultimoMes = mesesConDatos[mesesConDatos.length - 1];
-    const saldoFinal = ultimoMes.saldoFinal || 0;
-    
-    // Sumar incrementos y decrementos de todos los meses con datos
+    // Sumar incrementos y decrementos de todos los meses
     const incrementos = mesesConDatos.reduce((sum, m) => sum + (m.incrementos || 0), 0);
     const decrementos = mesesConDatos.reduce((sum, m) => sum + (m.decrementos || 0), 0);
     
     // Beneficio = saldo final - saldo inicial - incrementos + decrementos
     const beneficioEuro = saldoFinal - saldoInicial - incrementos + decrementos;
     
-    // Rentabilidad total = suma de rentabilidades mensuales
+    // Rentabilidad total = suma de rentabilidades mensuales (de datos generales)
     const rentabilidadTotal = mesesConDatos.reduce((sum, m) => sum + (m.rentabilidad || 0), 0);
     
     // Mejor y peor mes
@@ -9191,7 +9167,7 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
     const container = document.getElementById('clientStatsContent');
     if (!container) return;
     
-    const mesesConDatos = datosMeses.filter(m => m && (m.saldoInicial > 0 || m.saldoFinal > 0));
+    const mesesConDatos = datosMeses.filter(m => m && m.diasOperados > 0);
     
     container.innerHTML = `
         <div class="client-stats-kpis">
