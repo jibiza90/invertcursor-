@@ -5726,16 +5726,11 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
     // CRÍTICO: usar la hoja que se está mostrando (parámetro `hoja`), no depender de `hojaActual`.
     // Esto evita que se recalculen saldos en una hoja distinta y queden valores viejos en la UI.
     const hojaEnUso = hoja || datosEditados?.hojas?.[hojaActual] || null;
-    if (hojaEnUso && hojaActual === 'Diario WIND') {
-        const key = `${hojaActual}|${mesActual || ''}|${__recalculoVersion}`;
-        if (__dirtyRecalculoMasivo || __cacheSaldosWindKey !== key) {
-            recalcularSaldosTodosClientesEnMemoria(hojaEnUso);
-            __cacheSaldosWindKey = key;
-        } else {
-            recalcularSaldosClienteEnMemoria(hojaEnUso, clienteIdx);
-        }
-    } else if (hojaEnUso) {
-        recalcularSaldosClienteEnMemoria(hojaEnUso, clienteIdx);
+    
+    // IMPORTANTE: Recalcular TODOS los clientes para que la proporción sea correcta
+    // Si solo recalculamos el cliente actual, el total de saldos estará incompleto
+    if (hojaEnUso) {
+        recalcularSaldosTodosClientesEnMemoria(hojaEnUso);
     }
     const fechaObjetivoCliente = hojaEnUso
         ? obtenerUltimaFechaImpFinalManual(hojaEnUso)
