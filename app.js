@@ -5051,14 +5051,24 @@ function desplazarFormulaCliente(formula, colInicioBloque, colFinBloque, deltaCo
 }
 
 function obtenerSaldoActualClienteSinLogs(cliente) {
+    // SOLO leer último saldo_diario o imp_final válido del JSON
+    // NO usar fallbacks como saldo_inicial_mes que pueden estar mal
     const datos = (cliente?.datos_diarios || [])
-        .filter(d => d && d.fila >= 15 && d.fila <= 1120 && typeof d.saldo_diario === 'number')
-        .sort((a, b) => (a.fila || 0) - (b.fila || 0));
+        .filter(d => d && d.fila >= 15 && d.fila <= 1120)
+        .sort((a, b) => (b.fila || 0) - (a.fila || 0)); // Ordenar de mayor a menor fila
 
-    if (datos.length === 0) {
-        return (cliente && typeof cliente.saldo_inicial_mes === 'number') ? cliente.saldo_inicial_mes : 0;
+    // Buscar el último saldo válido (saldo_diario o imp_final)
+    for (const d of datos) {
+        if (typeof d.saldo_diario === 'number' && d.saldo_diario > 0) {
+            return d.saldo_diario;
+        }
+        if (typeof d.imp_final === 'number' && d.imp_final > 0) {
+            return d.imp_final;
+        }
     }
-    return datos[datos.length - 1].saldo_diario;
+    
+    // Si no hay saldos válidos, el cliente tiene 0
+    return 0;
 }
 
 function obtenerGarantiaActualCliente(cliente) {
