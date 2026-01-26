@@ -5853,20 +5853,36 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
         return true;
     }).sort((a, b) => (a.fila || 0) - (b.fila || 0));
     
-    // Agrupar por día para poder mostrar el saldo/beneficios en TODAS las filas del día
-    const grupos = new Map();
+    // Agrupar por día - usar SOLO las primeras 3 filas de cada fecha (evitar duplicados de resumen)
+    // Primero, agrupar todas las filas por fecha normalizada
+    const gruposPorFecha = new Map();
     datosConFecha.forEach(d => {
         const k = d?.fecha ? (normalizarFechaKey(d.fecha) || String(d.fecha).split(' ')[0]) : '';
         if (!k) return;
-        const g = grupos.get(k) || { key: k, rows: [] };
-        g.rows.push(d);
-        grupos.set(k, g);
+        if (!gruposPorFecha.has(k)) {
+            gruposPorFecha.set(k, []);
+        }
+        gruposPorFecha.get(k).push(d);
+    });
+    
+    // Para cada fecha, quedarse SOLO con las 3 filas de menor número (las originales, no las de resumen)
+    const grupos = new Map();
+    gruposPorFecha.forEach((filas, fechaKey) => {
+        // Ordenar por número de fila y tomar solo las 3 primeras
+        filas.sort((a, b) => (a.fila || 0) - (b.fila || 0));
+        const filasUnicas = filas.slice(0, 3); // Máximo 3 filas por día (inc, dec, calc)
+        grupos.set(fechaKey, { key: fechaKey, rows: filasUnicas });
     });
 
+    // Ordenar grupos por fecha cronológica (no por número de fila)
     const gruposOrdenados = Array.from(grupos.values()).sort((a, b) => {
-        const fa = a.rows.reduce((m, r) => Math.min(m, r.fila || 0), Infinity);
-        const fb = b.rows.reduce((m, r) => Math.min(m, r.fila || 0), Infinity);
-        return fa - fb;
+        // Comparar por fecha real
+        const fechaA = a.rows[0]?.fecha ? parsearFechaValor(a.rows[0].fecha) : null;
+        const fechaB = b.rows[0]?.fecha ? parsearFechaValor(b.rows[0].fecha) : null;
+        if (!fechaA && !fechaB) return 0;
+        if (!fechaA) return 1;
+        if (!fechaB) return -1;
+        return fechaA.getTime() - fechaB.getTime();
     });
 
     for (let gi = 0; gi < gruposOrdenados.length; gi++) {
