@@ -9297,7 +9297,7 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
             </div>
             <div class="client-stat-card">
                 <div class="label">Retiradas <button class="btn-detalle-stats" onclick="mostrarDetalleDecrementos()" title="Ver detalle">+</button></div>
-                <div class="value negative">-${formatearMoneda(kpis.decrementos)}</div>
+                <div class="value ${kpis.decrementos > 0 ? 'negative' : ''}">${kpis.decrementos > 0 ? '-' : ''}${formatearMoneda(kpis.decrementos)}</div>
             </div>
             <div class="client-stat-card">
                 <div class="label">Beneficio Total €</div>
@@ -9359,23 +9359,33 @@ function formatearMesCorto(mes) {
 
 function mostrarDetalleIncrementos() {
     const detalles = window._detallesIncrementosCliente || [];
+    if (detalles.length === 0) {
+        mostrarNotificacion('No se han registrado inversiones de capital', 'info');
+        return;
+    }
     mostrarPopupDetalles('Detalle de Inversiones', detalles, 'positive');
 }
 
 function mostrarDetalleDecrementos() {
     const detalles = window._detallesDecrementosCliente || [];
+    if (detalles.length === 0) {
+        mostrarNotificacion('No se ha realizado ninguna retirada de capital', 'info');
+        return;
+    }
     mostrarPopupDetalles('Detalle de Retiradas', detalles, 'negative');
+}
+
+function formatearSoloFecha(fecha) {
+    if (!fecha) return '-';
+    // Si tiene hora (espacio o T), quedarse solo con la parte de fecha
+    const soloFecha = fecha.split(' ')[0].split('T')[0];
+    return soloFecha;
 }
 
 function mostrarPopupDetalles(titulo, detalles, tipo) {
     // Eliminar popup existente
     const existente = document.querySelector('.popup-detalles-cliente');
     if (existente) existente.remove();
-    
-    if (detalles.length === 0) {
-        mostrarNotificacion('No hay movimientos registrados', 'info');
-        return;
-    }
     
     // Ordenar por fecha
     const detOrdenados = [...detalles].sort((a, b) => {
@@ -9385,6 +9395,7 @@ function mostrarPopupDetalles(titulo, detalles, tipo) {
     });
     
     const total = detalles.reduce((sum, d) => sum + (d.importe || 0), 0);
+    const signo = tipo === 'positive' ? '+' : '-';
     
     const popup = document.createElement('div');
     popup.className = 'popup-detalles-cliente';
@@ -9398,22 +9409,22 @@ function mostrarPopupDetalles(titulo, detalles, tipo) {
                 <table class="tabla-detalles">
                     <thead>
                         <tr>
-                            <th>Fecha</th>
-                            <th>Importe</th>
+                            <th class="th-fecha">Fecha</th>
+                            <th class="th-importe">Importe</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${detOrdenados.map(d => `
                             <tr>
-                                <td>${d.fecha || '-'}</td>
-                                <td class="${tipo}">${tipo === 'positive' ? '+' : '-'}${formatearMoneda(d.importe)}</td>
+                                <td>${formatearSoloFecha(d.fecha)}</td>
+                                <td class="${tipo}">${signo}${formatearMoneda(d.importe)}</td>
                             </tr>
                         `).join('')}
                     </tbody>
                     <tfoot>
                         <tr>
                             <td><strong>TOTAL</strong></td>
-                            <td class="${tipo}"><strong>${tipo === 'positive' ? '+' : '-'}${formatearMoneda(total)}</strong></td>
+                            <td class="${tipo}"><strong>${signo}${formatearMoneda(total)}</strong></td>
                         </tr>
                     </tfoot>
                 </table>

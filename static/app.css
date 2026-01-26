@@ -3303,9 +3303,10 @@ input[type="text"]:focus {
 }
 
 .popup-detalles-cliente .tabla-detalles th {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.85rem;
-    font-weight: 500;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    background: rgba(0, 212, 255, 0.15);
 }
 
 .popup-detalles-cliente .tabla-detalles td {
