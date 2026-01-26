@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API</title>
+</head>
+<body>
+    <h1>Test de API</h1>
+    <div id="result">Cargando...</div>
+    <script>
+        async function test() {
+            const div = document.getElementById('result');
+            try {
+                // Test meses
+                const resMeses = await fetch('/api/meses');
+                const meses = await resMeses.json();
+                div.innerHTML = '<h2>Meses:</h2><pre>' + JSON.stringify(meses, null, 2) + '</pre>';
+                
+                // Test datos WIND Abril
+                const resDatos = await fetch('/api/datos/Diario_WIND/2026-04');
+                const datos = await resDatos.json();
+                div.innerHTML += '<h2>Clientes WIND Abril:</h2>';
+                div.innerHTML += '<p>Total clientes: ' + (datos.clientes?.length || 0) + '</p>';
+                
+                if (datos.clientes && datos.clientes.length > 0) {
+                    const c1 = datos.clientes[0];
+                    div.innerHTML += '<h3>Cliente 1:</h3>';
+                    div.innerHTML += '<p>Nombre: ' + (c1.datos?.NOMBRE?.valor || 'N/A') + '</p>';
+                    div.innerHTML += '<p>Datos diarios: ' + (c1.datos_diarios?.length || 0) + ' filas</p>';
+                }
+                
+                div.innerHTML += '<h2 style="color:green">✓ API funciona correctamente</h2>';
+            } catch (e) {
+                div.innerHTML = '<h2 style="color:red">Error: ' + e.message + '</h2>';
+            }
+        }
+        test();
+    </script>
+</body>
+</html>

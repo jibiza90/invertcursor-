@@ -280,7 +280,7 @@ async function aplicarCambioHistorial(cambio, usarValorNuevo) {
             }
 
             if (cambio.campo === 'incremento' || cambio.campo === 'decremento') {
-                recalcularTotalesCliente(cliente);
+                recalcularTotalesCliente(cliente, cambio.clienteIdx);
                 requiereRecalculoImpInicial = true;
             }
 
@@ -1491,7 +1491,7 @@ async function guardarDatosAutomatico(numFormulasGenerales = 0, numFormulasClien
             if (!cliente) return;
             
             // Recalcular totales de incrementos/decrementos
-            recalcularTotalesCliente(cliente);
+            recalcularTotalesCliente(cliente, idx);
             
             // IMPORTANTE: Calcular saldo_actual (saldo final del mes) para el próximo mes
             const saldoFinal = obtenerSaldoFinalClienteDeMes(cliente);
@@ -5982,7 +5982,7 @@ function renderDetalleCliente(index) {
         }
         
         // Recalcular totales del cliente (filtrando filas de resumen mensual)
-        recalcularTotalesCliente(cliente_calculado);
+        recalcularTotalesCliente(cliente_calculado, index);
 
         mostrarTablaEditableCliente(cliente_calculado, hoja, index);
         // Scroll al inicio (día 1) - usar el contenedor de scroll
@@ -7469,12 +7469,13 @@ async function actualizarDatoDiario(input, cliente, datoDiario, hojaExplicita = 
         
         // Si es incremento o decremento, recalcular totales del cliente
         if (campo === 'incremento' || campo === 'decremento') {
-            recalcularTotalesCliente(cliente);
+            const clienteIdx = datosEditados?.hojas?.[hojaParaUsar]?.clientes?.indexOf(cliente) ?? -1;
+            recalcularTotalesCliente(cliente, clienteIdx);
             
             // Si es decremento, mostrar aviso de comisión
             if (campo === 'decremento') {
                 if (nuevoValor !== null && nuevoValor !== undefined && nuevoValor > 0) {
-                    const comisionDecremento = calcularComisionDeDecrementoEnFila(cliente, datoDiario.fila, nuevoValor);
+                    const comisionDecremento = calcularComisionDeDecrementoEnFila(cliente, datoDiario.fila, nuevoValor, clienteIdx);
                     if (comisionDecremento > 0) {
                         mostrarNotificacionComision(`Comisión: ${formatearMoneda(comisionDecremento)}`);
                     } else {
@@ -8394,7 +8395,7 @@ function actualizarGarantiaActual(clienteIndex, hoja) {
     
     // Recalcular totales si es necesario
     if (!cliente.decrementos_total && cliente.datos_diarios) {
-        recalcularTotalesCliente(cliente);
+        recalcularTotalesCliente(cliente, clienteIndex);
     }
     
     const retirado = cliente.decrementos_total || 0;
@@ -9705,7 +9706,7 @@ async function actualizarEstadisticasCliente() {
     const cliente = hoja.clientes[clienteActual];
     
     // Recalcular totales del cliente en memoria
-    recalcularTotalesCliente(cliente);
+    recalcularTotalesCliente(cliente, clienteActual);
     cliente.saldo_actual = obtenerSaldoFinalClienteDeMes(cliente);
     
     const datosCliente = cliente.datos || {};
