@@ -25,7 +25,7 @@
 
     <div class="container">
         <header>
-            <h1>PORTFOLIO MANAGER <span style="font-size: 0.5em; color: #888; font-weight: 400;">V2.9.20</span></h1>
+            <h1>PORTFOLIO MANAGER <span style="font-size: 0.5em; color: #888; font-weight: 400;">V2.9.21</span></h1>
             <div class="header-actions">
                 <select id="selectorHoja" class="selector-hoja">
                     <option value="Diario STD">Diario STD</option>
@@ -66,6 +66,9 @@
                     </button>
                     <button class="nav-btn" data-vista="comision" id="btnVistaComision">
                         Comisión
+                    </button>
+                    <button class="nav-btn" data-vista="estadisticas" id="btnVistaEstadisticas">
+                        📊 Estadísticas
                     </button>
                 </div>
                 
@@ -220,6 +223,37 @@
                         <!-- Se llenará dinámicamente -->
                     </div>
                 </div>
+
+                <!-- Vista Estadísticas -->
+                <div id="vistaEstadisticas" class="view">
+                    <div class="view-header-premium">
+                        <div class="view-header-left">
+                            <h2>📊 Estadísticas de Rentabilidad</h2>
+                        </div>
+                        <div class="tabs-container">
+                            <button class="tab-btn active" data-hoja="Diario STD" id="tabSTDStats">Diario STD</button>
+                            <button class="tab-btn" data-hoja="Diario VIP" id="tabVIPStats">Diario VIP</button>
+                            <button class="tab-btn" data-hoja="Diario WIND" id="tabWINDStats">Diario WIND</button>
+                        </div>
+                    </div>
+                    
+                    <div class="estadisticas-container" id="estadisticasContainer">
+                        <div class="chart-controls">
+                            <label>Tipo de gráfico:</label>
+                            <select id="tipoGrafico">
+                                <option value="bar" selected>Barras</option>
+                                <option value="line">Línea</option>
+                                <option value="radar">Radar</option>
+                            </select>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="chartRentabilidad"></canvas>
+                        </div>
+                        <div class="stats-summary" id="statsSummary">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                    </div>
+                </div>
             </main>
         </div>
 
@@ -239,6 +273,9 @@
         <div id="notificacion" class="notificacion"></div>
     </div>
 
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <!-- Módulos de utilidades -->
     <script src="js/utils/fechas.js?v=2.9.18"></script>
     <script src="js/utils/numeros.js?v=2.9.18"></script>

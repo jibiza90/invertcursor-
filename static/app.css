@@ -2607,3 +2607,108 @@ input[type="text"]:focus {
 }
 
 /* ==================== FIN VISTA COMISIÓN ==================== */
+
+/* ==================== VISTA ESTADÍSTICAS ==================== */
+
+.estadisticas-container {
+    padding: 2rem;
+    background: var(--gradient-card);
+    border-radius: 16px;
+    box-shadow: var(--shadow-md);
+}
+
+.chart-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--onyx);
+    border-radius: 12px;
+}
+
+.chart-controls label {
+    font-weight: 600;
+    color: var(--platinum);
+}
+
+.chart-controls select {
+    padding: 0.6rem 1.2rem;
+    border: 1px solid var(--graphite);
+    border-radius: 8px;
+    background: var(--white);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chart-controls select:hover {
+    border-color: var(--gold);
+}
+
+.chart-controls select:focus {
+    outline: none;
+    border-color: var(--sapphire);
+    box-shadow: 0 0 0 3px var(--sapphire-glow);
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 400px;
+    background: var(--white);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 2rem;
+}
+
+.stats-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.stat-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--charcoal);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.stat-card .stat-label {
+    font-size: 0.85rem;
+    color: var(--slate);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+}
+
+.stat-card .stat-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--platinum);
+}
+
+.stat-card .stat-value.positive {
+    color: var(--emerald);
+}
+
+.stat-card .stat-value.negative {
+    color: var(--ruby);
+}
+
+.stat-card .stat-detail {
+    font-size: 0.85rem;
+    color: var(--pewter);
+    margin-top: 0.5rem;
+}
+
+/* ==================== FIN VISTA ESTADÍSTICAS ==================== */

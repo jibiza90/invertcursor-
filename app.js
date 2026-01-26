@@ -1827,6 +1827,12 @@ function inicializarEventos() {
         btnVistaComision.addEventListener('click', () => { void mostrarVistaComisionAuto(); });
     }
     
+    // Vista Estadísticas
+    const btnVistaEstadisticas = document.getElementById('btnVistaEstadisticas');
+    if (btnVistaEstadisticas) {
+        btnVistaEstadisticas.addEventListener('click', () => { void mostrarVistaEstadisticasAuto(); });
+    }
+    
     // Tabs para seleccionar hoja en Info Clientes
     const tabSTD = document.getElementById('tabSTD');
     const tabVIP = document.getElementById('tabVIP');
@@ -1853,6 +1859,28 @@ function inicializarEventos() {
     }
     if (tabWINDComision) {
         tabWINDComision.addEventListener('click', () => cambiarHojaComision('Diario WIND'));
+    }
+    
+    // Tabs para seleccionar hoja en Estadísticas
+    const tabSTDStats = document.getElementById('tabSTDStats');
+    const tabVIPStats = document.getElementById('tabVIPStats');
+    const tabWINDStats = document.getElementById('tabWINDStats');
+    if (tabSTDStats) {
+        tabSTDStats.addEventListener('click', () => cambiarHojaEstadisticas('Diario STD'));
+    }
+    if (tabVIPStats) {
+        tabVIPStats.addEventListener('click', () => cambiarHojaEstadisticas('Diario VIP'));
+    }
+    if (tabWINDStats) {
+        tabWINDStats.addEventListener('click', () => cambiarHojaEstadisticas('Diario WIND'));
+    }
+    
+    // Selector de tipo de gráfico
+    const tipoGrafico = document.getElementById('tipoGrafico');
+    if (tipoGrafico) {
+        tipoGrafico.addEventListener('change', () => {
+            if (vistaActual === 'estadisticas') actualizarTipoGrafico();
+        });
     }
     
     const buscarInfoCliente = document.getElementById('buscarInfoCliente');
@@ -8314,6 +8342,241 @@ function mostrarComision() {
     listaComisiones.prepend(itemMaster);
     
     container.appendChild(listaComisiones);
+}
+
+// ==================== VISTA ESTADÍSTICAS ====================
+
+let hojaEstadisticas = 'Diario STD';
+let chartRentabilidad = null;
+
+function cambiarHojaEstadisticas(nuevaHoja) {
+    hojaEstadisticas = nuevaHoja;
+    
+    const tabSTD = document.getElementById('tabSTDStats');
+    const tabVIP = document.getElementById('tabVIPStats');
+    const tabWIND = document.getElementById('tabWINDStats');
+    
+    if (tabSTD) tabSTD.classList.toggle('active', nuevaHoja === 'Diario STD');
+    if (tabVIP) tabVIP.classList.toggle('active', nuevaHoja === 'Diario VIP');
+    if (tabWIND) tabWIND.classList.toggle('active', nuevaHoja === 'Diario WIND');
+    
+    mostrarEstadisticas();
+}
+
+function mostrarVistaEstadisticas() {
+    vistaActual = 'estadisticas';
+    
+    document.getElementById('vistaGeneral').classList.remove('active');
+    document.getElementById('vistaClientes').classList.remove('active');
+    document.getElementById('vistaDetalle').classList.remove('active');
+    document.getElementById('vistaInfoClientes').classList.remove('active');
+    const vistaComision = document.getElementById('vistaComision');
+    if (vistaComision) vistaComision.classList.remove('active');
+    const vistaEstadisticas = document.getElementById('vistaEstadisticas');
+    if (vistaEstadisticas) vistaEstadisticas.classList.add('active');
+    
+    document.getElementById('btnVistaGeneral').classList.remove('active');
+    document.getElementById('btnVistaClientes').classList.remove('active');
+    document.getElementById('btnVistaInfoClientes').classList.remove('active');
+    const btnComision = document.getElementById('btnVistaComision');
+    if (btnComision) btnComision.classList.remove('active');
+    const btnEstadisticas = document.getElementById('btnVistaEstadisticas');
+    if (btnEstadisticas) btnEstadisticas.classList.add('active');
+    
+    hojaEstadisticas = hojaActual;
+    cambiarHojaEstadisticas(hojaEstadisticas);
+}
+
+async function mostrarVistaEstadisticasAuto() {
+    mostrarVistaEstadisticas();
+}
+
+async function mostrarEstadisticas() {
+    const container = document.getElementById('statsSummary');
+    if (!container) return;
+    
+    const hojaParaMostrar = hojaEstadisticas || 'Diario STD';
+    const meses = mesesDisponibles[hojaParaMostrar] || [];
+    
+    if (meses.length === 0) {
+        container.innerHTML = '<div class="info-box"><p>No hay meses disponibles para esta hoja</p></div>';
+        return;
+    }
+    
+    const rentabilidadMeses = await calcularRentabilidadPorMes(hojaParaMostrar, meses);
+    
+    renderizarGrafico(rentabilidadMeses);
+    renderizarResumenEstadisticas(container, rentabilidadMeses);
+}
+
+async function calcularRentabilidadPorMes(hoja, meses) {
+    const resultados = [];
+    
+    for (const mes of meses) {
+        try {
+            const response = await fetch(`/api/datos/${encodeURIComponent(hoja)}/${mes}`, { cache: 'no-store' });
+            if (!response.ok) continue;
+            const data = await response.json();
+            
+            const datosGenerales = data.datos_diarios_generales || [];
+            const datosValidos = datosGenerales
+                .filter(d => d && d.fila >= 15 && d.fila <= 1120)
+                .filter(d => typeof d.base === 'number' && d.base > 0)
+                .sort((a, b) => (a.fila || 0) - (b.fila || 0));
+            
+            if (datosValidos.length === 0) {
+                resultados.push({ mes, rentabilidad: 0, saldoInicial: 0, saldoFinal: 0 });
+                continue;
+            }
+            
+            const primerDia = datosValidos[0];
+            const ultimoDia = datosValidos[datosValidos.length - 1];
+            
+            const saldoInicial = primerDia.base || 0;
+            const saldoFinal = ultimoDia.saldo_diario || ultimoDia.base || saldoInicial;
+            
+            const rentabilidad = saldoInicial > 0 
+                ? ((saldoFinal / saldoInicial) - 1) * 100 
+                : 0;
+            
+            resultados.push({
+                mes,
+                rentabilidad: Math.round(rentabilidad * 100) / 100,
+                saldoInicial,
+                saldoFinal
+            });
+        } catch (error) {
+            console.warn(`Error cargando datos de ${mes}:`, error);
+            resultados.push({ mes, rentabilidad: 0, saldoInicial: 0, saldoFinal: 0 });
+        }
+    }
+    
+    return resultados;
+}
+
+function renderizarGrafico(datos) {
+    const canvas = document.getElementById('chartRentabilidad');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const tipoGrafico = document.getElementById('tipoGrafico')?.value || 'bar';
+    
+    if (chartRentabilidad) {
+        chartRentabilidad.destroy();
+    }
+    
+    const labels = datos.map(d => {
+        const [year, month] = d.mes.split('-');
+        const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        return meses[parseInt(month) - 1] + ' ' + year.slice(2);
+    });
+    
+    const valores = datos.map(d => d.rentabilidad);
+    const colores = valores.map(v => v >= 0 ? 'rgba(52, 199, 89, 0.8)' : 'rgba(255, 59, 48, 0.8)');
+    const bordeColores = valores.map(v => v >= 0 ? 'rgb(52, 199, 89)' : 'rgb(255, 59, 48)');
+    
+    const config = {
+        type: tipoGrafico,
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Rentabilidad %',
+                data: valores,
+                backgroundColor: tipoGrafico === 'line' ? 'rgba(0, 122, 255, 0.1)' : colores,
+                borderColor: tipoGrafico === 'line' ? 'rgb(0, 122, 255)' : bordeColores,
+                borderWidth: 2,
+                fill: tipoGrafico === 'line',
+                tension: 0.3,
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(29, 29, 31, 0.95)',
+                    titleFont: { size: 14, weight: 'bold' },
+                    bodyFont: { size: 13 },
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            const idx = context.dataIndex;
+                            const d = datos[idx];
+                            return [
+                                `Rentabilidad: ${d.rentabilidad.toFixed(2)}%`,
+                                `Saldo Inicial: ${formatearMoneda(d.saldoInicial)}`,
+                                `Saldo Final: ${formatearMoneda(d.saldoFinal)}`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: tipoGrafico !== 'radar' ? {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) { return value + '%'; }
+                    },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            } : {}
+        }
+    };
+    
+    chartRentabilidad = new Chart(ctx, config);
+}
+
+function actualizarTipoGrafico() {
+    mostrarEstadisticas();
+}
+
+function renderizarResumenEstadisticas(container, datos) {
+    if (datos.length === 0) {
+        container.innerHTML = '<div class="info-box"><p>No hay datos disponibles</p></div>';
+        return;
+    }
+    
+    const totalRentabilidad = datos.reduce((sum, d) => sum + d.rentabilidad, 0);
+    const mejorMes = datos.reduce((best, d) => d.rentabilidad > best.rentabilidad ? d : best, datos[0]);
+    const peorMes = datos.reduce((worst, d) => d.rentabilidad < worst.rentabilidad ? d : worst, datos[0]);
+    const promedio = totalRentabilidad / datos.length;
+    const mesesPositivos = datos.filter(d => d.rentabilidad > 0).length;
+    
+    const formatMes = (mes) => {
+        const [year, month] = mes.split('-');
+        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        return meses[parseInt(month) - 1] + ' ' + year;
+    };
+    
+    container.innerHTML = `
+        <div class="stat-card">
+            <div class="stat-label">Rentabilidad Acumulada</div>
+            <div class="stat-value ${totalRentabilidad >= 0 ? 'positive' : 'negative'}">${totalRentabilidad.toFixed(2)}%</div>
+            <div class="stat-detail">${datos.length} meses</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Promedio Mensual</div>
+            <div class="stat-value ${promedio >= 0 ? 'positive' : 'negative'}">${promedio.toFixed(2)}%</div>
+            <div class="stat-detail">${mesesPositivos}/${datos.length} meses positivos</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Mejor Mes</div>
+            <div class="stat-value positive">+${mejorMes.rentabilidad.toFixed(2)}%</div>
+            <div class="stat-detail">${formatMes(mejorMes.mes)}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Peor Mes</div>
+            <div class="stat-value ${peorMes.rentabilidad >= 0 ? 'positive' : 'negative'}">${peorMes.rentabilidad.toFixed(2)}%</div>
+            <div class="stat-detail">${formatMes(peorMes.mes)}</div>
+        </div>
+    `;
 }
 
 // ==================== RECALCULAR DIARIO WIND ====================
