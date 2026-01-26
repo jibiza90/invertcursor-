@@ -6017,14 +6017,13 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
             ultimaFilaActividad = Math.max(ultimaFilaActividad, g.filaCalculo.fila);
         }
     });
-    const ultimaFilaMostrar = ultimaFilaActividad > 0
-        ? Math.max(ultimaFilaActividad, ultimaFilaImpFinalGeneral)
-        : ultimaFilaImpFinalGeneral; // Si no hay actividad pero hay imp_final, mostrar hasta ahí
+    // CRÍTICO: NO mostrar nada por debajo de la última fecha con imp_final
+    // El límite siempre es ultimaFilaImpFinalGeneral, nunca más allá
+    const ultimaFilaMostrar = ultimaFilaImpFinalGeneral;
 
-    // CRÍTICO: Si el cliente tiene saldo_inicial_mes, debe mostrar valores aunque no tenga movimientos
-    const tieneSaldoInicial = cliente.saldo_inicial_mes && 
-        typeof cliente.saldo_inicial_mes === 'number' && 
-        cliente.saldo_inicial_mes > 0;
+    // NO usar saldo_inicial_mes (memoria) - solo mostrar valores si hay actividad real
+    // El cliente solo "tiene saldo" si hay saldo_diario o imp_final válido en el JSON
+    const tieneSaldoInicial = false; // Deshabilitado: solo mostrar si hay actividad real
 
     let haEmpezado = false;
     for (let gi = 0; gi < gruposOrdenados.length; gi++) {
