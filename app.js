@@ -1661,6 +1661,19 @@ async function aplicarArrastreAnualAlCargar(nombreHoja, mes, dataMes) {
         const dataPrev = await respPrev.json();
         const prevClientes = Array.isArray(dataPrev?.clientes) ? dataPrev.clientes : [];
 
+        // Indexar clientes del mes anterior por numero_cliente para que el arrastre sea consistente
+        // incluso si el JSON viene con huecos o con orden diferente.
+        const mapPrevPorNumero = new Map();
+        prevClientes.forEach((pc, i) => {
+            if (!pc) return;
+            const num = (typeof pc.numero_cliente === 'number' && isFinite(pc.numero_cliente))
+                ? pc.numero_cliente
+                : (i + 1);
+            if (!mapPrevPorNumero.has(num)) {
+                mapPrevPorNumero.set(num, pc);
+            }
+        });
+
         // Asegurar clientes de todo el año: si faltan clientes en este mes, copiarlos del mes anterior
         if (prevClientes.length > dataMes.clientes.length) {
             for (let i = dataMes.clientes.length; i < prevClientes.length; i++) {
@@ -1688,7 +1701,12 @@ async function aplicarArrastreAnualAlCargar(nombreHoja, mes, dataMes) {
         // Arrastre de info y acumulados/saldo desde mes anterior
         dataMes.clientes.forEach((c, idx) => {
             if (!c) return;
-            const prev = prevClientes[idx];
+
+            const numeroClienteActual = (typeof c.numero_cliente === 'number' && isFinite(c.numero_cliente))
+                ? c.numero_cliente
+                : (idx + 1);
+
+            const prev = mapPrevPorNumero.get(numeroClienteActual) || prevClientes[idx];
             
             // CRÍTICO: NUNCA sobrescribir datos de clientes que ya existen
             // Solo copiar si el cliente actual NO tiene datos (nombre/apellidos vacíos)
@@ -1716,14 +1734,14 @@ async function aplicarArrastreAnualAlCargar(nombreHoja, mes, dataMes) {
                     }
                 }
             }
-            console.log(`📊 Cliente ${idx + 1} - Acumulados del mes anterior (JSON): inc=${prevInc}, dec=${prevDec}`);
+            console.log(`📊 Cliente ${numeroClienteActual} - Acumulados del mes anterior (JSON): inc=${prevInc}, dec=${prevDec}`);
             const prevSaldo = prev ? obtenerSaldoFinalClienteDeMes(prev) : 0;
             c._acumPrevInc = prevInc;
             c._acumPrevDec = prevDec;
             c._saldoMesAnterior = prevSaldo; // Saldo final del mes anterior para arrastre
             console.log(`   -> saldo anterior: ${prevSaldo}`);
 
-            c.numero_cliente = typeof c.numero_cliente === 'number' ? c.numero_cliente : (idx + 1);
+            c.numero_cliente = numeroClienteActual;
             c.columna_inicio = 11 + (idx * 8);
         });
         
