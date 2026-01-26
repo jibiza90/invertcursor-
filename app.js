@@ -9039,11 +9039,13 @@ async function mostrarEstadisticasCliente() {
 
 async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses) {
     // ESTRATEGIA: Usar rentabilidad GENERAL (igual para todos los clientes)
-    // Los datos de saldos en JSON están en null, se calculan en memoria
-    // Por eso usamos datos_diarios_generales para la rentabilidad
+    // Obtener último saldo diario de cada mes del cliente
+    // Recopilar detalles de incrementos/decrementos con fechas
     
     const resultados = [];
     let benefAcumTotal = 0;
+    const detallesIncrementos = [];
+    const detallesDecrementos = [];
     
     console.log(`📊 Calculando estadísticas para Cliente ${numeroCliente} en ${hoja}, meses:`, meses);
     
@@ -9067,7 +9069,6 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses) {
             }
             
             // Usar RENTABILIDAD GENERAL del mes (igual para todos los clientes)
-            // Los clientes comparten el mismo % de beneficio
             const datosGenerales = data.datos_diarios_generales || [];
             const datosConBenef = datosGenerales
                 .filter(d => d && d.fila >= 15 && d.fila <= 1120)
@@ -9084,11 +9085,31 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses) {
             
             benefAcumTotal += rentabilidadMes;
             
-            // Incrementos/decrementos del cliente SÍ están guardados
+            // Obtener el último saldo diario del cliente (última fila con imp_final en general)
+            const ultimaFilaGeneral = datosConBenef.sort((a, b) => b.fila - a.fila)[0];
+            const ultimaFila = ultimaFilaGeneral?.fila || 0;
+            
+            // Buscar datos diarios del cliente para obtener el saldo de esa fila
+            const datosDiariosCliente = clienteData.datos_diarios || [];
+            const filaClienteUltima = datosDiariosCliente.find(d => d.fila === ultimaFila);
+            const saldoFinalMes = filaClienteUltima?.saldo_diario || filaClienteUltima?.imp_final || 0;
+            const benefAcumEuroMes = filaClienteUltima?.beneficio_acumulado || 0;
+            
+            // Recopilar incrementos/decrementos con fechas
+            datosDiariosCliente.forEach(d => {
+                if (d.incremento && d.incremento > 0 && d.fecha) {
+                    detallesIncrementos.push({ fecha: d.fecha, monto: d.incremento, mes });
+                }
+                if (d.decremento && d.decremento > 0 && d.fecha) {
+                    detallesDecrementos.push({ fecha: d.fecha, monto: d.decremento, mes });
+                }
+            });
+            
+            // Incrementos/decrementos totales del mes
             const incrementosMes = clienteData.incrementos_total || 0;
             const decrementosMes = clienteData.decrementos_total || 0;
             
-            console.log(`${mes}: rentabilidad=${rentabilidadMes.toFixed(4)}%, inc=${incrementosMes}, dec=${decrementosMes}`);
+            console.log(`${mes}: rent=${rentabilidadMes.toFixed(4)}%, saldo=${saldoFinalMes}, benefAcum=${benefAcumEuroMes}, inc=${incrementosMes}, dec=${decrementosMes}`);
             
             resultados.push({
                 mes,
@@ -9096,12 +9117,18 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses) {
                 benefAcumTotal: benefAcumTotal,
                 incrementos: incrementosMes,
                 decrementos: decrementosMes,
+                saldoFinalMes: saldoFinalMes,
+                benefAcumEuroMes: benefAcumEuroMes,
                 diasOperados: datosConBenef.length
             });
         } catch (error) {
             console.warn(`Error cargando datos del cliente para ${mes}:`, error);
         }
     }
+    
+    // Guardar detalles para acceso posterior
+    resultados._detallesIncrementos = detallesIncrementos;
+    resultados._detallesDecrementos = detallesDecrementos;
     
     console.log(`📊 Resultados mensuales:`, resultados);
     
@@ -9114,30 +9141,32 @@ function calcularKPIsTotalesCliente(datosClienteMeses, clienteEnMemoria) {
     
     if (mesesConDatos.length === 0) {
         return {
-            saldoInicial: 0,
-            saldoFinal: 0,
-            incrementos: 0,
+            inversion: 0,
+            saldoActual: 0,
             decrementos: 0,
             beneficioEuro: 0,
             rentabilidadTotal: 0,
             mejorMes: null,
             peorMes: null,
             promedioMensual: 0,
-            mesesOperados: 0
+            mesesOperados: 0,
+            detallesIncrementos: [],
+            detallesDecrementos: []
         };
     }
     
-    // SALDOS: usar datos del cliente en memoria (el actual cargado)
-    // porque los JSON no guardan saldos calculados
-    const saldoInicial = clienteEnMemoria?.saldo_inicial_mes || 0;
-    const saldoFinal = clienteEnMemoria?.saldo_actual || 0;
+    // INVERSIÓN = suma de TODOS los incrementos de todos los meses
+    const inversion = mesesConDatos.reduce((sum, m) => sum + (m.incrementos || 0), 0);
     
-    // Sumar incrementos y decrementos de todos los meses
-    const incrementos = mesesConDatos.reduce((sum, m) => sum + (m.incrementos || 0), 0);
+    // SALDO ACTUAL = último saldo diario del último mes con datos
+    const ultimoMes = mesesConDatos[mesesConDatos.length - 1];
+    const saldoActual = ultimoMes?.saldoFinalMes || clienteEnMemoria?.saldo_actual || 0;
+    
+    // DECREMENTOS = suma de todos los decrementos
     const decrementos = mesesConDatos.reduce((sum, m) => sum + (m.decrementos || 0), 0);
     
-    // Beneficio = saldo final - saldo inicial - incrementos + decrementos
-    const beneficioEuro = saldoFinal - saldoInicial - incrementos + decrementos;
+    // BENEFICIO TOTAL = último Benef. € Acum. del último mes
+    const beneficioEuro = ultimoMes?.benefAcumEuroMes || 0;
     
     // Rentabilidad total = suma de rentabilidades mensuales (de datos generales)
     const rentabilidadTotal = mesesConDatos.reduce((sum, m) => sum + (m.rentabilidad || 0), 0);
@@ -9147,19 +9176,24 @@ function calcularKPIsTotalesCliente(datosClienteMeses, clienteEnMemoria) {
     const peorMes = mesesConDatos.reduce((a, b) => a.rentabilidad < b.rentabilidad ? a : b);
     const promedioMensual = rentabilidadTotal / mesesConDatos.length;
     
-    console.log(`📊 KPIs: saldoInicial=${saldoInicial}, saldoFinal=${saldoFinal}, inc=${incrementos}, dec=${decrementos}, benef=${beneficioEuro}, rent=${rentabilidadTotal}%`);
+    // Detalles de incrementos/decrementos con fechas
+    const detallesIncrementos = datosClienteMeses._detallesIncrementos || [];
+    const detallesDecrementos = datosClienteMeses._detallesDecrementos || [];
+    
+    console.log(`📊 KPIs: inversion=${inversion}, saldoActual=${saldoActual}, dec=${decrementos}, benef=${beneficioEuro}, rent=${rentabilidadTotal}%`);
     
     return {
-        saldoInicial,
-        saldoFinal,
-        incrementos,
+        inversion,
+        saldoActual,
         decrementos,
         beneficioEuro,
         rentabilidadTotal,
         mejorMes,
         peorMes,
         promedioMensual,
-        mesesOperados: mesesConDatos.length
+        mesesOperados: mesesConDatos.length,
+        detallesIncrementos,
+        detallesDecrementos
     };
 }
 
@@ -9169,22 +9203,39 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
     
     const mesesConDatos = datosMeses.filter(m => m && m.diasOperados > 0);
     
+    // Preparar detalles de incrementos para el popup
+    const detallesIncHtml = kpis.detallesIncrementos.length > 0 
+        ? kpis.detallesIncrementos.map(d => {
+            const fecha = d.fecha ? new Date(d.fecha).toLocaleDateString('es-ES') : 'Sin fecha';
+            return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.1);"><span>${fecha}</span><span style="color:#00ff88;">+${formatearMoneda(d.monto)}</span></div>`;
+        }).join('')
+        : '<div style="color:rgba(255,255,255,0.5);">Sin incrementos registrados</div>';
+    
+    // Preparar detalles de decrementos para el popup
+    const detallesDecHtml = kpis.detallesDecrementos.length > 0 
+        ? kpis.detallesDecrementos.map(d => {
+            const fecha = d.fecha ? new Date(d.fecha).toLocaleDateString('es-ES') : 'Sin fecha';
+            return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.1);"><span>${fecha}</span><span style="color:#ff6b6b;">-${formatearMoneda(d.monto)}</span></div>`;
+        }).join('')
+        : '<div style="color:rgba(255,255,255,0.5);">Sin decrementos registrados</div>';
+    
+    // Color del peor mes: verde si es positivo, rojo si es negativo
+    const peorMesPositivo = kpis.peorMes && kpis.peorMes.rentabilidad >= 0;
+    const peorMesClass = peorMesPositivo ? 'positive' : 'negative';
+    const peorMesSigno = kpis.peorMes && kpis.peorMes.rentabilidad >= 0 ? '+' : '';
+    
     container.innerHTML = `
         <div class="client-stats-kpis">
             <div class="client-stat-card">
-                <div class="label">Saldo Inicial (Total)</div>
-                <div class="value">${formatearMoneda(kpis.saldoInicial)}</div>
+                <div class="label">Inversión <button class="btn-detalles-stats" onclick="mostrarDetallesInversion()" title="Ver detalles">ℹ️</button></div>
+                <div class="value positive">+${formatearMoneda(kpis.inversion)}</div>
             </div>
             <div class="client-stat-card">
                 <div class="label">Saldo Actual</div>
-                <div class="value">${formatearMoneda(kpis.saldoFinal)}</div>
+                <div class="value">${formatearMoneda(kpis.saldoActual)}</div>
             </div>
             <div class="client-stat-card">
-                <div class="label">Incrementos Totales</div>
-                <div class="value positive">+${formatearMoneda(kpis.incrementos)}</div>
-            </div>
-            <div class="client-stat-card">
-                <div class="label">Decrementos Totales</div>
+                <div class="label">Retiradas <button class="btn-detalles-stats" onclick="mostrarDetallesRetiradas()" title="Ver detalles">ℹ️</button></div>
                 <div class="value negative">-${formatearMoneda(kpis.decrementos)}</div>
             </div>
             <div class="client-stat-card">
@@ -9204,11 +9255,11 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
             </div>
             <div class="client-stat-card">
                 <div class="label">Peor Mes</div>
-                <div class="value negative">${kpis.peorMes ? formatearMesCorto(kpis.peorMes.mes) + ': ' + kpis.peorMes.rentabilidad.toFixed(2) + '%' : '-'}</div>
+                <div class="value ${peorMesClass}">${kpis.peorMes ? formatearMesCorto(kpis.peorMes.mes) + ': ' + peorMesSigno + kpis.peorMes.rentabilidad.toFixed(2) + '%' : '-'}</div>
             </div>
             <div class="client-stat-card">
                 <div class="label">Promedio Mensual</div>
-                <div class="value ${kpis.promedioMensual >= 0 ? 'positive' : 'negative'}">${kpis.promedioMensual.toFixed(2)}%</div>
+                <div class="value ${kpis.promedioMensual >= 0 ? 'positive' : 'negative'}">${kpis.promedioMensual >= 0 ? '+' : ''}${kpis.promedioMensual.toFixed(2)}%</div>
             </div>
             <div class="client-stat-card">
                 <div class="label">Meses Operados</div>
@@ -9229,6 +9280,28 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
                 <canvas id="chartClienteEvolucion"></canvas>
             </div>
         </div>
+        
+        <!-- Popups de detalles -->
+        <div id="popupDetallesInversion" class="popup-detalles-stats" style="display:none;">
+            <div class="popup-detalles-content">
+                <div class="popup-detalles-header">
+                    <h4>💰 Detalle de Inversiones</h4>
+                    <button onclick="cerrarPopupDetalles('popupDetallesInversion')">×</button>
+                </div>
+                <div class="popup-detalles-body">${detallesIncHtml}</div>
+                <div class="popup-detalles-footer">Total: <strong style="color:#00ff88;">+${formatearMoneda(kpis.inversion)}</strong></div>
+            </div>
+        </div>
+        <div id="popupDetallesRetiradas" class="popup-detalles-stats" style="display:none;">
+            <div class="popup-detalles-content">
+                <div class="popup-detalles-header">
+                    <h4>📤 Detalle de Retiradas</h4>
+                    <button onclick="cerrarPopupDetalles('popupDetallesRetiradas')">×</button>
+                </div>
+                <div class="popup-detalles-body">${detallesDecHtml}</div>
+                <div class="popup-detalles-footer">Total: <strong style="color:#ff6b6b;">-${formatearMoneda(kpis.decrementos)}</strong></div>
+            </div>
+        </div>
     `;
     
     // Renderizar gráficos
@@ -9236,6 +9309,18 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
         renderizarGraficoRentabilidadCliente(mesesConDatos);
         renderizarGraficoEvolucionCliente(mesesConDatos);
     }, 100);
+}
+
+function mostrarDetallesInversion() {
+    document.getElementById('popupDetallesInversion').style.display = 'flex';
+}
+
+function mostrarDetallesRetiradas() {
+    document.getElementById('popupDetallesRetiradas').style.display = 'flex';
+}
+
+function cerrarPopupDetalles(id) {
+    document.getElementById(id).style.display = 'none';
 }
 
 function formatearMesCorto(mes) {
@@ -9341,7 +9426,8 @@ function renderizarGraficoEvolucionCliente(datos) {
     
     const ctx = canvas.getContext('2d');
     const labels = datos.map(d => formatearMesCorto(d.mes));
-    const saldos = datos.map(d => d.saldoFinal);
+    // Usar saldoFinalMes = último saldo diario de cada mes
+    const saldos = datos.map(d => d.saldoFinalMes || 0);
     
     // Calcular gradiente
     const gradient = ctx.createLinearGradient(0, 0, 0, 300);
