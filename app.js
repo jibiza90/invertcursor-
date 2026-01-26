@@ -9130,23 +9130,48 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses) {
 }
 
 function calcularKPIsTotalesCliente(datosClienteMeses) {
-    const totales = datosClienteMeses._totales || {};
-    const saldoInicial = totales.saldoInicialPrimero || 0;
-    const saldoFinal = totales.saldoFinalUltimo || 0;
-    const incrementos = totales.incrementosTotales || 0;
-    const decrementos = totales.decrementosTotales || 0;
+    // Filtrar solo meses con datos reales (saldo > 0)
+    const mesesConDatos = datosClienteMeses.filter(m => m && (m.saldoInicial > 0 || m.saldoFinal > 0));
+    
+    if (mesesConDatos.length === 0) {
+        return {
+            saldoInicial: 0,
+            saldoFinal: 0,
+            incrementos: 0,
+            decrementos: 0,
+            beneficioEuro: 0,
+            rentabilidadTotal: 0,
+            mejorMes: null,
+            peorMes: null,
+            promedioMensual: 0,
+            mesesOperados: 0
+        };
+    }
+    
+    // Primer mes con datos = saldo inicial
+    const primerMes = mesesConDatos[0];
+    const saldoInicial = primerMes.saldoInicial || 0;
+    
+    // Último mes con datos = saldo actual
+    const ultimoMes = mesesConDatos[mesesConDatos.length - 1];
+    const saldoFinal = ultimoMes.saldoFinal || 0;
+    
+    // Sumar incrementos y decrementos de todos los meses con datos
+    const incrementos = mesesConDatos.reduce((sum, m) => sum + (m.incrementos || 0), 0);
+    const decrementos = mesesConDatos.reduce((sum, m) => sum + (m.decrementos || 0), 0);
     
     // Beneficio = saldo final - saldo inicial - incrementos + decrementos
     const beneficioEuro = saldoFinal - saldoInicial - incrementos + decrementos;
     
-    // Rentabilidad total
-    const rentabilidadTotal = totales.benefAcumTotal || 0;
+    // Rentabilidad total = suma de rentabilidades mensuales
+    const rentabilidadTotal = mesesConDatos.reduce((sum, m) => sum + (m.rentabilidad || 0), 0);
     
     // Mejor y peor mes
-    const mesesConDatos = datosClienteMeses.filter(m => m.diasOperados > 0);
-    const mejorMes = mesesConDatos.length > 0 ? mesesConDatos.reduce((a, b) => a.rentabilidad > b.rentabilidad ? a : b) : null;
-    const peorMes = mesesConDatos.length > 0 ? mesesConDatos.reduce((a, b) => a.rentabilidad < b.rentabilidad ? a : b) : null;
-    const promedioMensual = mesesConDatos.length > 0 ? rentabilidadTotal / mesesConDatos.length : 0;
+    const mejorMes = mesesConDatos.reduce((a, b) => a.rentabilidad > b.rentabilidad ? a : b);
+    const peorMes = mesesConDatos.reduce((a, b) => a.rentabilidad < b.rentabilidad ? a : b);
+    const promedioMensual = rentabilidadTotal / mesesConDatos.length;
+    
+    console.log(`📊 KPIs: saldoInicial=${saldoInicial}, saldoFinal=${saldoFinal}, inc=${incrementos}, dec=${decrementos}, benef=${beneficioEuro}, rent=${rentabilidadTotal}%`);
     
     return {
         saldoInicial,
@@ -9166,7 +9191,7 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
     const container = document.getElementById('clientStatsContent');
     if (!container) return;
     
-    const mesesConDatos = datosMeses.filter(m => m.diasOperados > 0);
+    const mesesConDatos = datosMeses.filter(m => m && (m.saldoInicial > 0 || m.saldoFinal > 0));
     
     container.innerHTML = `
         <div class="client-stats-kpis">
