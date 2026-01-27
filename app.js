@@ -10545,11 +10545,19 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
     
     // Crear mapa de beneficios por fila
     const benefPorFila = {};
+    let benefCount = 0;
     datosGenerales.forEach(d => {
         if (typeof d.benef_porcentaje === 'number') {
             benefPorFila[d.fila] = d.benef_porcentaje;
+            benefCount++;
+            
+            // Debug de los primeros beneficios
+            if (benefCount <= 5) {
+                console.log(`📈 Beneficio fila ${d.fila}: ${d.benef_porcentaje}%`);
+            }
         }
     });
+    console.log(`📈 Total beneficios encontrados: ${benefCount}`);
     
     // Agrupar datos por MES REAL (basado en posición de fila)
     const datosPorMes = {};
@@ -10583,10 +10591,18 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
         // Acumular datos
         mesDatos.incrementos += inc;
         mesDatos.decrementos += dec;
-        mesDatos.beneficio += (inc + dec) * (benefPct / 100);
+        
+        // 🔥 CÁLCULO DE BENEFICIO MENSUAL DETALLADO
+        const beneficioDiario = (inc + dec) * (benefPct / 100);
+        mesDatos.beneficio += beneficioDiario;
         
         if (inc > 0 || dec > 0) {
             mesDatos.diasConDatos++;
+            
+            // Debug de los primeros movimientos
+            if (mesDatos.diasConDatos <= 3) {
+                console.log(`💰 Mes ${mesKey}: inc=${inc}, dec=${dec}, benef%=${benefPct}, benef€=${beneficioDiario.toFixed(2)}`);
+            }
         }
         
         // Guardar saldo final si existe (usar el último saldo válido del mes)
@@ -11223,7 +11239,19 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
     const container = document.getElementById('clientStatsContent');
     if (!container) return;
     
-    const mesesConDatos = datosMeses.filter(m => m && (m.diasOperados > 0 || m.capitalInvertido > 0 || m.capitalRetirado > 0 || m.beneficio !== 0));
+    console.log('📊 renderizarContenidoEstadisticasCliente recibió:', datosMeses.length, 'meses');
+    console.log('📊 Datos de meses:', datosMeses.map(m => ({ 
+        mes: m.nombreMes, 
+        inversion: m.capitalInvertido, 
+        beneficio: m.beneficio, 
+        rentabilidad: m.rentabilidad,
+        dias: m.diasOperados 
+    })));
+    
+    // 🔥 NO FILTRAR - Usar TODOS los meses para gráficos
+    const mesesConDatos = datosMeses; // Sin filtro
+    
+    console.log('📊 Meses para gráficos:', mesesConDatos.length);
     
     // Color del peor mes: verde si es positivo, rojo si es negativo
     const peorMesPositivo = kpis.peorMes && kpis.peorMes.rentabilidad >= 0;
@@ -11391,8 +11419,14 @@ function mostrarPopupDetalles(titulo, detalles, tipo) {
 }
 
 function renderizarGraficoRentabilidadCliente(datos) {
+    console.log('📊 renderizarGraficoRentabilidadCliente recibió:', datos.length, 'meses');
+    console.log('📊 Datos:', datos.map(d => ({ mes: d.nombreMes, rentabilidad: d.rentabilidad })));
+    
     const canvas = document.getElementById('chartClienteRentabilidad');
-    if (!canvas || datos.length === 0) return;
+    if (!canvas || datos.length === 0) {
+        console.log('❌ No hay canvas o no hay datos para el gráfico de rentabilidad');
+        return;
+    }
     
     if (chartClienteRentabilidad) {
         chartClienteRentabilidad.destroy();
@@ -11401,6 +11435,9 @@ function renderizarGraficoRentabilidadCliente(datos) {
     const ctx = canvas.getContext('2d');
     const labels = datos.map(d => formatearMesCorto(d.mes));
     const valores = datos.map(d => d.rentabilidad);
+    
+    console.log('📊 Labels:', labels);
+    console.log('📊 Valores:', valores);
     
     chartClienteRentabilidad = new Chart(ctx, {
         type: 'bar',
