@@ -9139,6 +9139,8 @@ function cargarInfoClienteDetalle(index, container, hojaParaUsar) {
     const rentabilidadMensual = invertido > 0 ? (beneficioMensualCliente / invertido) : 0;
     
     console.log(`💰 Cliente ${clienteNum}: invertido=${invertido}, beneficio=${beneficioMensualCliente}, rentabilidad=${rentabilidadMensual}`);
+    
+    container.innerHTML = `
         <div class="info-cliente-body">
             <div class="info-cliente-row">
                 <div class="info-cliente-field editable-field">
