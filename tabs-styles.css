@@ -1,0 +1,578 @@
+/* ESTILOS DE PESTAÑAS - AISLADOS - NO AFECTAN CSS EXISTENTE */
+
+/* Contenedor Principal de Pestañas */
+.tabs-container {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+}
+
+/* Navegación de Pestañas */
+.tabs-navigation {
+    display: flex;
+    background: rgba(26, 26, 46, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+    padding: 0;
+    margin: 0;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 212, 255, 0.3) transparent;
+}
+
+.tabs-navigation::-webkit-scrollbar {
+    height: 4px;
+}
+
+.tabs-navigation::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.tabs-navigation::-webkit-scrollbar-thumb {
+    background: rgba(0, 212, 255, 0.3);
+    border-radius: 2px;
+}
+
+.tab-button {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+}
+
+.tab-button:hover {
+    background: rgba(0, 212, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px);
+}
+
+.tab-button.active {
+    background: rgba(0, 212, 255, 0.15);
+    color: #00d4ff;
+    border-bottom-color: #00d4ff;
+    font-weight: 600;
+}
+
+.tab-button.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #00d4ff, #00ff88);
+    border-radius: 2px;
+}
+
+/* Contenido de Pestañas */
+.tabs-content {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 212, 255, 0.3) transparent;
+}
+
+.tabs-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.tabs-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tabs-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 212, 255, 0.3);
+    border-radius: 4px;
+}
+
+.tab-content {
+    display: none;
+    padding: 2rem;
+    animation: fadeIn 0.5s ease;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Encabezado de Pestaña */
+.tab-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid rgba(0, 212, 255, 0.2);
+}
+
+.tab-header h2 {
+    color: #00d4ff;
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin: 0;
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+}
+
+/* Sub-pestañas */
+.sub-tabs {
+    display: flex;
+    background: rgba(26, 26, 46, 0.8);
+    border-radius: 12px;
+    padding: 0.5rem;
+    margin-bottom: 2rem;
+    gap: 0.5rem;
+    overflow-x: auto;
+}
+
+.sub-tab-button {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 0.8rem 1.2rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
+.sub-tab-button:hover {
+    background: rgba(0, 212, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.sub-tab-button.active {
+    background: linear-gradient(135deg, #00d4ff, #00ff88);
+    color: #1a1a2e;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+}
+
+.sub-tabs-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.sub-tab-content {
+    display: none;
+    animation: slideIn 0.4s ease;
+}
+
+.sub-tab-content.active {
+    display: block;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Secciones de Contenido */
+.analytics-section,
+.reporting-section,
+.visualization-section,
+.import-export-section,
+.data-quality-section,
+.settings-section {
+    background: rgba(26, 26, 46, 0.6);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.analytics-section h3,
+.reporting-section h3,
+.visualization-section h3,
+.import-export-section h3,
+.data-quality-section h3,
+.settings-section h3 {
+    color: #00ff88;
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0 0 1.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Contenedores de Contenido Dinámico */
+#multi-client-comparison,
+#professional-metrics,
+#projections-analysis,
+#pdf-generator,
+#executive-dashboard,
+#complete-history,
+#3d-charts-container,
+#heatmaps-container,
+#animations-container,
+#export-controls,
+#import-controls,
+#validation-controls,
+#cleaning-controls,
+#theme-controls,
+#responsive-controls {
+    min-height: 400px;
+    background: rgba(16, 16, 32, 0.8);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px dashed rgba(0, 212, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+}
+
+/* Wrapper para Contenido Existente */
+#existing-content-wrapper {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+}
+
+/* Estados de Carga */
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(0, 212, 255, 0.2);
+    border-top: 3px solid #00d4ff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Mensajes Vacíos */
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.empty-state h4 {
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 1rem;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .tabs-navigation {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .tab-button {
+        padding: 0.8rem 1rem;
+        font-size: 0.8rem;
+    }
+    
+    .tab-content {
+        padding: 1rem;
+    }
+    
+    .sub-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .sub-tab-button {
+        padding: 0.6rem 1rem;
+        font-size: 0.8rem;
+    }
+    
+    .analytics-section,
+    .reporting-section,
+    .visualization-section,
+    .import-export-section,
+    .data-quality-section,
+    .settings-section {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .tab-header h2 {
+        font-size: 1.4rem;
+    }
+    
+    .analytics-section h3,
+    .reporting-section h3,
+    .visualization-section h3,
+    .import-export-section h3,
+    .data-quality-section h3,
+    .settings-section h3 {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .tab-button {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.75rem;
+    }
+    
+    .tab-content {
+        padding: 0.8rem;
+    }
+    
+    .sub-tab-button {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* Tema Oscuro (por defecto) */
+.tabs-container.dark-theme {
+    background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+}
+
+.tabs-container.dark-theme .tab-button {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.tabs-container.dark-theme .analytics-section,
+.tabs-container.dark-theme .reporting-section,
+.tabs-container.dark-theme .visualization-section,
+.tabs-container.dark-theme .import-export-section,
+.tabs-container.dark-theme .data-quality-section,
+.tabs-container.dark-theme .settings-section {
+    background: rgba(15, 15, 30, 0.8);
+    border-color: rgba(0, 212, 255, 0.3);
+}
+
+/* Tema Claro */
+.tabs-container.light-theme {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    color: #212529;
+}
+
+.tabs-container.light-theme .tabs-navigation {
+    background: rgba(255, 255, 255, 0.95);
+    border-bottom-color: rgba(0, 123, 255, 0.3);
+}
+
+.tabs-container.light-theme .tab-button {
+    color: rgba(33, 37, 41, 0.7);
+}
+
+.tabs-container.light-theme .tab-button:hover {
+    background: rgba(0, 123, 255, 0.1);
+    color: rgba(33, 37, 41, 0.9);
+}
+
+.tabs-container.light-theme .tab-button.active {
+    background: rgba(0, 123, 255, 0.15);
+    color: #007bff;
+    border-bottom-color: #007bff;
+}
+
+.tabs-container.light-theme .tab-header h2 {
+    color: #007bff;
+}
+
+.tabs-container.light-theme .sub-tabs {
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.tabs-container.light-theme .sub-tab-button {
+    color: rgba(33, 37, 41, 0.6);
+}
+
+.tabs-container.light-theme .sub-tab-button:hover {
+    background: rgba(0, 123, 255, 0.1);
+    color: rgba(33, 37, 41, 0.8);
+}
+
+.tabs-container.light-theme .sub-tab-button.active {
+    background: linear-gradient(135deg, #007bff, #28a745);
+    color: white;
+}
+
+.tabs-container.light-theme .analytics-section,
+.tabs-container.light-theme .reporting-section,
+.tabs-container.light-theme .visualization-section,
+.tabs-container.light-theme .import-export-section,
+.tabs-container.light-theme .data-quality-section,
+.tabs-container.light-theme .settings-section {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 123, 255, 0.2);
+    color: #212529;
+}
+
+.tabs-container.light-theme .analytics-section h3,
+.tabs-container.light-theme .reporting-section h3,
+.tabs-container.light-theme .visualization-section h3,
+.tabs-container.light-theme .import-export-section h3,
+.tabs-container.light-theme .data-quality-section h3,
+.tabs-container.light-theme .settings-section h3 {
+    color: #28a745;
+}
+
+/* Efectos de Transición Suaves */
+.tab-button,
+.sub-tab-button {
+    position: relative;
+    overflow: hidden;
+}
+
+.tab-button::before,
+.sub-tab-button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.tab-button:active::before,
+.sub-tab-button:active::before {
+    width: 300px;
+    height: 300px;
+}
+
+/* Scrollbar Personalizada */
+.tabs-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.tabs-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tabs-container::-webkit-scrollbar-thumb {
+    background: rgba(0, 212, 255, 0.3);
+    border-radius: 4px;
+}
+
+.tabs-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 212, 255, 0.5);
+}
+
+/* Estados de Enfoque */
+.tab-button:focus,
+.sub-tab-button:focus {
+    outline: 2px solid #00d4ff;
+    outline-offset: 2px;
+}
+
+/* Animaciones de Entrada para Contenido */
+.tab-content.active .analytics-section,
+.tab-content.active .reporting-section,
+.tab-content.active .visualization-section,
+.tab-content.active .import-export-section,
+.tab-content.active .data-quality-section,
+.tab-content.active .settings-section {
+    animation: scaleIn 0.6s ease forwards;
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Indicadores de Progreso */
+.progress-indicator {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 1rem 0;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #00d4ff, #00ff88);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+/* Tooltips */
+.tooltip {
+    position: relative;
+    cursor: help;
+}
+
+.tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(26, 26, 46, 0.95);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+}
+
+.tooltip:hover::after {
+    opacity: 1;
+}
