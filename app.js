@@ -11978,36 +11978,20 @@ function renderizarGraficoEvolucionCliente(datos) {
             };
     }
     
-    // Añadir escalas para todos los tipos excepto algunos
-    if (tipoGrafico !== 'area' && tipoGrafico !== 'stepped') {
-        config.options.scales = {
-            y: {
-                grid: { color: 'rgba(255,255,255,0.05)' },
-                ticks: {
-                    color: 'rgba(255,255,255,0.6)',
-                    callback: (v) => formatearMoneda(v)
-                }
-            },
-            x: {
-                grid: { display: false },
-                ticks: { color: 'rgba(255,255,255,0.6)' }
+    // Añadir escalas para todos los tipos
+    config.options.scales = {
+        y: {
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: {
+                color: 'rgba(255,255,255,0.6)',
+                callback: (v) => formatearMoneda(v)
             }
-        };
-    } else {
-        config.options.scales = {
-            y: {
-                grid: { color: 'rgba(255,255,255,0.05)' },
-                ticks: {
-                    color: 'rgba(255,255,255,0.6)',
-                    callback: (v) => formatearMoneda(v)
-                }
-            },
-            x: {
-                grid: { display: false },
-                ticks: { color: 'rgba(255,255,255,0.6)' }
-            }
-        };
-    }
+        },
+        x: {
+            grid: { display: false },
+            ticks: { color: 'rgba(255,255,255,0.6)' }
+        }
+    };
     
     chartClienteEvolucion = new Chart(ctx, config);
 }
