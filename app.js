@@ -10657,7 +10657,8 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
                 capitalInvertido: mesDatos.incrementos,
                 capitalRetirado: mesDatos.decrementos,
                 beneficio: mesDatos.beneficio,
-                rentabilidad: mesDatos.incrementos > 0 ? (mesDatos.beneficio / mesDatos.incrementos) : 0,
+                // 🔥 FÓRMULA CORRECTA: (saldoFinal - saldoAnterior) / saldoAnterior
+                rentabilidad: mesDatos.saldoInicial > 0 ? ((mesDatos.saldoFinal - mesDatos.saldoInicial) / mesDatos.saldoInicial) * 100 : 0,
                 saldoInicial: mesDatos.saldoInicial,
                 saldoFinal: mesDatos.saldoFinal,
                 diasOperados: mesDatos.diasConDatos,
@@ -10665,7 +10666,12 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
             };
             
             resultados.push(resultado);
-            console.log(`✅ Mes ${mesKey}: ${resultado.rentabilidad.toFixed(2)}% (${resultado.diasOperados} días) - Saldo: ${resultado.saldoFinal.toFixed(2)}`);
+            // 🔥 DEBUG NUEVA FÓRMULA
+            console.log(`✅ Mes ${mesKey}:`);
+            console.log(`   Saldo Inicial: ${mesDatos.saldoInicial.toFixed(2)}`);
+            console.log(`   Saldo Final: ${mesDatos.saldoFinal.toFixed(2)}`);
+            console.log(`   Rentabilidad: ${resultado.rentabilidad.toFixed(2)}%`);
+            console.log(`   Fórmula: (${mesDatos.saldoFinal.toFixed(2)} - ${mesDatos.saldoInicial.toFixed(2)}) / ${mesDatos.saldoInicial.toFixed(2)} * 100`);
         } else {
             console.log(`❌ Mes ${mesKey}: sin datos`);
         }
@@ -11329,6 +11335,28 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
         
         <div class="client-chart-container">
             <h3>📊 Rentabilidad Mensual</h3>
+            <div class="chart-controls-premium">
+                <div class="control-group">
+                    <label>Tipo de gráfico:</label>
+                    <select id="tipoGraficoCliente" onchange="renderizarGraficoRentabilidadCliente(window._datosCliente)">
+                        <option value="bar" selected>Barras</option>
+                        <option value="line">Línea</option>
+                        <option value="radar">Radar</option>
+                        <option value="doughnut">Dona</option>
+                        <option value="polarArea">Polar</option>
+                        <option value="pie">Pastel</option>
+                        <option value="scatter">Dispersión</option>
+                        <option value="bubble">Burbujas</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Vista:</label>
+                    <select id="vistaCliente" onchange="renderizarGraficoRentabilidadCliente(window._datosCliente)">
+                        <option value="mensual">Mensual</option>
+                        <option value="acumulado">Acumulado</option>
+                    </select>
+                </div>
+            </div>
             <div class="client-chart-wrapper">
                 <canvas id="chartClienteRentabilidad"></canvas>
             </div>
@@ -11336,12 +11364,26 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
         
         <div class="client-chart-container">
             <h3>📈 Evolución del Patrimonio</h3>
+            <div class="chart-controls-premium">
+                <div class="control-group">
+                    <label>Tipo de gráfico:</label>
+                    <select id="tipoGraficoEvolucion" onchange="renderizarGraficoEvolucionCliente(window._datosCliente)">
+                        <option value="line" selected>Línea</option>
+                        <option value="bar">Barras</option>
+                        <option value="area">Área</option>
+                        <option value="stepped">Escalonado</option>
+                    </select>
+                </div>
+            </div>
             <div class="client-chart-wrapper">
                 <canvas id="chartClienteEvolucion"></canvas>
             </div>
         </div>
         
     `;
+    
+    // Guardar datos globalmente para los selectores
+    window._datosCliente = mesesConDatos;
     
     // Renderizar gráficos
     setTimeout(() => {
@@ -11449,95 +11491,293 @@ function renderizarGraficoRentabilidadCliente(datos) {
     console.log('📊 Datos:', datos.map(d => ({ mes: d.nombreMes, rentabilidad: d.rentabilidad })));
     
     const canvas = document.getElementById('chartClienteRentabilidad');
-    if (!canvas || datos.length === 0) {
-        console.log('❌ No hay canvas o no hay datos para el gráfico de rentabilidad');
-        return;
-    }
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
     
     if (chartClienteRentabilidad) {
         chartClienteRentabilidad.destroy();
     }
     
-    const ctx = canvas.getContext('2d');
+    // Obtener tipo de gráfico y vista
+    const tipoGrafico = document.getElementById('tipoGraficoCliente')?.value || 'bar';
+    const vista = document.getElementById('vistaCliente')?.value || 'mensual';
+    
     const labels = datos.map(d => formatearMesCorto(d.mes));
-    const valores = datos.map(d => d.rentabilidad);
+    let valores = datos.map(d => d.rentabilidad);
+    
+    // Si vista es acumulado, calcular valores acumulados
+    if (vista === 'acumulado') {
+        let acumulado = 0;
+        valores = datos.map(d => {
+            acumulado += d.rentabilidad;
+            return acumulado;
+        });
+    }
     
     console.log('📊 Labels:', labels);
     console.log('📊 Valores:', valores);
+    console.log('📊 Tipo gráfico:', tipoGrafico);
+    console.log('📊 Vista:', vista);
     
-    chartClienteRentabilidad = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Rentabilidad %',
-                data: valores,
-                backgroundColor: valores.map(v => v >= 0 ? 'rgba(0, 255, 136, 0.8)' : 'rgba(255, 107, 107, 0.8)'),
-                borderColor: valores.map(v => v >= 0 ? 'rgb(0, 255, 136)' : 'rgb(255, 107, 107)'),
-                borderWidth: 2,
-                borderRadius: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: { duration: 1000, easing: 'easeOutQuart' },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: 'rgba(26, 26, 46, 0.95)',
-                    titleFont: { size: 14, weight: 'bold' },
-                    titleColor: '#fff',
-                    bodyFont: { size: 13 },
-                    bodyColor: 'rgba(255,255,255,0.8)',
-                    padding: 12,
-                    cornerRadius: 8,
-                    callbacks: {
-                        label: (ctx) => {
-                            const idx = ctx.dataIndex;
-                            const d = datos[idx];
-                            return [
-                                `Rentabilidad: ${d.rentabilidad.toFixed(4)}%`,
-                                `Acumulado: ${d.benefAcumTotal.toFixed(4)}%`,
-                                `Días operados: ${d.diasOperados}`
-                            ];
+    // Configuración base para todos los gráficos
+    const baseConfig = {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 1000, easing: 'easeOutQuart' },
+        plugins: {
+            legend: { display: tipoGrafico === 'pie' || tipoGrafico === 'doughnut' || tipoGrafico === 'polarArea' },
+            tooltip: {
+                backgroundColor: 'rgba(26, 26, 46, 0.95)',
+                titleFont: { size: 14, weight: 'bold' },
+                titleColor: '#fff',
+                bodyFont: { size: 13 },
+                bodyColor: 'rgba(255,255,255,0.8)',
+                padding: 12,
+                cornerRadius: 8,
+                callbacks: {
+                    label: (ctx) => {
+                        const idx = ctx.dataIndex;
+                        const d = datos[idx];
+                        return [
+                            `Rentabilidad: ${d.rentabilidad.toFixed(4)}%`,
+                            `Días operados: ${d.diasOperados}`
+                        ];
+                    }
+                }
+            }
+        }
+    };
+    
+    // Configuración específica por tipo de gráfico
+    let config = { ...baseConfig };
+    
+    switch (tipoGrafico) {
+        case 'bar':
+            config.type = 'bar';
+            config.data = {
+                labels: labels,
+                datasets: [{
+                    label: vista === 'acumulado' ? 'Rentabilidad Acumulada %' : 'Rentabilidad %',
+                    data: valores,
+                    backgroundColor: valores.map(v => v >= 0 ? 'rgba(0, 255, 136, 0.8)' : 'rgba(255, 107, 107, 0.8)'),
+                    borderColor: valores.map(v => v >= 0 ? 'rgb(0, 255, 136)' : 'rgb(255, 107, 107)'),
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            };
+            config.options = {
+                ...baseConfig.options,
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: {
+                            color: 'rgba(255,255,255,0.6)',
+                            callback: (v) => v.toFixed(2) + '%'
                         }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: 'rgba(255,255,255,0.6)' }
                     }
                 }
-            },
-            scales: {
-                y: {
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    ticks: {
-                        color: 'rgba(255,255,255,0.6)',
-                        callback: (v) => v.toFixed(2) + '%'
+            };
+            break;
+            
+        case 'line':
+            config.type = 'line';
+            config.data = {
+                labels: labels,
+                datasets: [{
+                    label: vista === 'acumulado' ? 'Rentabilidad Acumulada %' : 'Rentabilidad %',
+                    data: valores,
+                    borderColor: '#00d4ff',
+                    backgroundColor: tipoGrafico === 'line' ? 'rgba(0, 212, 255, 0.1)' : undefined,
+                    borderWidth: 3,
+                    fill: tipoGrafico === 'line',
+                    tension: 0.4,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#00d4ff',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 10
+                }]
+            };
+            config.options = {
+                ...baseConfig.options,
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: {
+                            color: 'rgba(255,255,255,0.6)',
+                            callback: (v) => v.toFixed(2) + '%'
+                        }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: 'rgba(255,255,255,0.6)' }
                     }
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: { color: 'rgba(255,255,255,0.6)' }
                 }
-            }
-        },
-        plugins: [{
-            id: 'datalabels',
-            afterDatasetsDraw: function(chart) {
-                const ctx = chart.ctx;
-                chart.data.datasets.forEach((dataset, i) => {
-                    const meta = chart.getDatasetMeta(i);
-                    meta.data.forEach((bar, index) => {
-                        const value = dataset.data[index];
-                        ctx.fillStyle = value >= 0 ? '#00ff88' : '#ff6b6b';
-                        ctx.font = 'bold 11px Arial';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = value >= 0 ? 'bottom' : 'top';
-                        const y = value >= 0 ? bar.y - 5 : bar.y + 5;
-                        ctx.fillText(value.toFixed(2) + '%', bar.x, y);
-                    });
-                });
-            }
-        }]
-    });
+            };
+            break;
+            
+        case 'radar':
+            config.type = 'radar';
+            config.data = {
+                labels: labels,
+                datasets: [{
+                    label: vista === 'acumulado' ? 'Rentabilidad Acumulada %' : 'Rentabilidad %',
+                    data: valores,
+                    borderColor: '#00d4ff',
+                    backgroundColor: 'rgba(0, 212, 255, 0.2)',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#00d4ff',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            };
+            config.options = {
+                ...baseConfig.options,
+                scales: {
+                    r: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: 'rgba(255,255,255,0.6)' },
+                        pointLabels: { color: 'rgba(255,255,255,0.8)' }
+                    }
+                }
+            };
+            break;
+            
+        case 'doughnut':
+        case 'pie':
+        case 'polarArea':
+            config.type = tipoGrafico;
+            config.data = {
+                labels: labels,
+                datasets: [{
+                    label: vista === 'acumulado' ? 'Rentabilidad Acumulada %' : 'Rentabilidad %',
+                    data: valores,
+                    backgroundColor: [
+                        'rgba(0, 255, 136, 0.8)',
+                        'rgba(255, 107, 107, 0.8)',
+                        'rgba(0, 212, 255, 0.8)',
+                        'rgba(255, 215, 0, 0.8)',
+                        'rgba(255, 105, 180, 0.8)',
+                        'rgba(144, 238, 144, 0.8)',
+                        'rgba(255, 165, 0, 0.8)',
+                        'rgba(147, 112, 219, 0.8)',
+                        'rgba(255, 20, 147, 0.8)',
+                        'rgba(0, 255, 255, 0.8)',
+                        'rgba(255, 255, 0, 0.8)',
+                        'rgba(192, 192, 192, 0.8)'
+                    ],
+                    borderColor: '#1a1a2e',
+                    borderWidth: 2
+                }]
+            };
+            break;
+            
+        case 'scatter':
+            config.type = 'scatter';
+            config.data = {
+                datasets: [{
+                    label: vista === 'acumulado' ? 'Rentabilidad Acumulada %' : 'Rentabilidad %',
+                    data: valores.map((v, i) => ({ x: i, y: v })),
+                    backgroundColor: valores.map(v => v >= 0 ? 'rgba(0, 255, 136, 0.8)' : 'rgba(255, 107, 107, 0.8)'),
+                    borderColor: valores.map(v => v >= 0 ? 'rgb(0, 255, 136)' : 'rgb(255, 107, 107)'),
+                    borderWidth: 2,
+                    pointRadius: 8,
+                    pointHoverRadius: 12
+                }]
+            };
+            config.options = {
+                ...baseConfig.options,
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: 'rgba(255,255,255,0.6)' },
+                        title: { display: true, text: 'Mes', color: 'rgba(255,255,255,0.8)' }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: {
+                            color: 'rgba(255,255,255,0.6)',
+                            callback: (v) => v.toFixed(2) + '%'
+                        },
+                        title: { display: true, text: 'Rentabilidad %', color: 'rgba(255,255,255,0.8)' }
+                    }
+                }
+            };
+            break;
+            
+        case 'bubble':
+            config.type = 'bubble';
+            config.data = {
+                datasets: [{
+                    label: vista === 'acumulado' ? 'Rentabilidad Acumulada %' : 'Rentabilidad %',
+                    data: valores.map((v, i) => ({ 
+                        x: i, 
+                        y: v, 
+                        r: Math.abs(v) / 2 + 5 
+                    })),
+                    backgroundColor: valores.map(v => v >= 0 ? 'rgba(0, 255, 136, 0.6)' : 'rgba(255, 107, 107, 0.6)'),
+                    borderColor: valores.map(v => v >= 0 ? 'rgb(0, 255, 136)' : 'rgb(255, 107, 107)'),
+                    borderWidth: 2
+                }]
+            };
+            config.options = {
+                ...baseConfig.options,
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: 'rgba(255,255,255,0.6)' },
+                        title: { display: true, text: 'Mes', color: 'rgba(255,255,255,0.8)' }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: {
+                            color: 'rgba(255,255,255,0.6)',
+                            callback: (v) => v.toFixed(2) + '%'
+                        },
+                        title: { display: true, text: 'Rentabilidad %', color: 'rgba(255,255,255,0.8)' }
+                    }
+                }
+            };
+            break;
+            
+        default:
+            config.type = 'bar';
+            config.data = {
+                labels: labels,
+                datasets: [{
+                    label: 'Rentabilidad %',
+                    data: valores,
+                    backgroundColor: valores.map(v => v >= 0 ? 'rgba(0, 255, 136, 0.8)' : 'rgba(255, 107, 107, 0.8)'),
+                    borderColor: valores.map(v => v >= 0 ? 'rgb(0, 255, 136)' : 'rgb(255, 107, 107)'),
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            };
+            config.options = {
+                ...baseConfig.options,
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: {
+                            color: 'rgba(255,255,255,0.6)',
+                            callback: (v) => v.toFixed(2) + '%'
+                        }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: 'rgba(255,255,255,0.6)' }
+                    }
+                }
+            };
+    }
+    
+    chartClienteRentabilidad = new Chart(ctx, config);
 }
 
 function renderizarGraficoEvolucionCliente(datos) {
@@ -11555,77 +11795,178 @@ function renderizarGraficoEvolucionCliente(datos) {
     }
     
     const ctx = canvas.getContext('2d');
+    const tipoGrafico = document.getElementById('tipoGraficoEvolucion')?.value || 'line';
+    
     const labels = datos.map(d => formatearMesCorto(d.mes));
     // Usar saldoFinal = último saldo diario de cada mes
     const saldos = datos.map(d => d.saldoFinal || 0);
     
     console.log('📈 Labels:', labels);
     console.log('📈 Saldos:', saldos);
+    console.log('📈 Tipo gráfico:', tipoGrafico);
     
-    // Calcular gradiente
-    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, 'rgba(0, 212, 255, 0.4)');
-    gradient.addColorStop(1, 'rgba(0, 212, 255, 0.0)');
-    
-    chartClienteEvolucion = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Patrimonio',
-                data: saldos,
-                borderColor: '#00d4ff',
-                backgroundColor: gradient,
-                borderWidth: 3,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 6,
-                pointBackgroundColor: '#00d4ff',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointHoverRadius: 10
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: { duration: 1000, easing: 'easeOutQuart' },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: 'rgba(26, 26, 46, 0.95)',
-                    titleFont: { size: 14, weight: 'bold' },
-                    titleColor: '#fff',
-                    bodyFont: { size: 13 },
-                    bodyColor: 'rgba(255,255,255,0.8)',
-                    padding: 12,
-                    cornerRadius: 8,
-                    callbacks: {
-                        label: (ctx) => {
-                            const idx = ctx.dataIndex;
-                            const d = datos[idx];
-                            // 🔥 CORRECCIÓN: Usar saldoFinal (no saldoFinalMes)
-                            const saldo = d.saldoFinal || 0;
-                            return `Patrimonio: ${formatearMoneda(saldo)}`;
-                        }
+    // Configuración base
+    const baseConfig = {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 1000, easing: 'easeOutQuart' },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: 'rgba(26, 26, 46, 0.95)',
+                titleFont: { size: 14, weight: 'bold' },
+                titleColor: '#fff',
+                bodyFont: { size: 13 },
+                bodyColor: 'rgba(255,255,255,0.8)',
+                padding: 12,
+                cornerRadius: 8,
+                callbacks: {
+                    label: (ctx) => {
+                        const idx = ctx.dataIndex;
+                        const d = datos[idx];
+                        const saldo = d.saldoFinal || 0;
+                        return `Patrimonio: ${formatearMoneda(saldo)}`;
                     }
-                }
-            },
-            scales: {
-                y: {
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    ticks: {
-                        color: 'rgba(255,255,255,0.6)',
-                        callback: (v) => formatearMoneda(v)
-                    }
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: { color: 'rgba(255,255,255,0.6)' }
                 }
             }
         }
-    });
+    };
+    
+    // Configuración específica por tipo
+    let config = { ...baseConfig };
+    
+    switch (tipoGrafico) {
+        case 'line':
+            config.type = 'line';
+            config.data = {
+                labels: labels,
+                datasets: [{
+                    label: 'Patrimonio',
+                    data: saldos,
+                    borderColor: '#00d4ff',
+                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#00d4ff',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 10
+                }]
+            };
+            break;
+            
+        case 'bar':
+            config.type = 'bar';
+            config.data = {
+                labels: labels,
+                datasets: [{
+                    label: 'Patrimonio',
+                    data: saldos,
+                    backgroundColor: 'rgba(0, 212, 255, 0.8)',
+                    borderColor: '#00d4ff',
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            };
+            break;
+            
+        case 'area':
+            config.type = 'line';
+            config.data = {
+                labels: labels,
+                datasets: [{
+                    label: 'Patrimonio',
+                    data: saldos,
+                    borderColor: '#00d4ff',
+                    backgroundColor: 'rgba(0, 212, 255, 0.3)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.2,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#00d4ff',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 8
+                }]
+            };
+            break;
+            
+        case 'stepped':
+            config.type = 'line';
+            config.data = {
+                labels: labels,
+                datasets: [{
+                    label: 'Patrimonio',
+                    data: saldos,
+                    borderColor: '#00d4ff',
+                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    stepped: true,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#00d4ff',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 10
+                }]
+            };
+            break;
+            
+        default:
+            config.type = 'line';
+            config.data = {
+                labels: labels,
+                datasets: [{
+                    label: 'Patrimonio',
+                    data: saldos,
+                    borderColor: '#00d4ff',
+                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#00d4ff',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 10
+                }]
+            };
+    }
+    
+    // Añadir escalas para todos los tipos excepto algunos
+    if (tipoGrafico !== 'area' && tipoGrafico !== 'stepped') {
+        config.options.scales = {
+            y: {
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: {
+                    color: 'rgba(255,255,255,0.6)',
+                    callback: (v) => formatearMoneda(v)
+                }
+            },
+            x: {
+                grid: { display: false },
+                ticks: { color: 'rgba(255,255,255,0.6)' }
+            }
+        };
+    } else {
+        config.options.scales = {
+            y: {
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: {
+                    color: 'rgba(255,255,255,0.6)',
+                    callback: (v) => formatearMoneda(v)
+                }
+            },
+            x: {
+                grid: { display: false },
+                ticks: { color: 'rgba(255,255,255,0.6)' }
+            }
+        };
+    }
+    
+    chartClienteEvolucion = new Chart(ctx, config);
 }
 
 // ==================== RECALCULAR DIARIO WIND ====================
