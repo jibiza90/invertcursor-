@@ -195,7 +195,8 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 return self.enviar_diagnostico_mes(hoja, mes)
         if parsed.path.startswith('/api/datos/'):
             decoded_path = unquote(parsed.path)
-            match = re.match(r'/api/datos/([^/]+)/(\d{4}-\d{2})', decoded_path)
+            # Soportar tanto YYYY-MM (mensual) como YYYY (anual)
+            match = re.match(r'/api/datos/([^/]+)/(\d{4}(?:-\d{2})?)', decoded_path)
             if match:
                 hoja = match.group(1).replace('_', ' ')
                 mes = match.group(2)
@@ -205,7 +206,8 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         parsed = urlparse(self.path)
         if parsed.path.startswith('/api/guardar/'):
-            match = re.match(r'/api/guardar/([^/]+)/(\d{4}-\d{2})', parsed.path)
+            # Soportar tanto YYYY-MM (mensual) como YYYY (anual)
+            match = re.match(r'/api/guardar/([^/]+)/(\d{4}(?:-\d{2})?)', parsed.path)
             if match:
                 hoja = match.group(1).replace('_', ' ')
                 mes = match.group(2)
