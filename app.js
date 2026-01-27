@@ -10505,7 +10505,7 @@ async function mostrarEstadisticasCliente() {
             </div>
             <div id="clientStatsContent" style="text-align: center; padding: 3rem;">
                 <div class="spinner-ring"></div>
-                <p style="color: rgba(255,255,255,0.6); margin-top: 1rem;">Cargando estadísticas de todos los meses...</p>
+                <p style="color: rgba(255,255,255,0.6); margin-top: 1rem;">Cargando estadísticas en tiempo real...</p>
             </div>
         </div>
     `;
@@ -10517,33 +10517,169 @@ async function mostrarEstadisticasCliente() {
         if (e.target === modal) modal.remove();
     });
     
-    // Cargar datos de todos los meses del cliente
+    // Cargar datos 100% en tiempo real SIN ARCHIVOS GUARDADOS
     try {
-        let datosClienteMeses = [];
+        console.log('🚀 INICIando estadísticas 100% en tiempo real');
+        const datosClienteMeses = await calcularEstadisticasClienteTiempoReal(cliente, hoja);
+        console.log('📊 Datos calculados:', datosClienteMeses.length, 'meses');
         
-        if (esHojaAnual(hojaActual)) {
-            // HOJA ANUAL (Diario Xavi): Simular meses desde los datos diarios
-            const numeroCliente = cliente.numero_cliente || (clienteActual + 1);
-            datosClienteMeses = await calcularRentabilidadClienteAnualPorMeses(hojaActual, numeroCliente, cliente);
-        } else {
-            // HOJA MENSUAL: Usar lógica normal de meses separados
-            const meses = mesesDisponibles[hojaActual] || [];
-            const numeroCliente = cliente.numero_cliente || (clienteActual + 1);
-            datosClienteMeses = await calcularRentabilidadClientePorMes(hojaActual, numeroCliente, meses, cliente);
-        }
-        
-        // Calcular KPIs totales (desde primer incremento hasta última fecha)
-        // Pasar el cliente en memoria para obtener saldos calculados
-        const kpisTotales = calcularKPIsTotalesCliente(datosClienteMeses, cliente);
-        
-        // Renderizar contenido
+        const kpisTotales = calcularKPIsTiempoReal(datosClienteMeses);
         renderizarContenidoEstadisticasCliente(nombreCompleto, kpisTotales, datosClienteMeses);
     } catch (error) {
-        console.error('Error cargando estadísticas del cliente:', error);
+        console.error('Error en estadísticas tiempo real:', error);
         document.getElementById('clientStatsContent').innerHTML = `
-            <p style="color: #ff6b6b;">Error al cargar las estadísticas: ${error.message}</p>
+            <p style="color: #ff6b6b;">Error: ${error.message}</p>
         `;
     }
+}
+
+// 🚀 NUEVA FUNCIÓN 100% EN TIEMPO REAL - SIN ARCHIVOS GUARDADOS
+async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
+    console.log('🔥 CALCULANDO ESTADÍSTICAS 100% EN TIEMPO REAL');
+    
+    // Obtener datos diarios DIRECTAMENTE de memoria (no archivos)
+    const datosDiarios = cliente.datos_diarios || [];
+    const datosGenerales = hoja.datos_diarios_generales || [];
+    
+    console.log(`📊 Datos disponibles: ${datosDiarios.length} diarios, ${datosGenerales.length} generales`);
+    
+    // Crear mapa de beneficios por fila
+    const benefPorFila = {};
+    datosGenerales.forEach(d => {
+        if (typeof d.benef_porcentaje === 'number') {
+            benefPorFila[d.fila] = d.benef_porcentaje;
+        }
+    });
+    
+    // Agrupar datos por MES REAL (basado en posición de fila)
+    const datosPorMes = {};
+    
+    // Procesar CADA fila de datos diarios
+    datosDiarios.forEach(fila => {
+        if (fila.fila < 15 || fila.fila > 1120) return; // Solo filas válidas
+        
+        // Calcular mes basado en posición (30 días por mes)
+        const diaDelAno = fila.fila - 14; // Fila 15 = día 1
+        const mesNum = Math.min(12, Math.max(1, Math.ceil(diaDelAno / 30)));
+        const mesKey = `2026-${String(mesNum).padStart(2, '0')}`;
+        
+        if (!datosPorMes[mesKey]) {
+            datosPorMes[mesKey] = {
+                mes: mesKey,
+                incrementos: 0,
+                decrementos: 0,
+                beneficio: 0,
+                saldoFinal: 0,
+                diasConDatos: 0,
+                filas: []
+            };
+        }
+        
+        const mesDatos = datosPorMes[mesKey];
+        const inc = typeof fila.incremento === 'number' ? fila.incremento : 0;
+        const dec = typeof fila.decremento === 'number' ? fila.decremento : 0;
+        const benefPct = benefPorFila[fila.fila] || 0;
+        
+        // Acumular datos
+        mesDatos.incrementos += inc;
+        mesDatos.decrementos += dec;
+        mesDatos.beneficio += (inc + dec) * (benefPct / 100);
+        
+        if (inc > 0 || dec > 0) {
+            mesDatos.diasConDatos++;
+        }
+        
+        // Guardar saldo final si existe
+        if (typeof fila.saldo_diario === 'number') {
+            mesDatos.saldoFinal = fila.saldo_diario;
+        } else if (typeof fila.imp_final === 'number') {
+            mesDatos.saldoFinal = fila.imp_final;
+        }
+        
+        mesDatos.filas.push(fila);
+    });
+    
+    console.log('📅 Meses con datos:', Object.keys(datosPorMes));
+    
+    // Generar resultados para TODOS los meses del año
+    const resultados = [];
+    let saldoAnterior = 0;
+    
+    for (let mesNum = 1; mesNum <= 12; mesNum++) {
+        const mesKey = `2026-${String(mesNum).padStart(2, '0')}`;
+        const mesDatos = datosPorMes[mesKey];
+        
+        if (mesDatos && (mesDatos.incrementos > 0 || mesDatos.decrementos > 0 || mesDatos.saldoFinal > 0)) {
+            // Calcular saldos
+            mesDatos.saldoInicial = saldoAnterior;
+            saldoAnterior = mesDatos.saldoFinal;
+            
+            // Crear resultado
+            const resultado = {
+                mes: mesKey,
+                nombreMes: formatearNombreMes(mesKey),
+                capitalInvertido: mesDatos.incrementos,
+                capitalRetirado: mesDatos.decrementos,
+                beneficio: mesDatos.beneficio,
+                rentabilidad: mesDatos.incrementos > 0 ? (mesDatos.beneficio / mesDatos.incrementos) * 100 : 0,
+                saldoInicial: mesDatos.saldoInicial,
+                saldoFinal: mesDatos.saldoFinal,
+                diasOperados: mesDatos.diasConDatos,
+                detalles: mesDatos.filas
+            };
+            
+            resultados.push(resultado);
+            console.log(`✅ Mes ${mesKey}: ${resultado.rentabilidad.toFixed(2)}% (${resultado.diasOperados} días)`);
+        } else {
+            console.log(`❌ Mes ${mesKey}: sin datos`);
+        }
+    }
+    
+    console.log(`🎯 TOTAL: ${resultados.length} meses con actividad`);
+    return resultados;
+}
+
+// 🚀 NUEVA FUNCIÓN KPIs 100% EN TIEMPO REAL
+function calcularKPIsTiempoReal(datosMeses) {
+    if (datosMeses.length === 0) {
+        return {
+            inversion: 0,
+            saldoActual: 0,
+            decrementos: 0,
+            beneficioEuro: 0,
+            rentabilidadTotal: 0,
+            mejorMes: null,
+            peorMes: null,
+            promedioMensual: 0,
+            mesesOperados: 0
+        };
+    }
+    
+    // Calcular totales
+    const inversion = datosMeses.reduce((sum, m) => sum + m.capitalInvertido, 0);
+    const decrementos = datosMeses.reduce((sum, m) => sum + m.capitalRetirado, 0);
+    const beneficioEuro = datosMeses.reduce((sum, m) => sum + m.beneficio, 0);
+    const saldoActual = datosMeses[datosMeses.length - 1]?.saldoFinal || 0;
+    const rentabilidadTotal = inversion > 0 ? (beneficioEuro / inversion) * 100 : 0;
+    
+    // Mejor y peor mes
+    const mejorMes = datosMeses.reduce((a, b) => (a.rentabilidad || 0) > (b.rentabilidad || 0) ? a : b);
+    const peorMes = datosMeses.reduce((a, b) => (a.rentabilidad || 0) < (b.rentabilidad || 0) ? a : b);
+    const promedioMensual = rentabilidadTotal / datosMeses.length;
+    
+    console.log(`💰 KPIs: Inversión=${inversion.toFixed(2)}, Beneficio=${beneficioEuro.toFixed(2)}, Rentabilidad=${rentabilidadTotal.toFixed(2)}%`);
+    
+    return {
+        inversion,
+        saldoActual,
+        decrementos,
+        beneficioEuro,
+        rentabilidadTotal,
+        mejorMes,
+        peorMes,
+        promedioMensual,
+        mesesOperados: datosMeses.length
+    };
 }
 
 // Función para procesar datos anuales y agrupar por meses (para Diario Xavi)
@@ -10960,7 +11096,7 @@ async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, cli
 }
 
 async function actualizarEstadisticasCliente() {
-    // Recalcular todo desde cero
+    // 🚀 ACTUALIZACIÓN 100% EN TIEMPO REAL
     const container = document.getElementById('clientStatsContent');
     if (!container) return;
     
@@ -10968,7 +11104,7 @@ async function actualizarEstadisticasCliente() {
     container.innerHTML = `
         <div style="text-align: center; padding: 3rem;">
             <div class="spinner-ring"></div>
-            <p style="color: rgba(255,255,255,0.6); margin-top: 1rem;">Recalculando estadísticas...</p>
+            <p style="color: rgba(255,255,255,0.6); margin-top: 1rem;">🔄 Recalculando en tiempo real...</p>
         </div>
     `;
     
@@ -10979,35 +11115,26 @@ async function actualizarEstadisticasCliente() {
     }
     
     const cliente = hoja.clientes[clienteActual];
-    
-    // Recalcular totales del cliente en memoria
-    recalcularTotalesCliente(cliente, clienteActual);
-    cliente.saldo_actual = obtenerSaldoFinalClienteDeMes(cliente);
-    
     const datosCliente = cliente.datos || {};
     const nombre = datosCliente['NOMBRE']?.valor || '';
     const apellidos = datosCliente['APELLIDOS']?.valor || '';
     const nombreCompleto = nombre || apellidos ? `${nombre} ${apellidos}`.trim() : `Cliente ${clienteActual + 1}`;
     
     try {
-        let datosClienteMeses = [];
+        console.log('🔄 ACTUALIZANDO estadísticas 100% en tiempo real');
         
-        if (esHojaAnual(hojaActual)) {
-            // HOJA ANUAL (Diario Xavi): Usar función anual
-            const numeroCliente = cliente.numero_cliente || (clienteActual + 1);
-            datosClienteMeses = await calcularRentabilidadClienteAnualPorMeses(hojaActual, numeroCliente, cliente);
-            console.log('📊 Usando cálculo ANUAL para Diario Xavi');
-        } else {
-            // HOJA MENSUAL: Usar función mensual normal
-            const meses = mesesDisponibles[hojaActual] || [];
-            const numeroCliente = cliente.numero_cliente || (clienteActual + 1);
-            datosClienteMeses = await calcularRentabilidadClientePorMes(hojaActual, numeroCliente, meses, cliente);
-            console.log('📊 Usando cálculo MENSUAL para hoja normal');
-        }
+        // Forzar recálculo de totales del cliente
+        recalcularTotalesCliente(cliente, clienteActual);
         
-        const kpisTotales = calcularKPIsTotalesCliente(datosClienteMeses, cliente);
+        // Calcular estadísticas 100% en tiempo real
+        const datosClienteMeses = await calcularEstadisticasClienteTiempoReal(cliente, hoja);
+        const kpisTotales = calcularKPIsTiempoReal(datosClienteMeses);
+        
+        // Renderizar
         renderizarContenidoEstadisticasCliente(nombreCompleto, kpisTotales, datosClienteMeses);
-        mostrarNotificacion('✓ Estadísticas actualizadas', 'success');
+        
+        mostrarNotificacion('✅ Estadísticas actualizadas en tiempo real', 'success');
+        console.log('🎯 ESTADÍSTICAS ACTUALIZADAS CORRECTAMENTE');
     } catch (error) {
         console.error('Error actualizando estadísticas:', error);
         container.innerHTML = `<p style="color:#ff6b6b;">Error: ${error.message}</p>`;
