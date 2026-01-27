@@ -1600,7 +1600,7 @@ async function guardarDatosAutomatico(numFormulasGenerales = 0, numFormulasClien
     // Evita que un mes quede guardado con base 0 (y contamine cálculos de clientes).
     try {
         recalcularTotalesGenerales(hoja);
-        recalcularImpInicialSync(hoja);
+        await recalcularImpInicialSync(hoja);
         recalcularBeneficiosGeneralesDesdeFila(15, hoja);
     } catch (e) {
         console.warn('⚠️ Error recalculando generales antes de guardar:', e);
@@ -2519,7 +2519,7 @@ function mostrarVistaGeneral() {
     
     // Recalcular imp_inicial/beneficios SIEMPRE antes de mostrar (sync)
     // Esto asegura que los valores estén actualizados sin necesidad de pulsar Actualizar
-    recalcularImpInicialSync(hoja);
+    await recalcularImpInicialSync(hoja);
     requiereRecalculoImpInicial = false;
     
     // REDISTRIBUCIÓN AUTOMÁTICA PARA DIARIO WIND e IBI
@@ -3370,7 +3370,7 @@ function formatearValorGeneral(valor) {
 
 // Recálculo síncrono de imp_inicial para Vista General
 // Se ejecuta SIEMPRE antes de mostrar la vista para asegurar valores correctos
-function recalcularImpInicialSync(hoja) {
+async function recalcularImpInicialSync(hoja) {
     if (!hoja) return;
     const datosGen = hoja.datos_diarios_generales || [];
     
@@ -7897,7 +7897,7 @@ async function actualizarDatoDiario(input, cliente, datoDiario, hojaExplicita = 
             // para que al ir a General se vean los valores correctos
             if (campo === 'incremento' || campo === 'decremento') {
                 console.log(`📊 Recalculando imp_inicial de vista general...`);
-                recalcularImpInicialSync(hoja);
+                await recalcularImpInicialSync(hoja);
             }
             
             // Refrescar la tabla del cliente
@@ -11429,7 +11429,7 @@ async function actualizarTodoElDiario(opts = {}) {
             }
         }
 
-        recalcularImpInicialSync(hoja);
+        await recalcularImpInicialSync(hoja);
         recalcularBeneficiosGeneralesDesdeFila(15, hoja);
 
         // IBI también usa lógica WIND, así que excluirlo del procesamiento STD/VIP
