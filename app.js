@@ -10565,26 +10565,26 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
         .filter(d => d.fila >= 15 && d.fila <= 1120)
         .sort((a, b) => a.fila - b.fila);
     
-    console.log(`🔍 DEBUG datosDiariosCliente filtrados length:`, datosDiariosCliente.length);
-    console.log(`🔍 DEBUG primeras 3 filas:`, datosDiariosCliente.slice(0, 3));
+    console.log(`📊 Cliente ${numeroCliente}: ${datosDiariosCliente.length} filas procesadas`);
     
-    // DEBUG: Mostrar TODAS las fechas encontradas
-    const todasLasFechas = datosDiariosCliente
+    // DEBUG: Mostrar fechas únicas encontradas
+    const fechasUnicas = [...new Set(datosDiariosCliente
         .filter(d => d.fecha && d.fecha !== 'FECHA')
-        .map(d => ({ fila: d.fila, fecha: d.fecha }));
-    console.log(`🔍 DEBUG TODAS las fechas encontradas (${todasLasFechas.length}):`, todasLasFechas);
+        .map(d => String(d.fecha).trim()))];
+    console.log(`📅 Fechas únicas encontradas (${fechasUnicas.length}):`, fechasUnicas.slice(0, 10));
     
-    // DEBUG: Mostrar distribución por filas
-    const fechasPorMes = {};
-    datosDiariosCliente.forEach(d => {
-        if (d.fecha && d.fecha !== 'FECHA') {
-            const mesEstimado = Math.min(12, Math.max(1, Math.ceil((d.fila - 14) / 30)));
-            const key = `Mes ${mesEstimado}`;
-            if (!fechasPorMes[key]) fechasPorMes[key] = [];
-            fechasPorMes[key].push({ fila: d.fila, fecha: d.fecha });
-        }
-    });
-    console.log(`🔍 DEBUG fechas por mes estimado:`, fechasPorMes);
+    // DEBUG: Mostrar rango de filas con datos
+    const filasConDatos = datosDiariosCliente.filter(d => 
+        (d.incremento > 0 || d.decremento > 0) && d.fecha && d.fecha !== 'FECHA'
+    );
+    if (filasConDatos.length > 0) {
+        const primeraFila = Math.min(...filasConDatos.map(d => d.fila));
+        const ultimaFila = Math.max(...filasConDatos.map(d => d.fila));
+        console.log(`📍 Rango de filas con movimientos: ${primeraFila} - ${ultimaFila}`);
+        console.log(`📍 Ejemplos de fechas con movimientos:`, filasConDatos.slice(0, 5).map(d => `Fila ${d.fila}: ${d.fecha}`));
+    } else {
+        console.log('⚠️ No se encontraron filas con movimientos y fechas válidas');
+    }
     
     // Obtener datos generales para rentabilidades
     const hojaData = datosEditados?.hojas?.[hoja];
@@ -10613,69 +10613,20 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
         // Extraer mes de la fecha si existe, o usar el número de fila
         let mes = '';
         if (filaCliente.fecha && filaCliente.fecha !== 'FECHA') {
-            // Intentar múltiples formatos de fecha
             const fechaStr = String(filaCliente.fecha).trim();
-            console.log(`🔍 DEBUG procesando fecha: "${fechaStr}" en fila ${filaCliente.fila}`);
             
-            // LIMPIAR fecha: remover espacios extra y caracteres especiales
-            const fechaLimpia = fechaStr.replace(/\s+/g, '').trim();
+            // Método simple: estimar mes por fila (más fiable)
+            const diaEstimado = filaCliente.fila - 14; // Fila 15 = día 1
+            const mesEstimado = Math.min(12, Math.max(1, Math.ceil(diaEstimado / 30)));
+            mes = `2026-${String(mesEstimado).padStart(2, '0')}`;
             
-            // Formato 1: "2026-01-15" (ISO)
-            if (fechaLimpia.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                const partes = fechaLimpia.split('-');
-                mes = `${partes[0]}-${partes[1]}`;
-                console.log(`🔍 DEBUG formato ISO detectado: "${mes}"`);
-            }
-            // Formato 2: "15/01/2026" (europeo)
-            else if (fechaLimpia.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-                const partes = fechaLimpia.split('/');
-                mes = `2026-${partes[1]}`;
-                console.log(`🔍 DEBUG formato europeo / detectado: "${mes}"`);
-            }
-            // Formato 3: "15-01-2026" (europeo con guion)
-            else if (fechaLimpia.match(/^\d{2}-\d{2}-\d{4}$/)) {
-                const partes = fechaLimpia.split('-');
-                mes = `2026-${partes[1]}`;
-                console.log(`🔍 DEBUG formato europeo - detectado: "${mes}"`);
-            }
-            // Formato 4: "15/01/26" (año corto)
-            else if (fechaLimpia.match(/^\d{2}\/\d{2}\/\d{2}$/)) {
-                const partes = fechaLimpia.split('/');
-                const año = parseInt(partes[2]) + 2000; // Asumir 2000s
-                mes = `${año}-${partes[1]}`;
-                console.log(`🔍 DEBUG formato año corto detectado: "${mes}"`);
-            }
-            // Formato 5: "20260115" (YYYYMMDD)
-            else if (fechaLimpia.match(/^\d{8}$/)) {
-                const año = fechaLimpia.substring(0, 4);
-                const mesNum = fechaLimpia.substring(4, 6);
-                mes = `${año}-${mesNum}`;
-                console.log(`🔍 DEBUG formato YYYYMMDD detectado: "${mes}"`);
-            }
-            // Formato 6: "01/15/2026" (US)
-            else if (fechaLimpia.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-                const partes = fechaLimpia.split('/');
-                // Podría ser MM/DD/YYYY o DD/MM/YYYY, intentar ambos
-                const mesNum = parseInt(partes[0]);
-                if (mesNum <= 12) {
-                    mes = `2026-${partes[0]}`;
-                    console.log(`🔍 DEBUG formato US MM/DD/YYYY detectado: "${mes}"`);
-                } else {
-                    mes = `2026-${partes[1]}`;
-                    console.log(`🔍 DEBUG formato DD/MM/YYYY detectado: "${mes}"`);
+            // Si la fecha parece tener formato, intentamos parsear para verificar
+            if (fechaStr.includes('/') || fechaStr.includes('-')) {
+                // Solo para debug, no cambiar el mes estimado
+                if (totalProcesadas <= 5) { // Solo mostrar los primeros 5
+                    console.log(`📅 Fila ${filaCliente.fila}: "${fechaStr}" → Mes ${mes} (estimado)`);
                 }
             }
-            // Formato 7: Solo mes-año "01-2026" o "01/2026"
-            else if (fechaLimpia.match(/^\d{2}[-\/]\d{4}$/)) {
-                const partes = fechaLimpia.split(/[-\/]/);
-                mes = `2026-${partes[0]}`;
-                console.log(`🔍 DEBUG formato mes-año detectado: "${mes}"`);
-            }
-            else {
-                console.log(`🔍 DEBUG formato no reconocido: "${fechaStr}" -> "${fechaLimpia}"`);
-            }
-            
-            console.log(`🔍 DEBUG mes extraído: "${mes}" de fecha "${fechaStr}"`);
         }
         
         // Si no hay fecha válida, estimar mes basado en la fila
@@ -10786,8 +10737,19 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
         }
     }
     
-    console.log(`📊 Cliente ${numeroCliente} en hoja anual: ${resultados.length} meses con actividad`);
-    console.log(`🔍 DEBUG resultados finales:`, resultados);
+    // Resumen claro para debugging
+    console.log(`📊 === RESUMEN CLIENTE ${numeroCliente} ===`);
+    console.log(`📈 Meses con actividad: ${resultados.length}`);
+    if (resultados.length > 0) {
+        console.log(`📅 Meses encontrados:`, resultados.map(r => r.nombreMes));
+        console.log(`💰 Total inversión: ${resultados.reduce((sum, r) => sum + r.capitalInvertido, 0).toFixed(2)}`);
+        console.log(`📉 Total retiradas: ${resultados.reduce((sum, r) => sum + r.capitalRetirado, 0).toFixed(2)}`);
+        console.log(`💵 Total beneficio: ${resultados.reduce((sum, r) => sum + r.beneficio, 0).toFixed(2)}`);
+    } else {
+        console.log('⚠️ NO se encontraron meses con datos');
+    }
+    console.log(`====================================`);
+    
     return resultados;
 }
 
@@ -11028,9 +10990,21 @@ async function actualizarEstadisticasCliente() {
     const nombreCompleto = nombre || apellidos ? `${nombre} ${apellidos}`.trim() : `Cliente ${clienteActual + 1}`;
     
     try {
-        const meses = mesesDisponibles[hojaActual] || [];
-        const numeroCliente = cliente.numero_cliente || (clienteActual + 1);
-        const datosClienteMeses = await calcularRentabilidadClientePorMes(hojaActual, numeroCliente, meses, cliente);
+        let datosClienteMeses = [];
+        
+        if (esHojaAnual(hojaActual)) {
+            // HOJA ANUAL (Diario Xavi): Usar función anual
+            const numeroCliente = cliente.numero_cliente || (clienteActual + 1);
+            datosClienteMeses = await calcularRentabilidadClienteAnualPorMeses(hojaActual, numeroCliente, cliente);
+            console.log('📊 Usando cálculo ANUAL para Diario Xavi');
+        } else {
+            // HOJA MENSUAL: Usar función mensual normal
+            const meses = mesesDisponibles[hojaActual] || [];
+            const numeroCliente = cliente.numero_cliente || (clienteActual + 1);
+            datosClienteMeses = await calcularRentabilidadClientePorMes(hojaActual, numeroCliente, meses, cliente);
+            console.log('📊 Usando cálculo MENSUAL para hoja normal');
+        }
+        
         const kpisTotales = calcularKPIsTotalesCliente(datosClienteMeses, cliente);
         renderizarContenidoEstadisticasCliente(nombreCompleto, kpisTotales, datosClienteMeses);
         mostrarNotificacion('✓ Estadísticas actualizadas', 'success');
