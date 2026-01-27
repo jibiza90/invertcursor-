@@ -73,6 +73,10 @@ let __autoUpdateScheduled = false;
 
 let __dirtyRecalculoMasivo = true;
 
+// Control de progreso de carga
+let __loadingProgressVisible = false;
+let __loadingStartTime = 0;
+
 // Virtualización de tabla de cliente - solo renderizar filas visibles + buffer
 const VIRTUAL_BUFFER_SIZE = 15; // Filas extra arriba y abajo
 let __virtualTableData = null; // Datos pre-calculados para renderizado virtual
@@ -823,6 +827,8 @@ function ocultarLoadingOverlay() {
         __loadingOverlayCount = Math.max(0, (__loadingOverlayCount || 0) - 1);
         if (__loadingOverlayCount === 0) {
             overlay.classList.add('hidden');
+            // Ocultar también el indicador de progreso
+            ocultarProgresoCarga();
         }
     }
 }
@@ -3355,7 +3361,18 @@ function recalcularImpInicialSync(hoja) {
         console.log(`📅 Usando imp_final del mes anterior como base: ${impFinalMesAnterior}`);
     }
     
+    // Reportar progreso para Diario Xavi (365 días)
+    const esXavi = hojaActual === 'Diario Xavi';
+    const totalFilas = datosGenOrd.length;
+    let filasProc = 0;
+    
     for (const filaData of datosGenOrd) {
+        filasProc++;
+        
+        // Reportar progreso cada 20 filas para Xavi
+        if (esXavi && __loadingProgressVisible && filasProc % 20 === 0) {
+            actualizarProgresoCarga(filasProc, totalFilas, 'Calculando días:');
+        }
         const fila = filaData.fila;
         const fa = calcularFA(fila, hoja);
         
@@ -8203,6 +8220,60 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
     }, 3000);
 }
 
+// Funciones de control de progreso de carga
+function mostrarProgresoCarga() {
+    const progressDiv = document.getElementById('loadingProgress');
+    if (progressDiv) {
+        progressDiv.style.display = 'flex';
+        __loadingProgressVisible = true;
+        __loadingStartTime = Date.now();
+    }
+}
+
+function ocultarProgresoCarga() {
+    const progressDiv = document.getElementById('loadingProgress');
+    if (progressDiv) {
+        progressDiv.style.display = 'none';
+        __loadingProgressVisible = false;
+    }
+}
+
+function actualizarProgresoCarga(actual, total, etapa = '') {
+    if (!__loadingProgressVisible) return;
+    
+    const progressDiv = document.getElementById('loadingProgress');
+    if (!progressDiv) return;
+    
+    const porcentaje = total > 0 ? Math.round((actual / total) * 100) : 0;
+    const tiempoTranscurrido = (Date.now() - __loadingStartTime) / 1000; // segundos
+    const velocidad = actual > 0 ? tiempoTranscurrido / actual : 0;
+    const tiempoRestante = velocidad > 0 ? Math.round((total - actual) * velocidad) : 0;
+    
+    // Actualizar texto
+    const progressText = progressDiv.querySelector('.progress-text');
+    if (progressText) {
+        progressText.textContent = `${etapa} ${actual} / ${total} (${porcentaje}%)`;
+    }
+    
+    // Actualizar barra
+    const progressBar = progressDiv.querySelector('.progress-bar-fill');
+    if (progressBar) {
+        progressBar.style.width = `${porcentaje}%`;
+    }
+    
+    // Actualizar tiempo estimado
+    const progressTime = progressDiv.querySelector('.progress-time');
+    if (progressTime && tiempoRestante > 0) {
+        if (tiempoRestante < 60) {
+            progressTime.textContent = `Tiempo estimado: ${tiempoRestante}s`;
+        } else {
+            const minutos = Math.floor(tiempoRestante / 60);
+            const segundos = tiempoRestante % 60;
+            progressTime.textContent = `Tiempo estimado: ${minutos}m ${segundos}s`;
+        }
+    }
+}
+
 // ==================== VISTA INFO CLIENTES ====================
 
 // Cambiar hoja en Info Clientes
@@ -11158,6 +11229,12 @@ async function actualizarTodoElDiario(opts = {}) {
             mostrarNotificacion('⟳ Actualizando todas las casillas...', 'info');
         }
         console.log(`🔄 Actualizando todo el diario: ${hojaActual}`);
+        
+        // Activar indicador de progreso para Diario Xavi
+        const esXavi = hojaActual === 'Diario Xavi';
+        if (esXavi) {
+            mostrarProgresoCarga();
+        }
 
         __cacheSaldosWindKey = null;
 
@@ -11173,6 +11250,11 @@ async function actualizarTodoElDiario(opts = {}) {
             recalcularSaldosClienteEnMemoria(hoja, i);
             recalcularTotalesCliente(clientes[i], i);
             cambiosRealizados++;
+            
+            // Reportar progreso de clientes para Xavi
+            if (esXavi && __loadingProgressVisible && i % 5 === 0) {
+                actualizarProgresoCarga(i + 1, clientes.length, 'Calculando clientes:');
+            }
 
             if (i > 0 && (i % BATCH_SIZE) === 0) {
                 await yieldToBrowser();
