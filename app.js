@@ -2358,10 +2358,23 @@ async function cambiarHoja() {
             return;
         }
         
+        // CRÍTICO: Limpiar datos en memoria antes de cambiar de hoja
+        // Esto evita que se muestren datos de la hoja anterior (ej: WIND en Xavi)
+        if (datosEditados && datosEditados.hojas) {
+            delete datosEditados.hojas[hojaActual];
+        }
+        if (datosCompletos && datosCompletos.hojas) {
+            delete datosCompletos.hojas[hojaActual];
+        }
+        
         hojaActual = nuevoValor;
         clienteActual = null;
         const selectorCliente = document.getElementById('selectorCliente');
         if (selectorCliente) selectorCliente.value = '';
+        
+        // Limpiar vista antes de cargar nuevos datos
+        const tbody = document.getElementById('tbodyGeneral');
+        if (tbody) tbody.innerHTML = '';
         
         // Obtener primer mes disponible para la nueva hoja
         const mesesNuevaHoja = mesesDisponibles[hojaActual] || [];
