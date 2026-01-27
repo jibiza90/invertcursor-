@@ -5841,33 +5841,16 @@ function calcularDetalleComisionesCobradas(cliente, clienteIdx = -1) {
 }
 
 async function renderVistaClientes() {
-    // Usar clientes anuales si están disponibles, sino usar del mes actual
+    // CRÍTICO: Usar SIEMPRE los datos actualizados de la hoja actual
+    // clientesAnuales puede tener datos viejos de otras hojas (ej: Diario WIND)
     let clientes = [];
     let hojaParaProporcion = null;
     
-    if (clientesAnuales && clientesAnuales.length > 0) {
-        const resumen = await obtenerClientesResumenAnual(hojaActual);
-        if (resumen && Array.isArray(resumen.clientes) && resumen.clientes.length > 0) {
-            clientes = resumen.clientes;
-            hojaParaProporcion = resumen.hojaRef;
-        } else {
-            clientes = clientesAnuales.map((clienteAnual) => ({
-                ...clienteAnual,
-                incrementos_total: 0,
-                decrementos_total: 0,
-                saldo_actual: 0,
-                datos_diarios: [],
-                _acumPrevInc: 0,
-                _acumPrevDec: 0
-            }));
-        }
-    } else {
-        // MODO MENSUAL (fallback): Usar clientes del mes actual
-        const hoja = datosEditados?.hojas?.[hojaActual];
-        if (!hoja) return;
-        clientes = hoja.clientes || [];
-        hojaParaProporcion = hoja;
-    }
+    // Usar siempre los datos de la hoja actual que están actualizados
+    const hoja = datosEditados?.hojas?.[hojaActual];
+    if (!hoja) return;
+    clientes = hoja.clientes || [];
+    hojaParaProporcion = hoja;
 
     // Obtener hoja para cálculos de proporción
     const hoja = hojaParaProporcion || datosEditados?.hojas?.[hojaActual];
