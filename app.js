@@ -772,6 +772,39 @@ function inicializarInspectorCeldas() {
 
     window.addEventListener('scroll', limpiar, true);
     window.addEventListener('resize', limpiar);
+    
+    // LIMPIEZA GLOBAL: Eliminar todos los tooltips al salir de cualquier elemento
+    document.addEventListener('mouseout', (e) => {
+        // Si el mouse sale de un elemento que podría tener tooltip
+        const relatedTarget = e.relatedTarget;
+        if (!relatedTarget || !e.target.contains(relatedTarget)) {
+            // Limpiar tooltips de inspectores de celdas
+            if (tooltip) {
+                tooltip.remove();
+                tooltip = null;
+            }
+            if (activeEl) {
+                activeEl.classList.remove('cell-inspect-active');
+                activeEl = null;
+            }
+            if (hoverTimer) {
+                clearTimeout(hoverTimer);
+                hoverTimer = null;
+            }
+            
+            // Limpiar tooltips personalizados (importes iniciales/finales)
+            const customTooltips = document.querySelectorAll('.custom-tooltip');
+            customTooltips.forEach(t => t.remove());
+            
+            // Limpiar tooltips guardados en elementos
+            document.querySelectorAll('[data-tooltip]').forEach(el => {
+                if (el._tooltip) {
+                    el._tooltip.remove();
+                    el._tooltip = null;
+                }
+            });
+        }
+    });
 }
 
 // Guardar error como ignorado
@@ -1134,15 +1167,9 @@ async function cargarMeses() {
             mesActual = lista.length > 0 ? lista[0] : null;
         }
         if (!mesActual) {
-            const hojasDisponibles = Object.keys(mesesDisponibles);
-            for (const hoja of hojasDisponibles) {
-                const lista = mesesDisponibles[hoja] || [];
-                if (lista.length > 0) {
-                    hojaActual = hoja;
-                    mesActual = lista[0];
-                    break;
-                }
-            }
+            // FORZAR Diario Xavi como hoja por defecto - NO cambiar a otras hojas
+            console.log('⚠️ Sin mes para Diario Xavi, pero manteniendo Diario Xavi como hoja actual');
+            mesActual = '2026'; // Diario Xavi siempre usa 2026
         }
         actualizarSelectorMes();
     } catch (error) {
@@ -1753,8 +1780,16 @@ async function cargarDatos() {
         if (!datosCompletos) datosCompletos = { hojas: {} };
         if (!datosEditados) datosEditados = { hojas: {} };
         
+        // OPTIMIZACIÓN: Usar structuredClone en lugar de JSON.parse(JSON.stringify)
+        // Es mucho más rápido y eficiente para objetos grandes
         datosCompletos.hojas[hojaActual] = data;
-        datosEditados.hojas[hojaActual] = JSON.parse(JSON.stringify(data));
+        try {
+            datosEditados.hojas[hojaActual] = structuredClone(data);
+        } catch (e) {
+            // Fallback a JSON si structuredClone no está disponible
+            console.warn('structuredClone no disponible, usando JSON.parse(JSON.stringify))');
+            datosEditados.hojas[hojaActual] = JSON.parse(JSON.stringify(data));
+        }
 
         __dirtyRecalculoMasivo = true;
         __recalculoVersion++;
@@ -3173,6 +3208,13 @@ function agregarCeldasFilaGeneral(tr, filaData) {
                 }
 
                 e.target.dataset.overwritePending = '0';
+                
+                // GUARDAR POSICIÓN DEL SCROLL ANTES DE ACTUALIZAR
+                const scrollContainer = e.target.closest('.table-container-scroll') || window;
+                const scrollX = scrollContainer.scrollX || scrollContainer.scrollLeft || window.pageXOffset;
+                const scrollY = scrollContainer.scrollY || scrollContainer.scrollTop || window.pageYOffset;
+                const activeElement = document.activeElement;
+                
                 // Formatear antes de actualizar
                 formatearInputNumero(e.target);
                 
@@ -3205,6 +3247,22 @@ function agregarCeldasFilaGeneral(tr, filaData) {
                 // Actualizar el dato y recalcular fórmulas automáticamente
                 await actualizarDatoGeneral(filaData.fila, columna, nuevoValor);
                 e.target.classList.add('cell-modified');
+                
+                // RESTAURAR POSICIÓN DEL SCROLL DESPUÉS DE ACTUALIZAR
+                setTimeout(() => {
+                    if (scrollContainer.scrollLeft !== undefined) {
+                        scrollContainer.scrollLeft = scrollX;
+                    } else if (scrollContainer.scrollTo) {
+                        scrollContainer.scrollTo(scrollX, scrollY);
+                    } else {
+                        window.scrollTo(scrollX, scrollY);
+                    }
+                    
+                    // Restaurar foco si es necesario
+                    if (activeElement && activeElement !== document.body) {
+                        activeElement.focus();
+                    }
+                }, 10);
             });
             prepararInputEdicion(input);
             td.appendChild(input);
@@ -3461,6 +3519,13 @@ function agregarCeldasFilaGeneral(tr, filaData) {
                     return;
                 }
                 e.target.dataset.overwritePending = '0';
+                
+                // GUARDAR POSICIÓN DEL SCROLL ANTES DE ACTUALIZAR
+                const scrollContainer = e.target.closest('.table-container-scroll') || window;
+                const scrollX = scrollContainer.scrollX || scrollContainer.scrollLeft || window.pageXOffset;
+                const scrollY = scrollContainer.scrollY || scrollContainer.scrollTop || window.pageYOffset;
+                const activeElement = document.activeElement;
+                
                 // Formatear antes de actualizar
                 formatearInputNumero(e.target);
                 
@@ -3468,6 +3533,22 @@ function agregarCeldasFilaGeneral(tr, filaData) {
                 if (isNaN(nuevoValor)) nuevoValor = null;
                 await actualizarDatoGeneral(filaData.fila, 'benef_euro', nuevoValor);
                 e.target.classList.add('cell-modified');
+                
+                // RESTAURAR POSICIÓN DEL SCROLL DESPUÉS DE ACTUALIZAR
+                setTimeout(() => {
+                    if (scrollContainer.scrollLeft !== undefined) {
+                        scrollContainer.scrollLeft = scrollX;
+                    } else if (scrollContainer.scrollTo) {
+                        scrollContainer.scrollTo(scrollX, scrollY);
+                    } else {
+                        window.scrollTo(scrollX, scrollY);
+                    }
+                    
+                    // Restaurar foco si es necesario
+                    if (activeElement && activeElement !== document.body) {
+                        activeElement.focus();
+                    }
+                }, 10);
             });
             prepararInputEdicion(input);
             tdBenefEuro.appendChild(input);
@@ -6490,40 +6571,93 @@ function renderDetalleCliente(index) {
                 // En Diario Xavi, ir al último día con imp_final en el general
                 const ultimaFila = obtenerUltimaFilaImpFinalManual(hoja);
                 if (ultimaFila > 0) {
-                    // Intentar múltiples selectores para encontrar la fila
-                    let ultimaFilaElement = document.querySelector(`.table-detalle [data-fila="${ultimaFila}"]`);
-                    if (!ultimaFilaElement) {
-                        ultimaFilaElement = document.querySelector(`[data-fila="${ultimaFila}"]`);
-                    }
-                    if (!ultimaFilaElement) {
-                        ultimaFilaElement = document.querySelector(`tr[data-fila="${ultimaFila}"]`);
-                    }
-                    if (ultimaFilaElement) {
-                        ultimaFilaElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        console.log(`📍 Scroll cliente a última fila con datos: ${ultimaFila}`);
-                    } else {
-                        console.log(`❌ No se encontró elemento para fila ${ultimaFila}`);
-                        // Fallback al inicio
-                        const scrollContainer = document.querySelector('.table-container-scroll');
-                        if (scrollContainer) {
-                            scrollContainer.scrollTop = 0;
+                    console.log(`🔍 Scroll cliente: buscando fila ${ultimaFila}...`);
+                    
+                    // Esperar MÁS tiempo para asegurar que el DOM esté completamente renderizado
+                    setTimeout(() => {
+                        // Buscar TODOS los elementos posibles con data-fila
+                        const todosLosElementos = document.querySelectorAll('[data-fila]');
+                        console.log(`🔍 Total elementos con data-fila: ${todosLosElementos.length}`);
+                        
+                        // Buscar específicamente elementos de la tabla del cliente
+                        let elementoEncontrado = null;
+                        
+                        // 1. Buscar en tabla de detalle del cliente
+                        const tablaDetalle = document.querySelector('#tbodyDetalle');
+                        if (tablaDetalle) {
+                            elementoEncontrado = tablaDetalle.querySelector(`[data-fila="${ultimaFila}"]`);
+                            if (elementoEncontrado) {
+                                console.log(`✅ Encontrado en tabla detalle del cliente`);
+                            }
                         }
-                    }
+                        
+                        // 2. Si no, buscar en cualquier tabla
+                        if (!elementoEncontrado) {
+                            elementoEncontrado = document.querySelector(`table [data-fila="${ultimaFila}"]`);
+                            if (elementoEncontrado) {
+                                console.log(`✅ Encontrado en alguna tabla`);
+                            }
+                        }
+                        
+                        // 3. Si no, buscar en cualquier elemento
+                        if (!elementoEncontrado) {
+                            elementoEncontrado = document.querySelector(`[data-fila="${ultimaFila}"]`);
+                            if (elementoEncontrado) {
+                                console.log(`✅ Encontrado en cualquier elemento`);
+                            }
+                        }
+                        
+                        if (elementoEncontrado) {
+                            console.log(`✅ Scroll a fila ${ultimaFila} - elemento:`, elementoEncontrado.tagName);
+                            
+                            // Hacer scroll con diferentes métodos por si falla
+                            try {
+                                elementoEncontrado.scrollIntoView({ 
+                                    behavior: 'smooth', 
+                                    block: 'center',
+                                    inline: 'nearest'
+                                });
+                                console.log(`📍 Scroll exitoso a fila ${ultimaFila}`);
+                            } catch (error) {
+                                console.warn(`⚠️ Error con scrollIntoView, intentando scrollTop manual`);
+                                // Fallback: scroll manual al contenedor
+                                const container = elementoEncontrado.closest('.table-container-scroll') || 
+                                                 elementoEncontrado.closest('table')?.parentElement ||
+                                                 window;
+                                const rect = elementoEncontrado.getBoundingClientRect();
+                                const containerRect = container.getBoundingClientRect();
+                                const scrollTop = rect.top - containerRect.top + container.scrollTop - 100;
+                                
+                                if (container.scrollTo) {
+                                    container.scrollTo({ top: scrollTop, behavior: 'smooth' });
+                                } else {
+                                    container.scrollTop = scrollTop;
+                                }
+                            }
+                        } else {
+                            console.log(`❌ No se encontró elemento para fila ${ultimaFila}`);
+                            console.log(`🔍 Elementos data-fila disponibles:`, 
+                                Array.from(todosLosElementos).map(el => `${el.tagName}[data-fila="${el.dataset.fila}"]`).slice(0, 10));
+                            
+                            // Fallback: scroll al final de la tabla
+                            const tablaDetalle = document.querySelector('#tbodyDetalle');
+                            if (tablaDetalle) {
+                                tablaDetalle.scrollTop = tablaDetalle.scrollHeight;
+                                console.log(`📍 Fallback: scroll al final de la tabla`);
+                            }
+                        }
+                    }, 300); // Más tiempo para renderizado
                 } else {
-                    // Fallback al inicio
-                    const scrollContainer = document.querySelector('.table-container-scroll');
-                    if (scrollContainer) {
-                        scrollContainer.scrollTop = 0;
-                    }
+                    console.log(`❌ No se encontró última fila con imp_final`);
                 }
             } else {
-                // En otros diarios, mantener comportamiento original (ir al inicio)
+                // En otros diarios, ir al inicio
                 const scrollContainer = document.querySelector('.table-container-scroll');
                 if (scrollContainer) {
                     scrollContainer.scrollTop = 0;
                 }
             }
-        }, 50);
+        }, 100); // Tiempo base más largo
     } else {
         document.getElementById('numeroCliente').textContent = index + 1;
     }
@@ -6862,6 +6996,9 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
     
     tbody.innerHTML = '';
     
+    // OPTIMIZACIÓN: Usar DocumentFragment para mejor rendimiento
+    const fragment = document.createDocumentFragment();
+    
     // Asegurar que saldo_diario mostrado coincide con el cálculo (evita mostrar saldo_anterior)
     recalcularSaldosClienteEnMemoria(hoja, clienteIdx);
 
@@ -7067,6 +7204,13 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
                     return;
                 }
                 e.target.dataset.overwritePending = '0';
+                
+                // GUARDAR POSICIÓN DEL SCROLL ANTES DE ACTUALIZAR
+                const scrollContainer = e.target.closest('.table-container-scroll') || window;
+                const scrollX = scrollContainer.scrollX || scrollContainer.scrollLeft || window.pageXOffset;
+                const scrollY = scrollContainer.scrollY || scrollContainer.scrollTop || window.pageYOffset;
+                const activeElement = document.activeElement;
+                
                 // Formatear antes de actualizar
                 formatearInputNumero(e.target);
                 console.log(`📊 Después de formatear - valor: "${e.target.value}", valorNumerico: "${e.target.dataset.valorNumerico}"`);
@@ -7084,6 +7228,22 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
                     console.error(`   Hojas disponibles: ${Object.keys(datosEditados?.hojas || {}).join(', ')}`);
                     console.error(`   Clientes en ${hojaInput}: ${datosEditados?.hojas?.[hojaInput]?.clientes?.length || 0}`);
                 }
+                
+                // RESTAURAR POSICIÓN DEL SCROLL DESPUÉS DE ACTUALIZAR
+                setTimeout(() => {
+                    if (scrollContainer.scrollLeft !== undefined) {
+                        scrollContainer.scrollLeft = scrollX;
+                    } else if (scrollContainer.scrollTo) {
+                        scrollContainer.scrollTo(scrollX, scrollY);
+                    } else {
+                        window.scrollTo(scrollX, scrollY);
+                    }
+                    
+                    // Restaurar foco si es necesario
+                    if (activeElement && activeElement !== document.body) {
+                        activeElement.focus();
+                    }
+                }, 10);
             });
 
             prepararInputEdicion(inputIncremento);
@@ -7136,6 +7296,13 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
                     return;
                 }
                 e.target.dataset.overwritePending = '0';
+                
+                // GUARDAR POSICIÓN DEL SCROLL ANTES DE ACTUALIZAR
+                const scrollContainer = e.target.closest('.table-container-scroll') || window;
+                const scrollX = scrollContainer.scrollX || scrollContainer.scrollLeft || window.pageXOffset;
+                const scrollY = scrollContainer.scrollY || scrollContainer.scrollTop || window.pageYOffset;
+                const activeElement = document.activeElement;
+                
                 // Formatear antes de actualizar
                 formatearInputNumero(e.target);
                 // Obtener referencias FRESCAS de datosEditados usando la HOJA GUARDADA
@@ -7150,6 +7317,22 @@ function mostrarTablaEditableCliente(cliente, hoja, clienteIndex = null) {
                 } else {
                     console.error(`❌ No se encontró cliente o dato: hoja=${hojaInput}, idx=${idx}, fila=${fila}`);
                 }
+                
+                // RESTAURAR POSICIÓN DEL SCROLL DESPUÉS DE ACTUALIZAR
+                setTimeout(() => {
+                    if (scrollContainer.scrollLeft !== undefined) {
+                        scrollContainer.scrollLeft = scrollX;
+                    } else if (scrollContainer.scrollTo) {
+                        scrollContainer.scrollTo(scrollX, scrollY);
+                    } else {
+                        window.scrollTo(scrollX, scrollY);
+                    }
+                    
+                    // Restaurar foco si es necesario
+                    if (activeElement && activeElement !== document.body) {
+                        activeElement.focus();
+                    }
+                }, 10);
             });
 
             prepararInputEdicion(inputDecremento);
@@ -8939,27 +9122,23 @@ function cargarInfoClienteDetalle(index, container, hojaParaUsar) {
     const email = datosCliente['EMAIL']?.valor || '';
     
     // Calcular beneficio mensual y rentabilidad mensual del cliente
-    // Beneficio mensual = proporción del cliente * beneficio total general del mes
-    // Rentabilidad mensual = beneficio mensual / saldo cliente
-    const datosGen = hojaData.datos_diarios_generales || [];
-    let beneficioMensualGeneral = 0;
+    // Beneficio mensual = último beneficio_acumulado del cliente
+    // Rentabilidad mensual = beneficio mensual / capital invertido (si capital invertido > 0)
     
-    // Buscar el último benef_euro_acum del mes
-    const datosGenOrdenados = datosGen
-        .filter(d => d.fila >= 15 && d.fila <= 1120 && typeof d.benef_euro_acum === 'number')
+    // Buscar el último beneficio_acumulado del cliente
+    const datosClienteOrdenados = datosDiarios
+        .filter(d => typeof d.beneficio_acumulado === 'number')
         .sort((a, b) => b.fila - a.fila);
     
-    if (datosGenOrdenados.length > 0) {
-        beneficioMensualGeneral = datosGenOrdenados[0].benef_euro_acum || 0;
+    let beneficioMensualCliente = 0;
+    if (datosClienteOrdenados.length > 0) {
+        beneficioMensualCliente = datosClienteOrdenados[0].beneficio_acumulado || 0;
     }
     
-    // Beneficio mensual del cliente = proporción * beneficio general
-    const beneficioMensualCliente = proporcion !== null ? proporcion * beneficioMensualGeneral : 0;
+    // Rentabilidad mensual = beneficio / capital invertido (si capital invertido > 0)
+    const rentabilidadMensual = invertido > 0 ? (beneficioMensualCliente / invertido) : 0;
     
-    // Rentabilidad mensual = beneficio / saldo (si saldo > 0)
-    const rentabilidadMensual = saldoActual > 0 ? (beneficioMensualCliente / saldoActual) : 0;
-    
-    container.innerHTML = `
+    console.log(`💰 Cliente ${clienteNum}: invertido=${invertido}, beneficio=${beneficioMensualCliente}, rentabilidad=${rentabilidadMensual}`);
         <div class="info-cliente-body">
             <div class="info-cliente-row">
                 <div class="info-cliente-field editable-field">
@@ -9029,14 +9208,59 @@ function cargarInfoClienteDetalle(index, container, hojaParaUsar) {
                     return;
                 }
                 e.target.dataset.overwritePending = '0';
+                
+                // GUARDAR POSICIÓN DEL SCROLL ANTES DE ACTUALIZAR
+                const scrollContainer = e.target.closest('.table-container-scroll') || window;
+                const scrollX = scrollContainer.scrollX || scrollContainer.scrollLeft || window.pageXOffset;
+                const scrollY = scrollContainer.scrollY || scrollContainer.scrollTop || window.pageYOffset;
+                const activeElement = document.activeElement;
+                
                 formatearInputNumero(e.target);
                 actualizarInfoCliente(e.target);
                 // Recalcular garantía actual después de actualizar
                 actualizarGarantiaActual(index, hoja);
+                
+                // RESTAURAR POSICIÓN DEL SCROLL DESPUÉS DE ACTUALIZAR
+                setTimeout(() => {
+                    if (scrollContainer.scrollLeft !== undefined) {
+                        scrollContainer.scrollLeft = scrollX;
+                    } else if (scrollContainer.scrollTo) {
+                        scrollContainer.scrollTo(scrollX, scrollY);
+                    } else {
+                        window.scrollTo(scrollX, scrollY);
+                    }
+                    
+                    // Restaurar foco si es necesario
+                    if (activeElement && activeElement !== document.body) {
+                        activeElement.focus();
+                    }
+                }, 10);
             });
         } else {
             input.addEventListener('blur', (e) => {
+                // GUARDAR POSICIÓN DEL SCROLL ANTES DE ACTUALIZAR
+                const scrollContainer = e.target.closest('.table-container-scroll') || window;
+                const scrollX = scrollContainer.scrollX || scrollContainer.scrollLeft || window.pageXOffset;
+                const scrollY = scrollContainer.scrollY || scrollContainer.scrollTop || window.pageYOffset;
+                const activeElement = document.activeElement;
+                
                 actualizarInfoCliente(e.target);
+                
+                // RESTAURAR POSICIÓN DEL SCROLL DESPUÉS DE ACTUALIZAR
+                setTimeout(() => {
+                    if (scrollContainer.scrollLeft !== undefined) {
+                        scrollContainer.scrollLeft = scrollX;
+                    } else if (scrollContainer.scrollTo) {
+                        scrollContainer.scrollTo(scrollX, scrollY);
+                    } else {
+                        window.scrollTo(scrollX, scrollY);
+                    }
+                    
+                    // Restaurar foco si es necesario
+                    if (activeElement && activeElement !== document.body) {
+                        activeElement.focus();
+                    }
+                }, 10);
             });
         }
     });
@@ -10326,11 +10550,29 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
         // Extraer mes de la fecha si existe, o usar el número de fila
         let mes = '';
         if (filaCliente.fecha && filaCliente.fecha !== 'FECHA') {
-            // Formato esperado: "2026-01-15" o similar
-            const partesFecha = String(filaCliente.fecha).split('-');
-            if (partesFecha.length >= 2) {
-                mes = partesFecha.slice(0, 2).join('-'); // "2026-01"
+            // Intentar múltiples formatos de fecha
+            const fechaStr = String(filaCliente.fecha).trim();
+            console.log(`🔍 DEBUG procesando fecha: "${fechaStr}" en fila ${filaCliente.fila}`);
+            
+            // Formato 1: "2026-01-15" o "15/01/2026" o "15-01-2026"
+            if (fechaStr.includes('-')) {
+                const partesFecha = fechaStr.split('-');
+                if (partesFecha.length === 3 && partesFecha[0].length === 4) {
+                    // Formato ISO: "2026-01-15"
+                    mes = partesFecha.slice(0, 2).join('-'); // "2026-01"
+                } else if (partesFecha.length === 3 && partesFecha[2].length === 4) {
+                    // Formato europeo: "15-01-2026"
+                    mes = `2026-${partesFecha[1]}`; // "2026-01"
+                }
+            } else if (fechaStr.includes('/')) {
+                const partesFecha = fechaStr.split('/');
+                if (partesFecha.length === 3 && partesFecha[2].length === 4) {
+                    // Formato europeo: "15/01/2026"
+                    mes = `2026-${partesFecha[1]}`; // "2026-01"
+                }
             }
+            
+            console.log(`🔍 DEBUG mes extraído: "${mes}" de fecha "${fechaStr}"`);
         }
         
         // Si no hay fecha válida, estimar mes basado en la fila
@@ -10338,6 +10580,7 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
             const diaEstimado = filaCliente.fila - 14; // Fila 15 = día 1
             const mesEstimado = Math.min(12, Math.max(1, Math.ceil(diaEstimado / 30)));
             mes = `2026-${String(mesEstimado).padStart(2, '0')}`;
+            console.log(`🔍 DEBUG mes estimado por fila ${filaCliente.fila}: "${mes}"`);
         }
         
         if (!datosPorMes[mes]) {
@@ -10374,6 +10617,8 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
     }
     
     console.log(`🔍 DEBUG total filas procesadas: ${totalProcesadas}, con datos: ${totalConDatos}`);
+    console.log(`🔍 DEBUG datosPorMes keys:`, Object.keys(datosPorMes));
+    console.log(`🔍 DEBUG datosPorMes contenido:`, datosPorMes);
     
     // Calcular saldos iniciales y generar resultados
     let saldoAnterior = 0;
@@ -10385,23 +10630,37 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
         ultimoMes = mesesOrdenados[mesesOrdenados.length - 1];
     }
     
-    // Generar todos los meses desde el primero hasta el último
+    console.log(`🔍 DEBUG últimoMes encontrado: "${ultimoMes}"`);
+    console.log(`🔍 DEBUG mesesOrdenados:`, mesesOrdenados);
+    
+    // Generar SOLO los meses que tienen datos reales
     if (ultimoMes) {
         const [year, month] = ultimoMes.split('-').map(Number);
         let mesActual = 1;
         let mesActualStr = `${year}-${String(mesActual).padStart(2, '0')}`;
         
         while (mesActualStr <= ultimoMes) {
-            const datosMes = datosPorMes[mesActualStr] || {
-                incrementos: 0,
-                decrementos: 0,
-                beneficio: 0,
-                saldoFinal: saldoAnterior,
-                filas: []
-            };
+            const datosMes = datosPorMes[mesActualStr];
             
-            datosMes.saldoInicial = saldoAnterior;
-            saldoAnterior = datosMes.saldoFinal;
+            console.log(`🔍 DEBUG evaluando mes ${mesActualStr}:`, {
+                datosMes: datosMes,
+                incrementos: datosMes?.incrementos || 0,
+                decrementos: datosMes?.decrementos || 0,
+                filasLength: datosMes?.filas?.length || 0,
+                saldoFinal: datosMes?.saldoFinal || 0
+            });
+            
+            // Incluir meses que tengan cualquier tipo de dato (movimientos, saldos o filas procesadas)
+            if (datosMes && (datosMes.incrementos > 0 || datosMes.decrementos > 0 || datosMes.filas.length > 0 || datosMes.saldoFinal > 0)) {
+                console.log(`✅ INCLUYENDO mes ${mesActualStr}`);
+                datosMes.saldoInicial = saldoAnterior;
+                saldoAnterior = datosMes.saldoFinal;
+            } else {
+                console.log(`❌ EXCLUYENDO mes ${mesActualStr} - no tiene datos`);
+                mesActual++;
+                mesActualStr = `${year}-${String(mesActual).padStart(2, '0')}`;
+                continue;
+            }
             
             const resultado = {
                 mes: mesActualStr,
@@ -10416,7 +10675,7 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
                 diasOperados: datosMes.filas.length // Número de días con datos en este mes
             };
             resultados.push(resultado);
-            console.log(`🔍 DEBUG mes ${mesActualStr}: inc=${datosMes.incrementos}, dec=${datosMes.decrementos}, benef=${datosMes.beneficio}`);
+            console.log(`🔍 DEBUG AÑADIDO resultado para mes ${mesActualStr}: inc=${datosMes.incrementos}, dec=${datosMes.decrementos}, benef=${datosMes.beneficio}`);
             
             mesActual++;
             if (mesActual > 12) break;
