@@ -9958,11 +9958,14 @@ async function calcularRentabilidadAnualPorMeses(hoja) {
     console.log(`🔍 DÍAS CONTADOS POR MES (ESTADÍSTICAS GENERALES):`);
     Object.keys(diasPorMes).forEach(mes => {
         console.log(`   ${mes}: ${diasPorMes[mes].length} días`);
-        if (diasPorMes[mes].length <= 5) {
-            diasPorMes[mes].forEach(d => {
-                console.log(`      Fila ${d.fila}: ${d.fecha} → ${(d.benefPct * 100).toFixed(4)}%`);
-            });
-        }
+        // Mostrar TODOS los días para comparar con cliente
+        diasPorMes[mes].forEach(d => {
+            console.log(`      Fila ${d.fila}: ${d.fecha} → ${(d.benefPct * 100).toFixed(6)}%`);
+        });
+        
+        // 🔥 DEBUG COMPARATIVO: Suma de porcentajes
+        const sumaPorcentajes = diasPorMes[mes].reduce((sum, d) => sum + d.benefPct, 0);
+        console.log(`   📊 SUMA GENERAL ${mes}: ${(sumaPorcentajes * 100).toFixed(6)}% (${diasPorMes[mes].length} días)`);
     });
     
     // 🔥 NUEVO CÁLCULO: Rentabilidad normalizada con saldo base de 100,000€
@@ -10568,8 +10571,6 @@ async function mostrarEstadisticasCliente() {
         `;
     }
 }
-
-// 🚀 NUEVA FUNCIÓN 100% EN TIEMPO REAL - SIN ARCHIVOS GUARDADOS
 async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
     console.log('🔥 CALCULANDO ESTADÍSTICAS 100% EN TIEMPO REAL');
     
@@ -10577,7 +10578,9 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
     const datosDiarios = cliente.datos_diarios || [];
     const datosGenerales = hoja.datos_diarios_generales || [];
     
-    console.log(`📊 Datos disponibles: ${datosDiarios.length} diarios, ${datosGenerales.length} generales`);
+    console.log(`🔍 DEBUG calcularEstadisticasClienteTiempoReal: cliente=${cliente.numero_cliente}, hoja=${hoja.nombre}`);
+    console.log(`🔍 DEBUG cliente.datos_diarios length:`, datosDiarios.length);
+    console.log(`🔍 DEBUG hoja.datos_diarios_generales length:`, datosGenerales.length);
     
     // Crear mapa de beneficios por fila
     const benefPorFila = {};
@@ -10719,6 +10722,23 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
             console.log(`❌ Mes ${mesKey}: sin datos`);
         }
     }
+    
+    // 🔥 DEBUG COMPARATIVO: Mostrar días y porcentajes del cliente
+    console.log(`🔍 DÍAS CONTADOS POR MES (ESTADÍSTICAS CLIENTE):`);
+    Object.keys(datosPorMes).forEach(mesKey => {
+        const mesDatos = datosPorMes[mesKey];
+        console.log(`   ${mesKey}: ${mesDatos.filas.length} días`);
+        
+        // Mostrar todos los días con sus porcentajes
+        mesDatos.filas.forEach(fila => {
+            const benefPct = benefPorFila[fila.fila] || 0;
+            console.log(`      Fila ${fila.fila}: ${benefPct * 100}%`);
+        });
+        
+        // 🔥 DEBUG COMPARATIVO: Suma de porcentajes del cliente
+        const sumaPorcentajesCliente = mesDatos.filas.reduce((sum, fila) => sum + (benefPorFila[fila.fila] || 0), 0);
+        console.log(`   📊 SUMA CLIENTE ${mesKey}: ${(sumaPorcentajesCliente * 100).toFixed(6)}% (${mesDatos.filas.length} días)`);
+    });
     
     console.log(`🎯 TOTAL: ${resultados.length} meses con actividad`);
     return resultados;
