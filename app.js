@@ -9895,38 +9895,25 @@ async function mostrarEstadisticas() {
 
 async function calcularRentabilidadAnualPorMeses(hoja) {
     console.log(`📊 Calculando rentabilidad anual por meses para ${hoja} (estadísticas generales)`);
-    
+
     const hojaData = datosEditados?.hojas?.[hoja];
     if (!hojaData || !hojaData.datos_diarios_generales) {
-        console.warn(`No hay datos generales para ${hoja}`);
+        console.warn(`❌ No hay datos diarios generales para ${hoja}`);
         return [];
     }
-    
-    const datosGenerales = hojaData.datos_diarios_generales;
-    const benefPctPorFila = {};
-    let benefCount = 0;
-    
-    // Extraer beneficios porcentuales por fila
-    datosGenerales.forEach(d => {
-        if (d && d.fila >= 15 && d.fila <= 1120 && typeof d.benef_porcentaje === 'number' && isFinite(d.benef_porcentaje)) {
-            benefPctPorFila[d.fila] = d.benef_porcentaje;
-            benefCount++;
-        }
-    });
-    
-    console.log(`🔍 DEBUG: Encontrados ${benefCount} beneficios porcentuales en ${datosGenerales.length} filas generales`);
-    
-    // Agrupar por mes
+
+    // Agrupar datos por mes
     const datosPorMes = {};
-    let benefAcumAnual = 0;
-    
+    const datosGenerales = hojaData.datos_diarios_generales;
+
+    console.log(`📊 Procesando ${datosGenerales.length} datos diarios generales con NUEVA FÓRMULA NORMALIZADA`);
+
     for (const fila of datosGenerales) {
-        if (!fila || fila.fila < 15 || fila.fila > 1120) continue;
-        
-        const benefPct = benefPctPorFila[fila.fila] || 0;
-        if (benefPct === 0) continue;
-        
-        // Extraer mes de la fecha
+        if (!fila || !fila.fecha || fila.fecha === 'FECHA') continue;
+
+        const benefPct = fila.benef_porcentaje || 0;
+        if (typeof benefPct !== 'number' || !isFinite(benefPct)) continue;
+
         let mes = '';
         if (fila.fecha && fila.fecha !== 'FECHA') {
             const partesFecha = String(fila.fecha).split('-');
@@ -9944,34 +9931,59 @@ async function calcularRentabilidadAnualPorMeses(hoja) {
         
         if (!datosPorMes[mes]) {
             datosPorMes[mes] = {
-                mes: mes,
-                rentabilidad: 0,
+                porcentajesDiarios: [], // Guardar todos los % diarios exactos
                 diasOperados: 0,
                 filas: []
             };
         }
         
-        datosPorMes[mes].rentabilidad += benefPct * 100; // Convertir a porcentaje
+        // 🔥 NUEVA LÓGICA: Guardar % diario exacto sin redondeo
+        datosPorMes[mes].porcentajesDiarios.push(benefPct); // Mantener decimales exactos
         datosPorMes[mes].diasOperados++;
         datosPorMes[mes].filas.push(fila);
     }
     
-    // Generar resultados ordenados por mes
+    // 🔥 NUEVO CÁLCULO: Rentabilidad normalizada con saldo base de 100,000€
     const resultados = [];
     const mesesOrdenados = Object.keys(datosPorMes).sort();
+    let benefAcumAnual = 0;
     
     for (const mes of mesesOrdenados) {
         const datosMes = datosPorMes[mes];
-        benefAcumAnual += datosMes.rentabilidad;
+        
+        // 🎯 CÁLCULO NORMALIZADO: Empezar desde 100,000€ y aplicar % diarios
+        let saldoSimulado = 100000;
+        
+        console.log(`🎯 Calculando rentabilidad normalizada para ${mes}:`);
+        console.log(`   Saldo inicial: ${saldoSimulado.toFixed(2)}`);
+        
+        // Aplicar cada % diario al saldo simulado (efecto compuesto)
+        datosMes.porcentajesDiarios.forEach((pctDiario, index) => {
+            const saldoAnterior = saldoSimulado;
+            saldoSimulado = saldoSimulado * (1 + pctDiario / 100);
+            
+            if (index < 3 || index === datosMes.porcentajesDiarios.length - 1) {
+                console.log(`   Día ${index + 1}: ${pctDiario.toFixed(6)}% → ${saldoAnterior.toFixed(2)} → ${saldoSimulado.toFixed(2)}`);
+            }
+        });
+        
+        // Calcular rentabilidad mensual normalizada
+        const rentabilidadNormalizada = ((saldoSimulado - 100000) / 100000) * 100;
+        benefAcumAnual += rentabilidadNormalizada;
         
         resultados.push({
             mes: mes,
-            rentabilidad: datosMes.rentabilidad,
+            rentabilidad: rentabilidadNormalizada,
             benefAcumAnual: benefAcumAnual,
-            diasOperados: datosMes.diasOperados
+            diasOperados: datosMes.diasOperados,
+            saldoFinalSimulado: saldoSimulado
         });
         
-        console.log(`📅 ${mes}: rentabilidad=${datosMes.rentabilidad.toFixed(2)}%, diasOperados=${datosMes.diasOperados}`);
+        console.log(`✅ ${mes}:`);
+        console.log(`   Saldo final simulado: ${saldoSimulado.toFixed(2)}`);
+        console.log(`   Rentabilidad normalizada: ${rentabilidadNormalizada.toFixed(4)}%`);
+        console.log(`   Días operados: ${datosMes.diasOperados}`);
+        console.log(`   Beneficio acumulado anual: ${benefAcumAnual.toFixed(4)}%`);
     }
     
     console.log(`📊 Estadísticas generales anuales: ${resultados.length} meses con datos`);
