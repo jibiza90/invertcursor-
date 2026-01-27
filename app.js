@@ -115,6 +115,8 @@ function marcarDirtyRecalculoMasivo() {
     __dirtyRecalculoMasivo = true;
     __recalculoVersion++;
     __cacheSaldosWindKey = null;
+    __cacheFA = null; // Invalidar cache de FA
+    __cacheFAKey = null;
 }
 
 function yieldToBrowser() {
@@ -3361,16 +3363,22 @@ function recalcularImpInicialSync(hoja) {
         console.log(`📅 Usando imp_final del mes anterior como base: ${impFinalMesAnterior}`);
     }
     
-    // Reportar progreso para Diario Xavi (365 días)
+    // OPTIMIZACIÓN CRÍTICA: Precalcular FA para todas las filas de una vez
+    // Esto evita 365 × 100 = 36,500 iteraciones redundantes en Diario Xavi
     const esXavi = hojaActual === 'Diario Xavi';
+    if (esXavi || (hojaActual === 'Diario WIND' && datosGenOrd.length > 50)) {
+        console.log('⚡ Precalculando cache de FA para optimizar rendimiento...');
+        precalcularFACache(hoja);
+    }
+    
     const totalFilas = datosGenOrd.length;
     let filasProc = 0;
     
     for (const filaData of datosGenOrd) {
         filasProc++;
         
-        // Reportar progreso cada 20 filas para Xavi
-        if (esXavi && __loadingProgressVisible && filasProc % 20 === 0) {
+        // Reportar progreso cada 50 filas para Xavi (reducir overhead)
+        if (esXavi && __loadingProgressVisible && filasProc % 50 === 0) {
             actualizarProgresoCarga(filasProc, totalFilas, 'Calculando días:');
         }
         const fila = filaData.fila;
@@ -3429,29 +3437,87 @@ function recalcularImpInicialSync(hoja) {
     }
 }
 
+// Cache de FA para optimización (evitar recalcular 100 clientes × 365 días)
+let __cacheFA = null;
+let __cacheFAKey = null;
+
+// Precalcular FA para todas las filas de una vez (OPTIMIZACIÓN CRÍTICA)
+function precalcularFACache(hoja) {
+    if (!hoja || !hoja.clientes) return {};
+    
+    const cacheKey = `${hojaActual}_${mesActual}_${__recalculoVersion}`;
+    if (__cacheFAKey === cacheKey && __cacheFA) {
+        return __cacheFA; // Usar cache existente
+    }
+    
+    const cache = {};
+    const datosGen = hoja.datos_diarios_generales || [];
+    
+    // Precalcular FA para cada fila
+    datosGen.forEach(filaGeneral => {
+        const filaNum = filaGeneral.fila;
+        const fechaDia = filaGeneral?.fecha ? (normalizarFechaKey(filaGeneral.fecha) || String(filaGeneral.fecha).split(' ')[0]) : null;
+        
+        let sumaFA = 0;
+        
+        // Sumar incrementos - decrementos de todos los clientes para este DÍA
+        hoja.clientes.forEach((cliente) => {
+            const datosCliente = cliente.datos_diarios || [];
+            
+            let incCliente = 0;
+            let decCliente = 0;
+            
+            datosCliente.forEach(d => {
+                let esDelDia = false;
+                if (fechaDia && d.fecha) {
+                    const fechaFila = normalizarFechaKey(d.fecha) || String(d.fecha).split(' ')[0];
+                    esDelDia = fechaFila === fechaDia;
+                } else {
+                    esDelDia = d.fila === filaNum;
+                }
+                
+                if (esDelDia) {
+                    const inc = typeof d.incremento === 'number' ? d.incremento : 0;
+                    const dec = typeof d.decremento === 'number' ? d.decremento : 0;
+                    incCliente = Math.max(incCliente, inc);
+                    decCliente = Math.max(decCliente, dec);
+                }
+            });
+            
+            sumaFA += (incCliente - decCliente);
+        });
+        
+        cache[filaNum] = sumaFA;
+    });
+    
+    __cacheFA = cache;
+    __cacheFAKey = cacheKey;
+    return cache;
+}
+
 // Calcular FA (columna FA) para una fila específica
 // FA = suma de (incrementos - decrementos) de TODOS los clientes para el DÍA de esa fila
-// IMPORTANTE: Busca en TODAS las filas del día, no solo en la fila específica
 function calcularFA(filaNum, hoja) {
     if (!hoja || !hoja.clientes) return 0;
     
-    // Obtener la fecha del día correspondiente a esta fila
+    // OPTIMIZACIÓN: Usar cache si está disponible
+    if (__cacheFA && __cacheFA[filaNum] !== undefined) {
+        return __cacheFA[filaNum];
+    }
+    
+    // Fallback: cálculo directo (solo si no hay cache)
     const datosGen = hoja.datos_diarios_generales || [];
     const filaGeneral = datosGen.find(d => d.fila === filaNum);
     const fechaDia = filaGeneral?.fecha ? (normalizarFechaKey(filaGeneral.fecha) || String(filaGeneral.fecha).split(' ')[0]) : null;
     
     let sumaFA = 0;
     
-    // Sumar incrementos - decrementos de todos los clientes para este DÍA
-    hoja.clientes.forEach((cliente, idx) => {
+    hoja.clientes.forEach((cliente) => {
         const datosCliente = cliente.datos_diarios || [];
-        
-        // Buscar TODAS las filas del cliente que correspondan a este día
         let incCliente = 0;
         let decCliente = 0;
         
         datosCliente.forEach(d => {
-            // Si tenemos fecha del día, comparar por fecha; si no, comparar por fila
             let esDelDia = false;
             if (fechaDia && d.fecha) {
                 const fechaFila = normalizarFechaKey(d.fecha) || String(d.fecha).split(' ')[0];
@@ -3463,14 +3529,12 @@ function calcularFA(filaNum, hoja) {
             if (esDelDia) {
                 const inc = typeof d.incremento === 'number' ? d.incremento : 0;
                 const dec = typeof d.decremento === 'number' ? d.decremento : 0;
-                // Tomar el máximo (por si hay duplicados en diferentes filas del día)
                 incCliente = Math.max(incCliente, inc);
                 decCliente = Math.max(decCliente, dec);
             }
         });
         
-        const contribucion = incCliente - decCliente;
-        sumaFA += contribucion;
+        sumaFA += (incCliente - decCliente);
     });
     
     return sumaFA;
@@ -11244,20 +11308,30 @@ async function actualizarTodoElDiario(opts = {}) {
 
         await yieldToBrowser();
 
-        // OPTIMIZACIÓN: Procesar clientes en lotes más grandes para reducir yields
-        const BATCH_SIZE = 10; // Procesar 10 clientes antes de yield
-        for (let i = 0; i < clientes.length; i++) {
-            recalcularSaldosClienteEnMemoria(hoja, i);
-            recalcularTotalesCliente(clientes[i], i);
-            cambiosRealizados++;
-            
-            // Reportar progreso de clientes para Xavi
-            if (esXavi && __loadingProgressVisible && i % 5 === 0) {
-                actualizarProgresoCarga(i + 1, clientes.length, 'Calculando clientes:');
-            }
+        // OPTIMIZACIÓN CRÍTICA para Xavi: NO recalcular clientes al cargar (solo al editar)
+        // Xavi tiene 365 días × 100 clientes = 36,500 celdas, es demasiado costoso
+        if (!esXavi) {
+            // OPTIMIZACIÓN: Procesar clientes en lotes más grandes para reducir yields
+            const BATCH_SIZE = 10; // Procesar 10 clientes antes de yield
+            for (let i = 0; i < clientes.length; i++) {
+                recalcularSaldosClienteEnMemoria(hoja, i);
+                recalcularTotalesCliente(clientes[i], i);
+                cambiosRealizados++;
 
-            if (i > 0 && (i % BATCH_SIZE) === 0) {
-                await yieldToBrowser();
+                if (i > 0 && (i % BATCH_SIZE) === 0) {
+                    await yieldToBrowser();
+                }
+            }
+        } else {
+            // Para Xavi: solo recalcular totales básicos sin redistribución
+            console.log('⚡ Xavi: Carga rápida sin redistribución (se calculará al editar)');
+            for (let i = 0; i < clientes.length; i++) {
+                recalcularTotalesCliente(clientes[i], i);
+                
+                // Reportar progreso de clientes para Xavi
+                if (i % 10 === 0) {
+                    actualizarProgresoCarga(i + 1, clientes.length, 'Preparando clientes:');
+                }
             }
         }
 
