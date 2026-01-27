@@ -1789,10 +1789,17 @@ function limpiarSaldosResidualesDiarioXavi(hoja) {
             }
         });
         
-        // Limpiar saldos más allá de la última fila con movimiento
-        if (ultimaFilaConMovimiento > 0) {
+        // CRÍTICO: Para Diario Xavi, usar siempre el límite del general
+        // Si el cliente no tiene movimientos, usar el límite del general igualmente
+        const ultimaFilaImpFinalGeneral = obtenerUltimaFilaImpFinalManual(hoja);
+        const limiteCalculo = (ultimaFilaConMovimiento > 0) 
+            ? Math.min(ultimaFilaConMovimiento, ultimaFilaImpFinalGeneral)
+            : ultimaFilaImpFinalGeneral;
+        
+        // Limpiar saldos más allá del límite
+        if (limiteCalculo > 0) {
             cliente.datos_diarios.forEach(d => {
-                if (d && d.fila > ultimaFilaConMovimiento) {
+                if (d && d.fila > limiteCalculo) {
                     const teniaDatos = d.base !== null || d.saldo_diario !== null || 
                                       d.beneficio_diario !== null || d.beneficio_diario_pct !== null ||
                                       d.beneficio_acumulado !== null || d.beneficio_acumulado_pct !== null;
@@ -1809,7 +1816,7 @@ function limpiarSaldosResidualesDiarioXavi(hoja) {
                 }
             });
             
-            console.log(`🧹 Cliente ${idx + 1}: límite fila ${ultimaFilaConMovimiento}`);
+            console.log(`🧹 Cliente ${idx + 1}: límite fila ${limiteCalculo} (último movimiento: ${ultimaFilaConMovimiento}, general: ${ultimaFilaImpFinalGeneral})`);
         }
     });
     
@@ -2484,13 +2491,41 @@ async function cambiarMes() {
         // Restaurar la vista anterior en lugar de siempre ir a general
         restaurarVistaAnterior(vistaAnterior, clienteAnterior);
         
-        // Scroll al día 1 (fila 15)
+        // Scroll al último día con datos (especialmente importante para Diario Xavi)
         setTimeout(() => {
-            const fila15 = document.querySelector('[data-fila="15"]');
-            if (fila15) {
-                fila15.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (hojaActual === 'Diario Xavi') {
+                // En Diario Xavi, ir al último día con imp_final en el general
+                const hoja = datosEditados?.hojas?.[hojaActual];
+                if (hoja && hoja.datos_diarios_generales) {
+                    const ultimaFila = obtenerUltimaFilaImpFinalManual(hoja);
+                    if (ultimaFila > 0) {
+                        const ultimaFilaElement = document.querySelector(`[data-fila="${ultimaFila}"]`);
+                        if (ultimaFilaElement) {
+                            ultimaFilaElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            console.log(`📍 Scroll a última fila con datos: ${ultimaFila}`);
+                        }
+                    } else {
+                        // Fallback a fila 15
+                        const fila15 = document.querySelector('[data-fila="15"]');
+                        if (fila15) {
+                            fila15.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }
+                } else {
+                    // Fallback a fila 15
+                    const fila15 = document.querySelector('[data-fila="15"]');
+                    if (fila15) {
+                        fila15.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
             } else {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                // En otros diarios, mantener comportamiento original (ir al día 1)
+                const fila15 = document.querySelector('[data-fila="15"]');
+                if (fila15) {
+                    fila15.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
             }
         }, 100);
     } finally {
@@ -6399,11 +6434,36 @@ function renderDetalleCliente(index) {
         recalcularTotalesCliente(cliente_calculado, index);
 
         mostrarTablaEditableCliente(cliente_calculado, hoja, index);
-        // Scroll al inicio (día 1) - usar el contenedor de scroll
+        // Scroll al último día con datos en Diario Xavi, o al inicio en otros diarios
         setTimeout(() => {
-            const scrollContainer = document.querySelector('.table-container-scroll');
-            if (scrollContainer) {
-                scrollContainer.scrollTop = 0;
+            if (hojaActual === 'Diario Xavi') {
+                // En Diario Xavi, ir al último día con imp_final en el general
+                const ultimaFila = obtenerUltimaFilaImpFinalManual(hoja);
+                if (ultimaFila > 0) {
+                    const ultimaFilaElement = document.querySelector(`.table-detalle [data-fila="${ultimaFila}"]`);
+                    if (ultimaFilaElement) {
+                        ultimaFilaElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        console.log(`📍 Scroll cliente a última fila con datos: ${ultimaFila}`);
+                    } else {
+                        // Fallback al inicio
+                        const scrollContainer = document.querySelector('.table-container-scroll');
+                        if (scrollContainer) {
+                            scrollContainer.scrollTop = 0;
+                        }
+                    }
+                } else {
+                    // Fallback al inicio
+                    const scrollContainer = document.querySelector('.table-container-scroll');
+                    if (scrollContainer) {
+                        scrollContainer.scrollTop = 0;
+                    }
+                }
+            } else {
+                // En otros diarios, mantener comportamiento original (ir al inicio)
+                const scrollContainer = document.querySelector('.table-container-scroll');
+                if (scrollContainer) {
+                    scrollContainer.scrollTop = 0;
+                }
             }
         }, 50);
     } else {
@@ -10184,7 +10244,8 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
                 rentabilidad: datosMes.incrementos > 0 ? (datosMes.beneficio / datosMes.incrementos) * 100 : 0,
                 saldoInicial: datosMes.saldoInicial,
                 saldoFinal: datosMes.saldoFinal,
-                detalles: datosMes.filas
+                detalles: datosMes.filas,
+                diasOperados: datosMes.filas.length // Número de días con datos en este mes
             };
             resultados.push(resultado);
             console.log(`🔍 DEBUG mes ${mes}: inc=${datosMes.incrementos}, dec=${datosMes.decrementos}, benef=${datosMes.beneficio}`);
@@ -10509,7 +10570,7 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
     const container = document.getElementById('clientStatsContent');
     if (!container) return;
     
-    const mesesConDatos = datosMeses.filter(m => m && m.diasOperados > 0);
+    const mesesConDatos = datosMeses.filter(m => m && (m.diasOperados > 0 || m.capitalInvertido > 0 || m.capitalRetirado > 0 || m.beneficio !== 0));
     
     // Color del peor mes: verde si es positivo, rojo si es negativo
     const peorMesPositivo = kpis.peorMes && kpis.peorMes.rentabilidad >= 0;
