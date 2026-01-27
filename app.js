@@ -10589,10 +10589,10 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
             mesDatos.diasConDatos++;
         }
         
-        // Guardar saldo final si existe
-        if (typeof fila.saldo_diario === 'number') {
+        // Guardar saldo final si existe (usar el último saldo válido del mes)
+        if (typeof fila.saldo_diario === 'number' && fila.saldo_diario > 0) {
             mesDatos.saldoFinal = fila.saldo_diario;
-        } else if (typeof fila.imp_final === 'number') {
+        } else if (typeof fila.imp_final === 'number' && fila.imp_final > 0) {
             mesDatos.saldoFinal = fila.imp_final;
         }
         
@@ -10610,8 +10610,15 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
         const mesDatos = datosPorMes[mesKey];
         
         if (mesDatos && (mesDatos.incrementos > 0 || mesDatos.decrementos > 0 || mesDatos.saldoFinal > 0)) {
-            // Calcular saldos
+            // 🔥 CÁLCULO CORRECTO DE SALDOS
             mesDatos.saldoInicial = saldoAnterior;
+            
+            // Si no hay saldo final pero hay movimientos, calcularlo
+            if (mesDatos.saldoFinal === 0 && (mesDatos.incrementos > 0 || mesDatos.decrementos > 0)) {
+                mesDatos.saldoFinal = mesDatos.saldoInicial + mesDatos.incrementos - mesDatos.decrementos + mesDatos.beneficio;
+            }
+            
+            // Actualizar saldo anterior para el siguiente mes
             saldoAnterior = mesDatos.saldoFinal;
             
             // Crear resultado
@@ -10629,7 +10636,7 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
             };
             
             resultados.push(resultado);
-            console.log(`✅ Mes ${mesKey}: ${resultado.rentabilidad.toFixed(2)}% (${resultado.diasOperados} días)`);
+            console.log(`✅ Mes ${mesKey}: ${resultado.rentabilidad.toFixed(2)}% (${resultado.diasOperados} días) - Saldo: ${resultado.saldoFinal.toFixed(2)}`);
         } else {
             console.log(`❌ Mes ${mesKey}: sin datos`);
         }
@@ -10658,16 +10665,27 @@ function calcularKPIsTiempoReal(datosMeses) {
     // Calcular totales
     const inversion = datosMeses.reduce((sum, m) => sum + m.capitalInvertido, 0);
     const decrementos = datosMeses.reduce((sum, m) => sum + m.capitalRetirado, 0);
-    const beneficioEuro = datosMeses.reduce((sum, m) => sum + m.beneficio, 0);
     const saldoActual = datosMeses[datosMeses.length - 1]?.saldoFinal || 0;
-    const rentabilidadTotal = inversion > 0 ? (beneficioEuro / inversion) * 100 : 0;
+    
+    // 🔥 CÁLCULO CORRECTO DE BENEFICIO: Saldo Final - (Inversión - Retiradas)
+    const capitalNetoInvertido = inversion - decrementos;
+    const beneficioEuro = saldoActual - capitalNetoInvertido;
+    
+    // 🔥 CÁLCULO CORRECTO DE RENTABILIDAD: Beneficio / Inversión Neta
+    const rentabilidadTotal = capitalNetoInvertido > 0 ? (beneficioEuro / capitalNetoInvertido) * 100 : 0;
     
     // Mejor y peor mes
     const mejorMes = datosMeses.reduce((a, b) => (a.rentabilidad || 0) > (b.rentabilidad || 0) ? a : b);
     const peorMes = datosMeses.reduce((a, b) => (a.rentabilidad || 0) < (b.rentabilidad || 0) ? a : b);
     const promedioMensual = rentabilidadTotal / datosMeses.length;
     
-    console.log(`💰 KPIs: Inversión=${inversion.toFixed(2)}, Beneficio=${beneficioEuro.toFixed(2)}, Rentabilidad=${rentabilidadTotal.toFixed(2)}%`);
+    console.log(`💰 KPIs CORREGIDOS:`);
+    console.log(`   Inversión: ${inversion.toFixed(2)}`);
+    console.log(`   Retiradas: ${decrementos.toFixed(2)}`);
+    console.log(`   Capital Neto: ${capitalNetoInvertido.toFixed(2)}`);
+    console.log(`   Saldo Actual: ${saldoActual.toFixed(2)}`);
+    console.log(`   Beneficio: ${beneficioEuro.toFixed(2)}`);
+    console.log(`   Rentabilidad: ${rentabilidadTotal.toFixed(2)}%`);
     
     return {
         inversion,
@@ -11460,8 +11478,14 @@ function renderizarGraficoRentabilidadCliente(datos) {
 }
 
 function renderizarGraficoEvolucionCliente(datos) {
+    console.log('📈 renderizarGraficoEvolucionCliente recibió:', datos.length, 'meses');
+    console.log('📈 Datos:', datos.map(d => ({ mes: d.nombreMes, saldo: d.saldoFinal })));
+    
     const canvas = document.getElementById('chartClienteEvolucion');
-    if (!canvas || datos.length === 0) return;
+    if (!canvas || datos.length === 0) {
+        console.log('❌ No hay canvas o no hay datos para el gráfico');
+        return;
+    }
     
     if (chartClienteEvolucion) {
         chartClienteEvolucion.destroy();
@@ -11471,6 +11495,9 @@ function renderizarGraficoEvolucionCliente(datos) {
     const labels = datos.map(d => formatearMesCorto(d.mes));
     // Usar saldoFinal = último saldo diario de cada mes
     const saldos = datos.map(d => d.saldoFinal || 0);
+    
+    console.log('📈 Labels:', labels);
+    console.log('📈 Saldos:', saldos);
     
     // Calcular gradiente
     const gradient = ctx.createLinearGradient(0, 0, 0, 300);
