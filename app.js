@@ -888,7 +888,7 @@ async function mostrarVistaGeneralAuto() {
     mostrarLoadingOverlay();
     try {
         await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_general' });
-        mostrarVistaGeneral();
+        await mostrarVistaGeneral();
         ocultarSidebarAlNavegar();
     } finally {
         ocultarLoadingOverlay();
@@ -931,7 +931,7 @@ async function mostrarVistaComisionAuto() {
 async function autoActualizarVistaActual() {
     await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'focus_or_visibility' });
     if (vistaActual === 'general') {
-        mostrarVistaGeneral();
+        await mostrarVistaGeneral();
         return;
     }
     if (vistaActual === 'clientes') {
@@ -2395,7 +2395,7 @@ async function cambiarHoja() {
             actualizarProgresoCarga(92, 100, 'Cargando...');
         }
         
-        mostrarVistaGeneral();
+        await mostrarVistaGeneral();
         
         if (hojaActual === 'Diario Xavi' && __loadingProgressVisible) {
             actualizarProgresoCarga(98, 100, 'Cargando...');
@@ -2448,36 +2448,36 @@ let fechaDesdeFiltro = null;
 let fechaHastaFiltro = null;
 
 // Funciones de filtro y vista
-function aplicarFiltroFechas() {
+async function aplicarFiltroFechas() {
     const fechaDesde = document.getElementById('fechaDesde').value;
     const fechaHasta = document.getElementById('fechaHasta').value;
     
     fechaDesdeFiltro = fechaDesde ? new Date(fechaDesde) : null;
     fechaHastaFiltro = fechaHasta ? new Date(fechaHasta) : null;
     
-    mostrarVistaGeneral();
+    await mostrarVistaGeneral();
     mostrarNotificacion('Filtro aplicado', 'success');
 }
 
-function limpiarFiltroFechas() {
+async function limpiarFiltroFechas() {
     document.getElementById('fechaDesde').value = '';
     document.getElementById('fechaHasta').value = '';
     fechaDesdeFiltro = null;
     fechaHastaFiltro = null;
-    mostrarVistaGeneral();
+    await mostrarVistaGeneral();
     mostrarNotificacion('Filtro limpiado', 'success');
 }
 
-function toggleVistaResumen() {
+async function toggleVistaResumen() {
     vistaResumen = !vistaResumen;
     const btn = document.getElementById('btnToggleVista');
     btn.textContent = vistaResumen ? 'Ver Todos los Días' : 'Ver Resumen';
-    mostrarVistaGeneral();
+    await mostrarVistaGeneral();
     mostrarNotificacion(vistaResumen ? 'Mostrando resumen (4 filas)' : 'Mostrando todos los días', 'success');
 }
 
 // Mostrar vista general
-function mostrarVistaGeneral() {
+async function mostrarVistaGeneral() {
     vistaActual = 'general';
     
     // Resetear cliente seleccionado y selector
