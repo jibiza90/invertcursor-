@@ -6001,12 +6001,14 @@ async function renderVistaClientes() {
         const gIni = typeof gIniRaw === 'number' ? gIniRaw : (parseFloat(gIniRaw) || 0);
         const garantiaPendiente = Math.max(0, gIni - dec);
 
-        const totalDecSiRetira = dec + Math.max(0, saldo);
-        const excesoSiRetira = Math.max(0, totalDecSiRetira - inc);
-        const comisionSiRetira = excesoSiRetira * 0.05;
-        const excesoYaRetirado = Math.max(0, dec - inc);
-        const comisionCobrada = excesoYaRetirado * 0.05;
+        // CRÍTICO: Usar las mismas funciones que Info Clientes para consistencia
+        const comisionSiRetira = calcularComisionSiRetiraTodoHoy(c);
+        const detalleCobrado = calcularDetalleComisionesCobradas(c, idx);
+        const comisionCobrada = detalleCobrado.totalCobrada;
         const comisionPendiente = Math.max(0, comisionSiRetira - comisionCobrada);
+        
+        // DEBUG: Log para comparar comisiones con Info Clientes
+        console.log(`🔍 DEBUG Cliente ${clienteNum} en pestaña Clientes: comisionSiRetira=${comisionSiRetira}, comisionCobrada=${comisionCobrada}, comisionPendiente=${comisionPendiente}`);
 
         return { idx, cliente: c, saldo, garantiaPendiente, comisionSiRetira, comisionCobrada, comisionPendiente, inc, dec };
     });
@@ -9223,6 +9225,10 @@ function mostrarComision() {
 
         totalComisionAcumulada += comisionCobrada;
         totalComisionSiRetiran += comisionSiRetiraHoy;
+        
+        // DEBUG: Log para comparar comisiones con pestaña Clientes
+        const clienteNum = cliente.numero_cliente || (index + 1);
+        console.log(`🔍 DEBUG Cliente ${clienteNum} en Info Clientes (Comisiones): comisionSiRetira=${comisionSiRetiraHoy}, comisionCobrada=${comisionCobrada}`);
         
         // Obtener nombre del cliente
         const datosCliente = cliente.datos || {};
