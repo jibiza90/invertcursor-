@@ -11218,7 +11218,20 @@ function calcularKPIsTotalesCliente(datosClienteMeses, clienteEnMemoria) {
     // Mejor y peor mes (usar rentabilidad correcta)
     const mejorMes = mesesConDatos.reduce((a, b) => (a.rentabilidad || 0) > (b.rentabilidad || 0) ? a : b);
     const peorMes = mesesConDatos.reduce((a, b) => (a.rentabilidad || 0) < (b.rentabilidad || 0) ? a : b);
-    const promedioMensual = rentabilidadTotal / mesesConDatos.length;
+    
+    // 🔥 PROMEDIO MENSUAL CORRECTO: Solo meses con rentabilidad real
+    const mesesConRentabilidad = mesesConDatos.filter(m => m.rentabilidad && m.rentabilidad !== 0);
+    const promedioMensual = mesesConRentabilidad.length > 0 
+        ? mesesConRentabilidad.reduce((sum, m) => sum + m.rentabilidad, 0) / mesesConRentabilidad.length 
+        : 0;
+    
+    // 🔥 DEBUG DE PROMEDIO MENSUAL
+    console.log('📈 Rentabilidades individuales:');
+    mesesConDatos.forEach(m => {
+        console.log(`   ${m.nombreMes}: ${m.rentabilidad?.toFixed(2)}%`);
+    });
+    console.log(`📈 Meses con rentabilidad > 0: ${mesesConRentabilidad.length}`);
+    console.log(`📈 Promedio mensual: ${promedioMensual.toFixed(2)}%`);
     
     console.log(`📊 KPIs recalculados: inversion=${inversion}, saldoActual=${saldoActual}, dec=${decrementos}, benef=${beneficioEuro}, rent=${rentabilidadTotal}%`);
     
@@ -11578,7 +11591,9 @@ function renderizarGraficoEvolucionCliente(datos) {
                         label: (ctx) => {
                             const idx = ctx.dataIndex;
                             const d = datos[idx];
-                            return `Patrimonio: ${formatearMoneda(d.saldoFinalMes || 0)}`;
+                            // 🔥 CORRECCIÓN: Usar saldoFinal (no saldoFinalMes)
+                            const saldo = d.saldoFinal || 0;
+                            return `Patrimonio: ${formatearMoneda(saldo)}`;
                         }
                     }
                 }
