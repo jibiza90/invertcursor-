@@ -898,7 +898,10 @@ async function inicializarApp() {
 async function mostrarVistaGeneralAuto() {
     mostrarLoadingOverlay();
     try {
-        await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_general' });
+        // Solo recalcular si hay cambios pendientes
+        if (__dirtyRecalculoMasivo || requiereRecalculoImpInicial) {
+            await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_general' });
+        }
         await mostrarVistaGeneral();
         ocultarSidebarAlNavegar();
     } finally {
@@ -909,7 +912,10 @@ async function mostrarVistaGeneralAuto() {
 async function mostrarVistaClientesAuto() {
     mostrarLoadingOverlay();
     try {
-        await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_clientes' });
+        // Solo recalcular si hay cambios pendientes
+        if (__dirtyRecalculoMasivo || requiereRecalculoImpInicial) {
+            await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_clientes' });
+        }
         mostrarVistaClientes();
         ocultarSidebarAlNavegar();
     } finally {
@@ -920,7 +926,10 @@ async function mostrarVistaClientesAuto() {
 async function mostrarVistaInfoClientesAuto() {
     mostrarLoadingOverlay();
     try {
-        await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_infoClientes' });
+        // Solo recalcular si hay cambios pendientes
+        if (__dirtyRecalculoMasivo || requiereRecalculoImpInicial) {
+            await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_infoClientes' });
+        }
         mostrarVistaInfoClientes();
         ocultarSidebarAlNavegar();
     } finally {
@@ -931,7 +940,10 @@ async function mostrarVistaInfoClientesAuto() {
 async function mostrarVistaComisionAuto() {
     mostrarLoadingOverlay();
     try {
-        await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_comision' });
+        // Solo recalcular si hay cambios pendientes
+        if (__dirtyRecalculoMasivo || requiereRecalculoImpInicial) {
+            await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_comision' });
+        }
         mostrarVistaComision();
         ocultarSidebarAlNavegar();
     } finally {
@@ -2647,6 +2659,31 @@ async function mostrarVistaGeneral() {
             mostrarTablaResumen(datosGenerales);
         }
     }
+    
+    // Scroll al último día con datos (especialmente importante para Diario Xavi)
+    setTimeout(() => {
+        if (hojaActual === 'Diario Xavi') {
+            const ultimaFila = obtenerUltimaFilaImpFinalManual(hoja);
+            if (ultimaFila > 0) {
+                // Intentar múltiples selectores para encontrar la fila
+                let ultimaFilaElement = document.querySelector(`[data-fila="${ultimaFila}"]`);
+                if (!ultimaFilaElement) {
+                    ultimaFilaElement = document.querySelector(`tr[data-fila="${ultimaFila}"]`);
+                }
+                if (!ultimaFilaElement) {
+                    ultimaFilaElement = document.querySelector(`.table-general [data-fila="${ultimaFila}"]`);
+                }
+                if (ultimaFilaElement) {
+                    ultimaFilaElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    console.log(`📍 Scroll a última fila con datos (vista general): ${ultimaFila}`);
+                } else {
+                    console.log(`❌ No se encontró elemento para fila ${ultimaFila} en vista general`);
+                }
+            } else {
+                console.log(`❌ No se encontró última fila con imp_final en vista general`);
+            }
+        }
+    }, 300);
 }
 
 // Recalcular totales de las filas 3-6
@@ -6453,11 +6490,19 @@ function renderDetalleCliente(index) {
                 // En Diario Xavi, ir al último día con imp_final en el general
                 const ultimaFila = obtenerUltimaFilaImpFinalManual(hoja);
                 if (ultimaFila > 0) {
-                    const ultimaFilaElement = document.querySelector(`.table-detalle [data-fila="${ultimaFila}"]`);
+                    // Intentar múltiples selectores para encontrar la fila
+                    let ultimaFilaElement = document.querySelector(`.table-detalle [data-fila="${ultimaFila}"]`);
+                    if (!ultimaFilaElement) {
+                        ultimaFilaElement = document.querySelector(`[data-fila="${ultimaFila}"]`);
+                    }
+                    if (!ultimaFilaElement) {
+                        ultimaFilaElement = document.querySelector(`tr[data-fila="${ultimaFila}"]`);
+                    }
                     if (ultimaFilaElement) {
                         ultimaFilaElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         console.log(`📍 Scroll cliente a última fila con datos: ${ultimaFila}`);
                     } else {
+                        console.log(`❌ No se encontró elemento para fila ${ultimaFila}`);
                         // Fallback al inicio
                         const scrollContainer = document.querySelector('.table-container-scroll');
                         if (scrollContainer) {
@@ -10334,16 +10379,33 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
     let saldoAnterior = 0;
     const mesesOrdenados = Object.keys(datosPorMes).sort();
     
-    for (const mes of mesesOrdenados) {
-        const datosMes = datosPorMes[mes];
-        datosMes.saldoInicial = saldoAnterior;
-        saldoAnterior = datosMes.saldoFinal;
+    // Encontrar el último mes con datos para generar todos los meses hasta ahí
+    let ultimoMes = '';
+    if (mesesOrdenados.length > 0) {
+        ultimoMes = mesesOrdenados[mesesOrdenados.length - 1];
+    }
+    
+    // Generar todos los meses desde el primero hasta el último
+    if (ultimoMes) {
+        const [year, month] = ultimoMes.split('-').map(Number);
+        let mesActual = 1;
+        let mesActualStr = `${year}-${String(mesActual).padStart(2, '0')}`;
         
-        // Incluir todos los meses que tengan datos (incluso sin actividad)
-        if (datosMes.filas.length > 0) {
+        while (mesActualStr <= ultimoMes) {
+            const datosMes = datosPorMes[mesActualStr] || {
+                incrementos: 0,
+                decrementos: 0,
+                beneficio: 0,
+                saldoFinal: saldoAnterior,
+                filas: []
+            };
+            
+            datosMes.saldoInicial = saldoAnterior;
+            saldoAnterior = datosMes.saldoFinal;
+            
             const resultado = {
-                mes: mes,
-                nombreMes: formatearNombreMes(mes),
+                mes: mesActualStr,
+                nombreMes: formatearNombreMes(mesActualStr),
                 capitalInvertido: datosMes.incrementos,
                 capitalRetirado: datosMes.decrementos,
                 beneficio: datosMes.beneficio,
@@ -10354,7 +10416,11 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
                 diasOperados: datosMes.filas.length // Número de días con datos en este mes
             };
             resultados.push(resultado);
-            console.log(`🔍 DEBUG mes ${mes}: inc=${datosMes.incrementos}, dec=${datosMes.decrementos}, benef=${datosMes.beneficio}`);
+            console.log(`🔍 DEBUG mes ${mesActualStr}: inc=${datosMes.incrementos}, dec=${datosMes.decrementos}, benef=${datosMes.beneficio}`);
+            
+            mesActual++;
+            if (mesActual > 12) break;
+            mesActualStr = `${year}-${String(mesActual).padStart(2, '0')}`;
         }
     }
     
