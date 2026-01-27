@@ -114,11 +114,11 @@ class ExportData {
             // Obtener datos reales
             const datos = await this.obtenerDatosGenerales();
             
-            // Crear Excel
-            const excelData = this.crearExcelDatosGenerales(datos);
+            // Crear CSV (simulación de Excel)
+            const csvData = this.crearCSVDatosGenerales(datos);
             
             // Descargar
-            this.descargarArchivo(excelData, `datos_generales_${this.getFechaArchivo()}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            this.descargarArchivo(csvData, `datos_generales_${this.getFechaArchivo()}.csv`, 'text/csv');
             
             statusDiv.innerHTML = '<p class="success">✅ Datos generales exportados correctamente</p>';
             this.showNotification('✅ Datos generales exportados', 'success');
@@ -146,15 +146,24 @@ class ExportData {
         return datos;
     }
 
-    crearExcelDatosGenerales(datos) {
-        // Crear contenido CSV simple (simulación de Excel)
+    crearCSVDatosGenerales(datos) {
+        // Crear contenido CSV simple
         let csv = 'FECHA,CONCEPTO,IMPORTE,BENEFICIO,SALDO\n';
         
-        datos.datosDiarios.forEach(dia => {
-            if (dia.fecha && dia.beneficio) {
-                csv += `${dia.fecha},${dia.concepto || ''},${dia.importe || 0},${dia.beneficio},${dia.saldo || 0}\n`;
-            }
-        });
+        if (datos.datosDiarios && datos.datosDiarios.length > 0) {
+            datos.datosDiarios.forEach(dia => {
+                if (dia.fecha) {
+                    csv += `${dia.fecha},${dia.concepto || ''},${dia.importe || 0},${dia.beneficio || 0},${dia.saldo || 0}\n`;
+                }
+            });
+        } else {
+            // Si no hay datos diarios, agregar estadísticas
+            csv += `RESUMEN ESTADÍSTICAS\n`;
+            csv += `Inversión Total,${datos.estadisticas?.inversion || 0}\n`;
+            csv += `Saldo Actual,${datos.estadisticas?.saldoActual || 0}\n`;
+            csv += `Beneficio Total,${datos.estadisticas?.beneficioEuro || 0}\n`;
+            csv += `Rentabilidad Total,${datos.estadisticas?.rentabilidadTotal || 0}%\n`;
+        }
         
         return csv;
     }
@@ -284,9 +293,9 @@ class ExportData {
         
         try {
             const datos = await this.obtenerDatosCliente();
-            const excelData = this.crearExcelCliente(datos);
+            const csvData = this.crearCSVCliente(datos);
             
-            this.descargarArchivo(excelData, `cliente_${datos.nombre}_${this.getFechaArchivo()}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            this.descargarArchivo(csvData, `cliente_${datos.nombre}_${this.getFechaArchivo()}.csv`, 'text/csv');
             
             statusDiv.innerHTML = '<p class="success">✅ Datos del cliente exportados</p>';
             this.showNotification('✅ Datos del cliente exportados', 'success');
@@ -318,14 +327,34 @@ class ExportData {
         return null;
     }
 
-    crearExcelCliente(datos) {
-        let csv = 'FECHA,CONCEPTO,IMPORTE,BENEFICIO,SALDO\n';
+    crearCSVCliente(datos) {
+        let csv = `DATOS DEL CLIENTE: ${datos.nombre}\n`;
+        csv += `FECHA GENERACIÓN: ${datos.fechaExportacion}\n\n`;
         
-        datos.datosDiarios.forEach(dia => {
-            if (dia.fecha && dia.beneficio) {
-                csv += `${dia.fecha},${dia.concepto || ''},${dia.importe || 0},${dia.beneficio},${dia.saldo || 0}\n`;
-            }
-        });
+        // Estadísticas del cliente
+        if (datos.estadisticas) {
+            csv += `RESUMEN ESTADÍSTICAS\n`;
+            csv += `Inversión,${datos.estadisticas.inversion || 0}\n`;
+            csv += `Saldo Actual,${datos.estadisticas.saldoActual || 0}\n`;
+            csv += `Beneficio Total,${datos.estadisticas.beneficioEuro || 0}\n`;
+            csv += `Rentabilidad Total,${datos.estadisticas.rentabilidadTotal || 0}%\n`;
+            csv += `Mejor Mes,${datos.estadisticas.mejorMes?.mes || 'N/A'}\n`;
+            csv += `Peor Mes,${datos.estadisticas.peorMes?.mes || 'N/A'}\n`;
+            csv += `Promedio Mensual,${datos.estadisticas.promedioMensual || 0}%\n`;
+            csv += `Meses Operados,${datos.estadisticas.mesesOperados || 0}\n\n`;
+        }
+        
+        // Datos diarios
+        if (datos.datosDiarios && datos.datosDiarios.length > 0) {
+            csv += `DATOS DIARIOS\n`;
+            csv += `FECHA,CONCEPTO,IMPORTE,BENEFICIO,SALDO\n`;
+            
+            datos.datosDiarios.forEach(dia => {
+                if (dia.fecha) {
+                    csv += `${dia.fecha},${dia.concepto || ''},${dia.importe || 0},${dia.beneficio || 0},${dia.saldo || 0}\n`;
+                }
+            });
+        }
         
         return csv;
     }
@@ -399,9 +428,9 @@ class ExportData {
         
         try {
             const clientes = await this.obtenerTodosClientes();
-            const excelData = this.crearExcelTodosClientes(clientes);
+            const csvData = this.createCSVTodosClientes(clientes);
             
-            this.descargarArchivo(excelData, `todos_clientes_${this.getFechaArchivo()}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            this.descargarArchivo(csvData, `todos_clientes_${this.getFechaArchivo()}.csv`, 'text/csv');
             
             statusDiv.innerHTML = '<p class="success">✅ Todos los clientes exportados</p>';
             this.showNotification('✅ Clientes exportados', 'success');
@@ -442,8 +471,18 @@ class ExportData {
         return null;
     }
 
+    createCSVTodosClientes(clientes) {
+        let csv = 'CLIENTE,INVERSIÓN,SALDO,BENEFICIO,RENTABILIDAD,MEJOR MES,PEOR MES,MESSES OPERADOS\n';
+        
+        clientes.forEach(cliente => {
+            csv += `${cliente.nombre},${cliente.inversion},${cliente.saldo},${cliente.beneficio},${cliente.rentabilidad.toFixed(2)}%,${cliente.mejorMes?.mes || 'N/A'},${cliente.peorMes?.mes || 'N/A'},${cliente.mesesOperados}\n`;
+        });
+        
+        return csv;
+    }
+
     crearExcelTodosClientes(clientes) {
-        let csv = 'CLIENTE,INVERSIÓN,SALDO,BENEFICIO,RENTABILIDAD,MEJOR MES,PEOR MESESMESSES OPERADOS\n';
+        let csv = 'CLIENTE,INVERSIÓN,SALDO,BENEFICIO,RENTABILIDAD,MEJOR MES,PEOR MES,MESSES OPERADOS\n';
         
         clientes.forEach(cliente => {
             csv += `${cliente.nombre},${cliente.inversion},${cliente.saldo},${cliente.beneficio},${cliente.rentabilidad.toFixed(2)}%,${cliente.mejorMes?.mes || 'N/A'},${cliente.peorMes?.mes || 'N/A'},${cliente.mesesOperados}\n`;

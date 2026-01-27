@@ -33,90 +33,149 @@ class ReportingUtil {
             <div class="reporting-actions">
                 <div class="action-group">
                     <h3>📊 Informes Rápidos</h3>
-                    <button class="btn btn-primary" onclick="window.reportingUtil.generarResumenMensual()">
-                        📈 Resumen Mensual Actual
-                    </button>
-                    <button class="btn btn-primary" onclick="window.reportingUtil.generarInformeCliente()">
-                        👤 Informe del Cliente Actual
-                    </button>
-                    <button class="btn btn-primary" onclick="window.reportingUtil.generarComparativa()">
-                        📊 Comparativa General vs Cliente
-                    </button>
-                </div>
-                
-                <div class="action-group">
-                    <h3>📅 Informes por Periodo</h3>
-                    <select id="periodoInforme">
-                        <option value="mes">Mes Actual</option>
-                        <option value="trimestre">Último Trimestre</option>
-                        <option value="semestre">Último Semestre</option>
-                        <option value="año">Año Completo</option>
-                    </select>
-                    <button class="btn btn-secondary" onclick="window.reportingUtil.generarInformePeriodo()">
-                        📅 Generar Informe
-                    </button>
-                </div>
-            </div>
-            
-            <div class="reporting-output">
-                <h3>📄 Vista Previa del Informe</h3>
-                <div id="informePreview" class="informe-preview">
-                    <p>Selecciona un tipo de informe para generar vista previa</p>
-                </div>
-                
-                <div class="export-buttons" id="exportButtons" style="display: none;">
-                    <button class="btn btn-success" onclick="window.reportingUtil.exportarExcel()">
-                        📊 Exportar Excel
-                    </button>
-                    <button class="btn btn-info" onclick="window.reportingUtil.exportarCSV()">
-                        📋 Exportar CSV
-                    </button>
-                    <button class="btn btn-warning" onclick="window.reportingUtil.imprimirInforme()">
-                        🖨️ Imprimir
-                    </button>
+                    
+                    <!-- Resumen Mensual con Selector de Mes -->
+                    <div class="informe-item">
+                        <div class="informe-controls">
+                            <select id="mesResumen" class="selector-informe">
+                                <option value="">Seleccionar mes...</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="window.reportingUtil.generarResumenMensual()">
+                                📈 Resumen Mensual
+                            </button>
+                        </div>
+                        <div id="resumenMensualContent" class="informe-expandible" style="display: none;">
+                            <!-- Contenido expandible -->
+                        </div>
+                    </div>
+                    
+                    <!-- Informe Cliente con Selectores -->
+                    <div class="informe-item">
+                        <div class="informe-controls">
+                            <select id="clienteInforme" class="selector-informe">
+                                <option value="">Seleccionar cliente...</option>
+                            </select>
+                            <select id="mesCliente" class="selector-informe">
+                                <option value="">Todos los meses</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="window.reportingUtil.generarInformeCliente()">
+                                👤 Informe del Cliente
+                            </button>
+                        </div>
+                        <div id="informeClienteContent" class="informe-expandible" style="display: none;">
+                            <!-- Contenido expandible -->
+                        </div>
+                    </div>
+                    
+                    <!-- Comparativa -->
+                    <div class="informe-item">
+                        <div class="informe-controls">
+                            <select id="clienteComparativa" class="selector-informe">
+                                <option value="">Seleccionar cliente...</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="window.reportingUtil.generarComparativa()">
+                                📊 Comparativa General vs Cliente
+                            </button>
+                        </div>
+                        <div id="comparativaContent" class="informe-expandible" style="display: none;">
+                            <!-- Contenido expandible -->
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
+        
+        // Cargar selectores
+        this.cargarSelectores();
+    }
+
+    async cargarSelectores() {
+        // Cargar meses disponibles
+        const mesResumen = document.getElementById('mesResumen');
+        const mesCliente = document.getElementById('mesCliente');
+        
+        if (mesResumen && window.mesesDisponibles) {
+            Object.keys(window.mesesDisponibles).forEach(mes => {
+                mesResumen.innerHTML += `<option value="${mes}">${mes}</option>`;
+                if (mesCliente) {
+                    mesCliente.innerHTML += `<option value="${mes}">${mes}</option>`;
+                }
+            });
+        }
+        
+        // Cargar clientes disponibles
+        const clienteInforme = document.getElementById('clienteInforme');
+        const clienteComparativa = document.getElementById('clienteComparativa');
+        
+        if (window.clientesAnuales && (clienteInforme || clienteComparativa)) {
+            window.clientesAnuales.forEach(cliente => {
+                if (clienteInforme) {
+                    clienteInforme.innerHTML += `<option value="${cliente.nombre}">${cliente.nombre}</option>`;
+                }
+                if (clienteComparativa) {
+                    clienteComparativa.innerHTML += `<option value="${cliente.nombre}">${cliente.nombre}</option>`;
+                }
+            });
+        }
     }
 
     async generarResumenMensual() {
-        console.log('📈 Generando resumen mensual...');
+        const mesSeleccionado = document.getElementById('mesResumen')?.value;
+        if (!mesSeleccionado) {
+            this.showNotification('⚠️ Por favor selecciona un mes', 'warning');
+            return;
+        }
         
-        const preview = document.getElementById('informePreview');
-        const exportButtons = document.getElementById('exportButtons');
+        console.log('📈 Generando resumen mensual para:', mesSeleccionado);
         
-        if (!preview) return;
+        const contentDiv = document.getElementById('resumenMensualContent');
+        if (!contentDiv) return;
         
-        // Mostrar carga
-        preview.innerHTML = '<div class="loading">⏳ Generando informe...</div>';
+        // Mostrar expandible
+        contentDiv.style.display = 'block';
+        contentDiv.innerHTML = '<div class="loading">⏳ Generando informe...</div>';
         
         try {
-            // Obtener datos reales
-            const datos = await this.obtenerDatosResumenMensual();
+            // Obtener datos reales del mes seleccionado
+            const datos = await this.obtenerDatosResumenMensual(mesSeleccionado);
             
             // Generar informe
             const informe = this.crearInformeResumen(datos);
             
-            preview.innerHTML = informe;
-            exportButtons.style.display = 'flex';
+            contentDiv.innerHTML = `
+                <div class="informe-content">
+                    <div class="informe-header">
+                        <h4>📊 Resumen Mensual - ${mesSeleccionado}</h4>
+                        <div class="informe-actions">
+                            <button class="btn btn-sm btn-success" onclick="window.reportingUtil.exportarInforme('resumen', '${mesSeleccionado}')">
+                                📊 Exportar Excel
+                            </button>
+                            <button class="btn btn-sm btn-info" onclick="window.reportingUtil.imprimirInforme('resumen-${mesSeleccionado}')">
+                                🖨️ Imprimir
+                            </button>
+                        </div>
+                    </div>
+                    ${informe}
+                </div>
+            `;
             
             this.showNotification('✅ Resumen mensual generado', 'success');
             
         } catch (error) {
             console.error('Error generando resumen:', error);
-            preview.innerHTML = '<p class="error">❌ Error al generar el informe</p>';
+            contentDiv.innerHTML = '<p class="error">❌ Error al generar el informe</p>';
         }
     }
 
-    async obtenerDatosResumenMensual() {
+    async obtenerDatosResumenMensual(mesSeleccionado) {
         // Usar datos reales de la aplicación
-        if (!window.hojaActual || !window.mesActual) {
+        if (!window.hojaActual) {
             throw new Error('No hay datos cargados');
         }
         
         const datos = {
             hoja: window.hojaActual.nombre || 'N/A',
-            mes: window.mesActual || 'N/A',
+            mes: mesSeleccionado || window.mesActual || 'N/A',
             clienteActual: window.clienteActual?.nombre || 'N/A',
             
             // Estadísticas generales
@@ -301,33 +360,81 @@ class ReportingUtil {
     }
 
     async generarInformeCliente() {
-        if (!window.clienteActual) {
-            this.showNotification('⚠️ No hay cliente seleccionado', 'warning');
+        const clienteSeleccionado = document.getElementById('clienteInforme')?.value;
+        const mesSeleccionado = document.getElementById('mesCliente')?.value;
+        
+        if (!clienteSeleccionado) {
+            this.showNotification('⚠️ Por favor selecciona un cliente', 'warning');
             return;
         }
         
-        console.log('👤 Generando informe del cliente...');
+        console.log('👤 Generando informe del cliente:', clienteSeleccionado, mesSeleccionado);
         
-        const preview = document.getElementById('informePreview');
-        const exportButtons = document.getElementById('exportButtons');
+        const contentDiv = document.getElementById('informeClienteContent');
+        if (!contentDiv) return;
         
-        if (!preview) return;
-        
-        preview.innerHTML = '<div class="loading">⏳ Generando informe del cliente...</div>';
+        // Mostrar expandible
+        contentDiv.style.display = 'block';
+        contentDiv.innerHTML = '<div class="loading">⏳ Generando informe del cliente...</div>';
         
         try {
-            const datos = await this.obtenerDatosCliente();
-            const informe = this.crearInformeCliente(datos);
+            // Obtener datos del cliente seleccionado
+            const datos = await this.obtenerDatosClienteSeleccionado(clienteSeleccionado, mesSeleccionado);
+            const informe = this.crearInformeClienteCompleto(datos);
             
-            preview.innerHTML = informe;
-            exportButtons.style.display = 'flex';
+            contentDiv.innerHTML = `
+                <div class="informe-content">
+                    <div class="informe-header">
+                        <h4>👤 Informe del Cliente - ${clienteSeleccionado}</h4>
+                        ${mesSeleccionado ? `<p class="informe-subtitle">Mes: ${mesSeleccionado}</p>` : '<p class="informe-subtitle">Todos los meses</p>'}
+                        <div class="informe-actions">
+                            <button class="btn btn-sm btn-success" onclick="window.reportingUtil.exportarInforme('cliente', '${clienteSeleccionado}', '${mesSeleccionado || ''}')">
+                                📊 Exportar Excel
+                            </button>
+                            <button class="btn btn-sm btn-info" onclick="window.reportingUtil.imprimirInforme('cliente-${clienteSeleccionado}')">
+                                🖨️ Imprimir
+                            </button>
+                        </div>
+                    </div>
+                    ${informe}
+                </div>
+            `;
             
             this.showNotification('✅ Informe del cliente generado', 'success');
             
         } catch (error) {
             console.error('Error generando informe cliente:', error);
-            preview.innerHTML = '<p class="error">❌ Error al generar el informe</p>';
+            contentDiv.innerHTML = '<p class="error">❌ Error al generar el informe</p>';
         }
+    }
+
+    async obtenerDatosClienteSeleccionado(nombreCliente, mesFiltro) {
+        // Buscar cliente en la lista de clientes anuales
+        const cliente = window.clientesAnuales?.find(c => c.nombre === nombreCliente);
+        if (!cliente) {
+            throw new Error(`Cliente ${nombreCliente} no encontrado`);
+        }
+        
+        // Obtener estadísticas del cliente
+        let statsCliente = null;
+        if (typeof window.calcularEstadisticasClienteTiempoReal === 'function') {
+            statsCliente = await window.calcularEstadisticasClienteTiempoReal(cliente);
+        }
+        
+        // Filtrar datos por mes si es necesario
+        let datosDiarios = cliente.datos_diarios || [];
+        if (mesFiltro) {
+            datosDiarios = datosDiarios.filter(dia => dia.fecha && dia.fecha.startsWith(mesFiltro));
+        }
+        
+        return {
+            nombre: nombreCliente,
+            stats: statsCliente,
+            datosDiarios: datosDiarios,
+            rendimientoMensual: this.analizarRendimientoMensual(datosDiarios),
+            mesFiltro: mesFiltro,
+            fechaGeneracion: new Date().toLocaleString('es-ES')
+        };
     }
 
     async obtenerDatosCliente() {
@@ -379,121 +486,161 @@ class ReportingUtil {
         return meses;
     }
 
-    crearInformeCliente(datos) {
+    crearInformeClienteCompleto(datos) {
         const stats = datos.stats;
         const rendimiento = datos.rendimientoMensual;
         
         return `
-            <div class="informe-content">
-                <div class="informe-header">
-                    <h2>👤 Informe del Cliente: ${datos.nombre}</h2>
-                    <p><strong>Generado:</strong> ${datos.fechaGeneracion}</p>
-                </div>
-                
-                <div class="informe-section">
-                    <h3>📊 Resumen General</h3>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <h4>Inversión Total</h4>
-                            <p class="stat-value">${this.formatearMoneda(stats.inversion || 0)}</p>
-                        </div>
-                        <div class="stat-card">
-                            <h4>Saldo Actual</h4>
-                            <p class="stat-value">${this.formatearMoneda(stats.saldoActual || 0)}</p>
-                        </div>
-                        <div class="stat-card">
-                            <h4>Beneficio Total</h4>
-                            <p class="stat-value ${stats.beneficioEuro >= 0 ? 'positive' : 'negative'}">
-                                ${stats.beneficioEuro >= 0 ? '+' : ''}${this.formatearMoneda(stats.beneficioEuro || 0)}
-                            </p>
-                        </div>
-                        <div class="stat-card">
-                            <h4>Rentabilidad Total</h4>
-                            <p class="stat-value ${stats.rentabilidadTotal >= 0 ? 'positive' : 'negative'}">
-                                ${stats.rentabilidadTotal >= 0 ? '+' : ''}${(stats.rentabilidadTotal || 0).toFixed(2)}%
-                            </p>
-                        </div>
+            <div class="informe-section">
+                <h3>📊 Información del Cliente</h3>
+                <div class="client-info">
+                    <div class="client-details">
+                        <p><strong>Nombre:</strong> ${datos.nombre}</p>
+                        <p><strong>Saldo Actual:</strong> ${this.formatearMoneda(stats?.saldoActual || 0)}</p>
+                        <p><strong>Inversión Total:</strong> ${this.formatearMoneda(stats?.inversion || 0)}</p>
+                        <p><strong>Beneficio Total:</strong> <span class="${stats?.beneficioEuro >= 0 ? 'positive' : 'negative'}">${stats?.beneficioEuro >= 0 ? '+' : ''}${this.formatearMoneda(stats?.beneficioEuro || 0)}</span></p>
+                        <p><strong>Rentabilidad Total:</strong> <span class="${stats?.rentabilidadTotal >= 0 ? 'positive' : 'negative'}">${stats?.rentabilidadTotal >= 0 ? '+' : ''}${(stats?.rentabilidadTotal || 0).toFixed(2)}%</span></p>
                     </div>
                 </div>
-                
-                <div class="informe-section">
-                    <h3>📈 Rendimiento Mensual</h3>
-                    <div class="monthly-table">
-                        <table>
-                            <thead>
+            </div>
+            
+            ${stats ? `
+            <div class="informe-section">
+                <h3>📈 Estadísticas Detalladas</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4>Mejor Mes</h4>
+                        <p class="stat-value positive">${stats.mejorMes ? `${this.formatearMesCorto(stats.mejorMes.mes)}: +${stats.mejorMes.rentabilidad.toFixed(2)}%` : 'N/A'}</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Peor Mes</h4>
+                        <p class="stat-value ${stats.peorMes?.rentabilidad >= 0 ? 'positive' : 'negative'}">${stats.peorMes ? `${this.formatearMesCorto(stats.peorMes.mes)}: ${stats.peorMes.rentabilidad >= 0 ? '+' : ''}${stats.peorMes.rentabilidad.toFixed(2)}%` : 'N/A'}</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Promedio Mensual</h4>
+                        <p class="stat-value ${stats.promedioMensual >= 0 ? 'positive' : 'negative'}">${stats.promedioMensual >= 0 ? '+' : ''}${stats.promedioMensual.toFixed(2)}%</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Meses Operados</h4>
+                        <p class="stat-value">${stats.mesesOperados || 0}</p>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+            
+            ${Object.keys(rendimiento).length > 0 ? `
+            <div class="informe-section">
+                <h3>📈 Rendimiento Mensual</h3>
+                <div class="monthly-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mes</th>
+                                <th>Beneficio</th>
+                                <th>Operaciones</th>
+                                <th>Positivas</th>
+                                <th>Negativas</th>
+                                <th>% Éxito</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.entries(rendimiento).map(([mes, data]) => `
                                 <tr>
-                                    <th>Mes</th>
-                                    <th>Beneficio</th>
-                                    <th>Operaciones</th>
-                                    <th>Positivas</th>
-                                    <th>Negativas</th>
-                                    <th>% Éxito</th>
+                                    <td>${this.formatearMes(mes)}</td>
+                                    <td class="${data.beneficio >= 0 ? 'positive' : 'negative'}">
+                                        ${data.beneficio >= 0 ? '+' : ''}${this.formatearMoneda(data.beneficio)}
+                                    </td>
+                                    <td>${data.operaciones}</td>
+                                    <td class="positive">${data.positivas}</td>
+                                    <td class="negative">${data.negativas}</td>
+                                    <td>${((data.positivas / data.operaciones) * 100).toFixed(1)}%</td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                ${Object.entries(rendimiento).map(([mes, data]) => `
-                                    <tr>
-                                        <td>${this.formatearMes(mes)}</td>
-                                        <td class="${data.beneficio >= 0 ? 'positive' : 'negative'}">
-                                            ${data.beneficio >= 0 ? '+' : ''}${this.formatearMoneda(data.beneficio)}
-                                        </td>
-                                        <td>${data.operaciones}</td>
-                                        <td class="positive">${data.positivas}</td>
-                                        <td class="negative">${data.negativas}</td>
-                                        <td>${((data.positivas / data.operaciones) * 100).toFixed(1)}%</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
+                            `).join('')}
+                        </tbody>
+                    </table>
                 </div>
-                
-                <div class="informe-footer">
-                    <p><em>Informe generado automáticamente por Portfolio Manager</em></p>
-                </div>
+            </div>
+            ` : ''}
+            
+            <div class="informe-footer">
+                <p><strong>Generado:</strong> ${datos.fechaGeneracion}</p>
+                <p><em>Informe generado automáticamente por Portfolio Manager</em></p>
             </div>
         `;
     }
 
     async generarComparativa() {
-        console.log('📊 Generando comparativa...');
+        const clienteSeleccionado = document.getElementById('clienteComparativa')?.value;
         
-        const preview = document.getElementById('informePreview');
-        const exportButtons = document.getElementById('exportButtons');
+        if (!clienteSeleccionado) {
+            this.showNotification('⚠️ Por favor selecciona un cliente para comparar', 'warning');
+            return;
+        }
         
-        if (!preview) return;
+        console.log('📊 Generando comparativa con:', clienteSeleccionado);
         
-        preview.innerHTML = '<div class="loading">⏳ Generando comparativa...</div>';
+        const contentDiv = document.getElementById('comparativaContent');
+        if (!contentDiv) return;
+        
+        // Mostrar expandible
+        contentDiv.style.display = 'block';
+        contentDiv.innerHTML = '<div class="loading">⏳ Generando comparativa...</div>';
         
         try {
-            const datos = await this.obtenerDatosComparativa();
+            const datos = await this.obtenerDatosComparativa(clienteSeleccionado);
             const informe = this.crearInformeComparativa(datos);
             
-            preview.innerHTML = informe;
-            exportButtons.style.display = 'flex';
+            contentDiv.innerHTML = `
+                <div class="informe-content">
+                    <div class="informe-header">
+                        <h4>📊 Comparativa: General vs ${clienteSeleccionado}</h4>
+                        <div class="informe-actions">
+                            <button class="btn btn-sm btn-success" onclick="window.reportingUtil.exportarInforme('comparativa', '${clienteSeleccionado}')">
+                                📊 Exportar Excel
+                            </button>
+                            <button class="btn btn-sm btn-info" onclick="window.reportingUtil.imprimirInforme('comparativa-${clienteSeleccionado}')">
+                                🖨️ Imprimir
+                            </button>
+                        </div>
+                    </div>
+                    ${informe}
+                </div>
+            `;
             
             this.showNotification('✅ Comparativa generada', 'success');
             
         } catch (error) {
             console.error('Error generando comparativa:', error);
-            preview.innerHTML = '<p class="error">❌ Error al generar la comparativa</p>';
+            contentDiv.innerHTML = '<p class="error">❌ Error al generar la comparativa</p>';
         }
     }
 
-    async obtenerDatosComparativa() {
+    async obtenerDatosComparativa(clienteSeleccionado) {
         const statsGenerales = window.estadisticasActuales || {};
-        const statsCliente = await this.obtenerStatsCliente();
+        
+        // Buscar cliente seleccionado
+        const cliente = window.clientesAnuales?.find(c => c.nombre === clienteSeleccionado);
+        if (!cliente) {
+            throw new Error(`Cliente ${clienteSeleccionado} no encontrado`);
+        }
+        
+        // Obtener estadísticas del cliente
+        let statsCliente = null;
+        if (typeof window.calcularEstadisticasClienteTiempoReal === 'function') {
+            statsCliente = await window.calcularEstadisticasClienteTiempoReal(cliente);
+        }
         
         return {
             generales: statsGenerales,
             cliente: statsCliente,
+            nombreCliente: clienteSeleccionado,
             fechaGeneracion: new Date().toLocaleString('es-ES')
         };
     }
 
     crearInformeComparativa(datos) {
         const gen = datos.generales;
-        cli = datos.cliente;
+        const cli = datos.cliente;
         
         return `
             <div class="informe-content">
@@ -630,19 +777,45 @@ class ReportingUtil {
         `;
     }
 
-    exportarExcel() {
-        console.log('📊 Exportando a Excel...');
-        this.showNotification('📊 Exportación a Excel en desarrollo', 'info');
+    exportarInforme(tipo, param1, param2) {
+        console.log('📊 Exportando informe:', tipo, param1, param2);
+        this.showNotification('📊 Exportación en desarrollo', 'info');
     }
 
-    exportarCSV() {
-        console.log('📋 Exportando a CSV...');
-        this.showNotification('📋 Exportación a CSV en desarrollo', 'info');
-    }
-
-    imprimirInforme() {
-        console.log('🖨️ Imprimiendo informe...');
-        window.print();
+    imprimirInforme(id) {
+        console.log('🖨️ Imprimiendo informe:', id);
+        
+        // Crear ventana de impresión solo con el contenido del informe
+        const informeElement = document.querySelector(`#${id} .informe-content`);
+        if (!informeElement) {
+            this.showNotification('❌ No se encontró el informe para imprimir', 'error');
+            return;
+        }
+        
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Informe - ${id}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    .positive { color: green; }
+                    .negative { color: red; }
+                    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background-color: #f2f2f2; }
+                    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 20px 0; }
+                    .stat-card { border: 1px solid #ddd; padding: 10px; border-radius: 5px; }
+                </style>
+            </head>
+            <body>
+                ${informeElement.innerHTML}
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
     }
 
     // Utilidades
@@ -654,6 +827,12 @@ class ReportingUtil {
     formatearMes(mes) {
         const [year, month] = mes.split('-');
         const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        return meses[parseInt(month) - 1] + ' ' + year;
+    }
+
+    formatearMesCorto(mes) {
+        const [year, month] = mes.split('-');
+        const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
         return meses[parseInt(month) - 1] + ' ' + year;
     }
 

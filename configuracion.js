@@ -70,122 +70,152 @@ class Configuracion {
 
         container.innerHTML = `
             <div class="config-header">
-                <h2>⚙️ Configuración</h2>
-                <p>Personaliza tu experiencia de Portfolio Manager</p>
+                <h2>⚙️ Configuración de Portfolio Manager</h2>
+                <p>Personaliza tu experiencia y optimiza el rendimiento</p>
             </div>
             
             <div class="config-sections">
-                <!-- Configuración General -->
-                <div class="config-section">
-                    <h3>🌍 General</h3>
+                <!-- Configuración PRINCIPAL - Más útil -->
+                <div class="config-section important">
+                    <h3>🎯 Configuración Principal</h3>
                     <div class="config-group">
                         <div class="config-item">
-                            <label>Idioma:</label>
-                            <select id="configIdioma" onchange="window.configuracion.saveConfig()">
-                                <option value="es" ${this.config.general.idioma === 'es' ? 'selected' : ''}>Español</option>
-                                <option value="en" ${this.config.general.idioma === 'en' ? 'selected' : ''}>English</option>
-                                <option value="ca" ${this.config.general.idioma === 'ca' ? 'selected' : ''}>Català</option>
+                            <label>📊 Vista por defecto al iniciar:</label>
+                            <select id="vistaDefecto" onchange="window.configuracion.saveConfig()">
+                                <option value="general" ${this.config.general.vistaDefecto === 'general' ? 'selected' : ''}>Vista General</option>
+                                <option value="clientes" ${this.config.general.vistaDefecto === 'clientes' ? 'selected' : ''}>Lista de Clientes</option>
+                                <option value="estadisticas" ${this.config.general.vistaDefecto === 'estadisticas' ? 'selected' : ''}>Estadísticas</option>
                             </select>
+                            <small>Define qué vista se carga al abrir la aplicación</small>
                         </div>
                         
                         <div class="config-item">
-                            <label>Formato de Moneda:</label>
-                            <select id="configMoneda" onchange="window.configuracion.saveConfig()">
-                                <option value="EUR" ${this.config.general.formatoMoneda === 'EUR' ? 'selected' : ''}>EUR (€)</option>
-                                <option value="USD" ${this.config.general.formatoMoneda === 'USD' ? 'selected' : ''}>USD ($)</option>
-                                <option value="GBP" ${this.config.general.formatoMoneda === 'GBP' ? 'selected' : ''}>GBP (£)</option>
+                            <label>🔄 Auto-recálculo automático:</label>
+                            <select id="autoRecalculo" onchange="window.configuracion.saveConfig()">
+                                <option value="off" ${this.config.general.autoRecalculo === 'off' ? 'selected' : ''}>Desactivado</option>
+                                <option value="slow" ${this.config.general.autoRecalculo === 'slow' ? 'selected' : ''}>Cada 30 segundos</option>
+                                <option value="medium" ${this.config.general.autoRecalculo === 'medium' ? 'selected' : ''}>Cada 10 segundos</option>
+                                <option value="fast" ${this.config.general.autoRecalculo === 'fast' ? 'selected' : ''}>Cada 5 segundos</option>
                             </select>
+                            <small>Frecuencia de actualización automática de datos</small>
                         </div>
                         
                         <div class="config-item">
-                            <label>Formato de Fecha:</label>
-                            <select id="configFecha" onchange="window.configuracion.saveConfig()">
-                                <option value="DD/MM/YYYY" ${this.config.general.formatoFecha === 'DD/MM/YYYY' ? 'selected' : ''}>DD/MM/YYYY</option>
-                                <option value="MM/DD/YYYY" ${this.config.general.formatoFecha === 'MM/DD/YYYY' ? 'selected' : ''}>MM/DD/YYYY</option>
-                                <option value="YYYY-MM-DD" ${this.config.general.formatoFecha === 'YYYY-MM-DD' ? 'selected' : ''}>YYYY-MM-DD</option>
+                            <label>💾 Guardado automático:</label>
+                            <select id="autoGuardar" onchange="window.configuracion.saveConfig()">
+                                <option value="off" ${this.config.general.autoGuardar === 'off' ? 'selected' : ''}>Desactivado</option>
+                                <option value="manual" ${this.config.general.autoGuardar === 'manual' ? 'selected' : ''}>Solo al pulsar Guardar</option>
+                                <option value="changes" ${this.config.general.autoGuardar === 'changes' ? 'selected' : ''}>Al hacer cambios</option>
+                                <option value="continuous" ${this.config.general.autoGuardar === 'continuous' ? 'selected' : ''}>Continuo</option>
                             </select>
-                        </div>
-                        
-                        <div class="config-item">
-                            <label>Decimales:</label>
-                            <select id="configDecimales" onchange="window.configuracion.saveConfig()">
-                                <option value="0" ${this.config.general.decimales === 0 ? 'selected' : ''}>0</option>
-                                <option value="1" ${this.config.general.decimales === 1 ? 'selected' : ''}>1</option>
-                                <option value="2" ${this.config.general.decimales === 2 ? 'selected' : ''}>2</option>
-                                <option value="3" ${this.config.general.decimales === 3 ? 'selected' : ''}>3</option>
-                                <option value="4" ${this.config.general.decimales === 4 ? 'selected' : ''}>4</option>
-                            </select>
+                            <small>Cuándo se guardan los cambios automáticamente</small>
                         </div>
                         
                         <div class="config-item">
                             <label>
-                                <input type="checkbox" id="configAutoGuardar" 
-                                       ${this.config.general.autoGuardar ? 'checked' : ''}
+                                <input type="checkbox" id="confirmarCambios" 
+                                       ${this.config.general.confirmarCambios ? 'checked' : ''}
                                        onchange="window.configuracion.saveConfig()">
-                                Auto-guardar cambios
+                                🔒 Confirmar antes de guardar cambios importantes
                             </label>
+                            <small>Pide confirmación antes de modificar datos críticos</small>
                         </div>
                         
                         <div class="config-item">
                             <label>
-                                <input type="checkbox" id="configNotificaciones" 
-                                       ${this.config.general.notificaciones ? 'checked' : ''}
+                                <input type="checkbox" id="mostrarWarnings" 
+                                       ${this.config.general.mostrarWarnings ? 'checked' : ''}
                                        onchange="window.configuracion.saveConfig()">
-                                Mostrar notificaciones
+                                ⚠️ Mostrar advertencias de datos
                             </label>
+                            <small>Alertas sobre datos inconsistentes o fuera de rango</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Configuración de Rendimiento -->
+                <div class="config-section">
+                    <h3>⚡ Rendimiento y Optimización</h3>
+                    <div class="config-group">
+                        <div class="config-item">
+                            <label>📈 Límite de clientes a mostrar:</label>
+                            <input type="number" id="limiteClientes" 
+                                   value="${this.config.rendimiento.limiteClientes || 50}"
+                                   min="10" max="500"
+                                   onchange="window.configuracion.saveConfig()">
+                            <small>Limita el número de clientes para mejorar el rendimiento</small>
+                        </div>
+                        
+                        <div class="config-item">
+                            <label>🗃️ Caché de cálculos:</label>
+                            <select id="cacheCalculos" onchange="window.configuracion.saveConfig()">
+                                <option value="off" ${this.config.rendimiento.cacheCalculos === 'off' ? 'selected' : ''}>Desactivado</option>
+                                <option value="session" ${this.config.rendimiento.cacheCalculos === 'session' ? 'selected' : ''}>Por sesión</option>
+                                <option value="persistent" ${this.config.rendimiento.cacheCalculos === 'persistent' ? 'selected' : ''}>Persistente</option>
+                            </select>
+                            <small>Almacena cálculos para acelerar navegación</small>
+                        </div>
+                        
+                        <div class="config-item">
+                            <label>
+                                <input type="checkbox" id="virtualScroll" 
+                                       ${this.config.rendimiento.virtualScroll ? 'checked' : ''}
+                                       onchange="window.configuracion.saveConfig()">
+                                📜 Scroll virtual en tablas grandes
+                            </label>
+                            <small>Solo renderiza filas visibles para mejor rendimiento</small>
+                        </div>
+                        
+                        <div class="config-item">
+                            <label>
+                                <input type="checkbox" id="lazyLoad" 
+                                       ${this.config.rendimiento.lazyLoad ? 'checked' : ''}
+                                       onchange="window.configuracion.saveConfig()">
+                                ⏳ Carga diferida de datos
+                            </label>
+                            <small>Carga datos solo cuando se necesitan</small>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Configuración Visual -->
                 <div class="config-section">
-                    <h3>🎨 Visual</h3>
+                    <h3>🎨 Apariencia</h3>
                     <div class="config-group">
                         <div class="config-item">
-                            <label>Tema:</label>
+                            <label>🎨 Tema:</label>
                             <select id="configTema" onchange="window.configuracion.applyTheme()">
-                                <option value="claro" ${this.config.visual.tema === 'claro' ? 'selected' : ''}>Claro</option>
-                                <option value="oscuro" ${this.config.visual.tema === 'oscuro' ? 'selected' : ''}>Oscuro</option>
-                                <option value="auto" ${this.config.visual.tema === 'auto' ? 'selected' : ''}>Automático</option>
+                                <option value="default" ${this.config.visual.tema === 'default' ? 'selected' : ''}>Por defecto</option>
+                                <option value="dark" ${this.config.visual.tema === 'dark' ? 'selected' : ''}>Oscuro</option>
+                                <option value="light" ${this.config.visual.tema === 'light' ? 'selected' : ''}>Claro</option>
+                                <option value="blue" ${this.config.visual.tema === 'blue' ? 'selected' : ''}>Azul profesional</option>
                             </select>
                         </div>
                         
                         <div class="config-item">
-                            <label>Fuente:</label>
-                            <select id="configFuente" onchange="window.configuracion.applyFont()">
-                                <option value="default" ${this.config.visual.fuente === 'default' ? 'selected' : ''}>Default</option>
-                                <option value="arial" ${this.config.visual.fuente === 'arial' ? 'selected' : ''}>Arial</option>
-                                <option value="helvetica" ${this.config.visual.fuente === 'helvetica' ? 'selected' : ''}>Helvetica</option>
-                                <option value="times" ${this.config.visual.fuente === 'times' ? 'selected' : ''}>Times New Roman</option>
-                                <option value="courier" ${this.config.visual.fuente === 'courier' ? 'selected' : ''}>Courier New</option>
-                            </select>
-                        </div>
-                        
-                        <div class="config-item">
-                            <label>Tamaño de Fuente:</label>
-                            <select id="configTamañoFuente" onchange="window.configuracion.applyFontSize()">
-                                <option value="small" ${this.config.visual.tamañoFuente === 'small' ? 'selected' : ''}>Pequeña</option>
-                                <option value="medium" ${this.config.visual.tamañoFuente === 'medium' ? 'selected' : ''}>Mediana</option>
-                                <option value="large" ${this.config.visual.tamañoFuente === 'large' ? 'selected' : ''}>Grande</option>
-                                <option value="xlarge" ${this.config.visual.tamañoFuente === 'xlarge' ? 'selected' : ''}>Extra Grande</option>
+                            <label>📊 Tamaño de tablas:</label>
+                            <select id="tamanoTablas" onchange="window.configuracion.saveConfig()">
+                                <option value="compact" ${this.config.visual.tamanoTablas === 'compact' ? 'selected' : ''}>Compacto</option>
+                                <option value="normal" ${this.config.visual.tamanoTablas === 'normal' ? 'selected' : ''}>Normal</option>
+                                <option value="large" ${this.config.visual.tamanoTablas === 'large' ? 'selected' : ''}>Grande</option>
                             </select>
                         </div>
                         
                         <div class="config-item">
                             <label>
-                                <input type="checkbox" id="configAnimaciones" 
+                                <input type="checkbox" id="animaciones" 
                                        ${this.config.visual.animaciones ? 'checked' : ''}
                                        onchange="window.configuracion.applyAnimations()">
-                                Activar animaciones
+                                ✨ Animaciones y transiciones
                             </label>
                         </div>
                         
                         <div class="config-item">
                             <label>
-                                <input type="checkbox" id="configCompactMode" 
-                                       ${this.config.visual.compactMode ? 'checked' : ''}
-                                       onchange="window.configuracion.applyCompactMode()">
-                                Modo compacto
+                                <input type="checkbox" id="coloresAlternos" 
+                                       ${this.config.visual.coloresAlternos ? 'checked' : ''}
+                                       onchange="window.configuracion.saveConfig()">
+                                🎨 Colores alternos en filas de tablas
                             </label>
                         </div>
                     </div>
@@ -193,175 +223,133 @@ class Configuracion {
                 
                 <!-- Configuración de Datos -->
                 <div class="config-section">
-                    <h3>📊 Datos</h3>
+                    <h3>📊 Gestión de Datos</h3>
                     <div class="config-group">
                         <div class="config-item">
+                            <label>📅 Mes por defecto:</label>
+                            <select id="mesDefecto" onchange="window.configuracion.saveConfig()">
+                                <option value="actual" ${this.config.datos.mesDefecto === 'actual' ? 'selected' : ''}>Mes actual</option>
+                                <option value="anterior" ${this.config.datos.mesDefecto === 'anterior' ? 'selected' : ''}>Mes anterior</option>
+                                <option value="ultimo" ${this.config.datos.mesDefecto === 'ultimo' ? 'selected' : ''}>Último mes con datos</option>
+                            </select>
+                        </div>
+                        
+                        <div class="config-item">
+                            <label>🏦 Hoja por defecto:</label>
+                            <select id="hojaDefecto" onchange="window.configuracion.saveConfig()">
+                                <option value="Diario STD" ${this.config.datos.hojaDefecto === 'Diario STD' ? 'selected' : ''}>Diario STD</option>
+                                <option value="Diario VIP" ${this.config.datos.hojaDefecto === 'Diario VIP' ? 'selected' : ''}>Diario VIP</option>
+                                <option value="Diario WIND" ${this.config.datos.hojaDefecto === 'Diario WIND' ? 'selected' : ''}>Diario WIND</option>
+                                <option value="Diario Xavi" ${this.config.datos.hojaDefecto === 'Diario Xavi' ? 'selected' : ''}>Diario Xavi</option>
+                            </select>
+                        </div>
+                        
+                        <div class="config-item">
                             <label>
-                                <input type="checkbox" id="configBackupAuto" 
+                                <input type="checkbox" id="validarDatos" 
+                                       ${this.config.datos.validarDatos ? 'checked' : ''}
+                                       onchange="window.configuracion.saveConfig()">
+                                ✅ Validar datos al cargar
+                            </label>
+                            <small>Comprueba integridad de datos al abrir archivos</small>
+                        </div>
+                        
+                        <div class="config-item">
+                            <label>
+                                <input type="checkbox" id="backupAutomatico" 
                                        ${this.config.datos.backupAutomatico ? 'checked' : ''}
                                        onchange="window.configuracion.saveConfig()">
-                                Backup automático
-                            </label>
-                        </div>
-                        
-                        <div class="config-item">
-                            <label>Frecuencia de Backup:</label>
-                            <select id="configFrecuenciaBackup" onchange="window.configuracion.saveConfig()">
-                                <option value="hourly" ${this.config.datos.frecuenciaBackup === 'hourly' ? 'selected' : ''}>Cada hora</option>
-                                <option value="daily" ${this.config.datos.frecuenciaBackup === 'daily' ? 'selected' : ''}>Diario</option>
-                                <option value="weekly" ${this.config.datos.frecuenciaBackup === 'weekly' ? 'selected' : ''}>Semanal</option>
-                                <option value="monthly" ${this.config.datos.frecuenciaBackup === 'monthly' ? 'selected' : ''}>Mensual</option>
-                            </select>
-                        </div>
-                        
-                        <div class="config-item">
-                            <label>Retención de Datos (días):</label>
-                            <input type="number" id="configRetencionDatos" 
-                                   value="${this.config.datos.retencionDatos}"
-                                   min="7" max="3650"
-                                   onchange="window.configuracion.saveConfig()">
-                        </div>
-                        
-                        <div class="config-item">
-                            <label>
-                                <input type="checkbox" id="configCacheActivo" 
-                                       ${this.config.datos.cacheActivo ? 'checked' : ''}
-                                       onchange="window.configuracion.saveConfig()">
-                                Activar caché
-                            </label>
-                        </div>
-                        
-                        <div class="config-item">
-                            <label>
-                                <input type="checkbox" id="configValidacionDatos" 
-                                       ${this.config.datos.validacionDatos ? 'checked' : ''}
-                                       onchange="window.configuracion.saveConfig()">
-                                Validación automática de datos
+                                💾 Backup automático diario
                             </label>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Configuración de Exportación -->
+                <!-- Acciones Rápidas -->
                 <div class="config-section">
-                    <h3>📤 Exportación</h3>
-                    <div class="config-group">
-                        <div class="config-item">
-                            <label>Formato por Defecto:</label>
-                            <select id="configFormatoDefecto" onchange="window.configuracion.saveConfig()">
-                                <option value="excel" ${this.config.exportacion.formatoDefecto === 'excel' ? 'selected' : ''}>Excel</option>
-                                <option value="csv" ${this.config.exportacion.formatoDefecto === 'csv' ? 'selected' : ''}>CSV</option>
-                                <option value="json" ${this.config.exportacion.formatoDefecto === 'json' ? 'selected' : ''}>JSON</option>
-                                <option value="pdf" ${this.config.exportacion.formatoDefecto === 'pdf' ? 'selected' : ''}>PDF</option>
-                            </select>
-                        </div>
-                        
-                        <div class="config-item">
-                            <label>
-                                <input type="checkbox" id="configIncludeHeaders" 
-                                       ${this.config.exportacion.incluirHeaders ? 'checked' : ''}
-                                       onchange="window.configuracion.saveConfig()">
-                                Incluir encabezados por defecto
-                            </label>
-                        </div>
-                        
-                        <div class="config-item">
-                            <label>
-                                <input type="checkbox" id="configIncludeFormulas" 
-                                       ${this.config.exportacion.incluirFormulas ? 'checked' : ''}
-                                       onchange="window.configuracion.saveConfig()">
-                                Incluir fórmulas por defecto
-                            </label>
-                        </div>
-                        
-                        <div class="config-item">
-                            <label>
-                                <input type="checkbox" id="configComprimirArchivos" 
-                                       ${this.config.exportacion.comprimirArchivos ? 'checked' : ''}
-                                       onchange="window.configuracion.saveConfig()">
-                                Comprimir archivos automáticamente
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Acciones de Configuración -->
-                <div class="config-section">
-                    <h3>🔧 Acciones</h3>
+                    <h3>🔧 Acciones Rápidas</h3>
                     <div class="config-actions">
-                        <button class="btn btn-primary" onclick="window.configuracion.resetConfig()">
-                            🔄 Restablecer Configuración
+                        <button class="btn btn-primary" onclick="window.configuracion.aplicarConfiguracion()">
+                            ✅ Aplicar Cambios
                         </button>
                         
-                        <button class="btn btn-secondary" onclick="window.configuracion.exportConfig()">
-                            📥 Exportar Configuración
+                        <button class="btn btn-secondary" onclick="window.configuracion.exportarConfiguracion()">
+                            📥 Exportar Config
                         </button>
                         
-                        <button class="btn btn-secondary" onclick="window.configuracion.importConfig()">
-                            📤 Importar Configuración
+                        <button class="btn btn-secondary" onclick="window.configuracion.importarConfiguracion()">
+                            📤 Importar Config
                         </button>
                         
-                        <button class="btn btn-warning" onclick="window.configuracion.clearCache()">
-                            🗑️ Limpiar Caché
+                        <button class="btn btn-warning" onclick="window.configuracion.reiniciarRendimiento()">
+                            🔄 Optimizar Rendimiento
                         </button>
                         
-                        <button class="btn btn-danger" onclick="window.configuracion.clearAllData()">
-                            🧹 Limpiar Todos los Datos
+                        <button class="btn btn-danger" onclick="window.configuracion.resetearTodo()">
+                            🧹 Resetear Todo
                         </button>
                     </div>
                 </div>
                 
-                <!-- Información del Sistema -->
+                <!-- Estado Actual -->
                 <div class="config-section">
-                    <h3>ℹ️ Información del Sistema</h3>
+                    <h3>📊 Estado Actual</h3>
                     <div class="system-info">
                         <div class="info-item">
-                            <label>Versión de la Aplicación:</label>
-                            <span>V2.9.18</span>
+                            <label>Memoria usada:</label>
+                            <span id="memoriaUsada">Calculando...</span>
                         </div>
                         <div class="info-item">
-                            <label>Navegador:</label>
-                            <span>${this.getBrowserInfo()}</span>
+                            <label>Clientes cargados:</label>
+                            <span id="clientesCargados">${window.clientesAnuales?.length || 0}</span>
                         </div>
                         <div class="info-item">
-                            <label>Resolución:</label>
-                            <span>${window.screen.width}x${window.screen.height}</span>
+                            <label>Hoja actual:</label>
+                            <span>${window.hojaActual?.nombre || 'N/A'}</span>
                         </div>
                         <div class="info-item">
-                            <label>Última Actualización:</label>
-                            <span id="lastUpdate">${new Date().toLocaleString('es-ES')}</span>
+                            <label>Mes actual:</label>
+                            <span>${window.mesActual || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Último guardado:</label>
+                            <span id="ultimoGuardado">No guardado</span>
                         </div>
                     </div>
                 </div>
             </div>
         `;
+        
+        // Actualizar estado actual
+        this.actualizarEstado();
     }
 
     saveConfig() {
-        // Recoger valores del formulario
-        this.config.general.idioma = document.getElementById('configIdioma')?.value || 'es';
-        this.config.general.formatoMoneda = document.getElementById('configMoneda')?.value || 'EUR';
-        this.config.general.formatoFecha = document.getElementById('configFecha')?.value || 'DD/MM/YYYY';
-        this.config.general.decimales = parseInt(document.getElementById('configDecimales')?.value) || 2;
-        this.config.general.autoGuardar = document.getElementById('configAutoGuardar')?.checked || false;
-        this.config.general.notificaciones = document.getElementById('configNotificaciones')?.checked || false;
+        // Recoger valores del formulario - CONFIGURACIÓN PRINCIPAL
+        this.config.general.vistaDefecto = document.getElementById('vistaDefecto')?.value || 'general';
+        this.config.general.autoRecalculo = document.getElementById('autoRecalculo')?.value || 'medium';
+        this.config.general.autoGuardar = document.getElementById('autoGuardar')?.value || 'manual';
+        this.config.general.confirmarCambios = document.getElementById('confirmarCambios')?.checked || false;
+        this.config.general.mostrarWarnings = document.getElementById('mostrarWarnings')?.checked || false;
         
-        this.config.visual.tema = document.getElementById('configTema')?.value || 'claro';
-        this.config.visual.fuente = document.getElementById('configFuente')?.value || 'default';
-        this.config.visual.tamañoFuente = document.getElementById('configTamañoFuente')?.value || 'medium';
-        this.config.visual.animaciones = document.getElementById('configAnimaciones')?.checked || false;
-        this.config.visual.compactMode = document.getElementById('configCompactMode')?.checked || false;
+        // CONFIGURACIÓN DE RENDIMIENTO
+        this.config.rendimiento = this.config.rendimiento || {};
+        this.config.rendimiento.limiteClientes = parseInt(document.getElementById('limiteClientes')?.value) || 50;
+        this.config.rendimiento.cacheCalculos = document.getElementById('cacheCalculos')?.value || 'session';
+        this.config.rendimiento.virtualScroll = document.getElementById('virtualScroll')?.checked || false;
+        this.config.rendimiento.lazyLoad = document.getElementById('lazyLoad')?.checked || false;
         
-        this.config.datos.backupAutomatico = document.getElementById('configBackupAuto')?.checked || false;
-        this.config.datos.frecuenciaBackup = document.getElementById('configFrecuenciaBackup')?.value || 'daily';
-        this.config.datos.retencionDatos = parseInt(document.getElementById('configRetencionDatos')?.value) || 365;
-        this.config.datos.cacheActivo = document.getElementById('configCacheActivo')?.checked || false;
-        this.config.datos.validacionDatos = document.getElementById('configValidacionDatos')?.checked || false;
+        // CONFIGURACIÓN VISUAL
+        this.config.visual.tema = document.getElementById('configTema')?.value || 'default';
+        this.config.visual.tamanoTablas = document.getElementById('tamanoTablas')?.value || 'normal';
+        this.config.visual.animaciones = document.getElementById('animaciones')?.checked || false;
+        this.config.visual.coloresAlternos = document.getElementById('coloresAlternos')?.checked || false;
         
-        this.config.exportacion.formatoDefecto = document.getElementById('configFormatoDefecto')?.value || 'excel';
-        this.config.exportacion.incluirHeaders = document.getElementById('configIncludeHeaders')?.checked || false;
-        this.config.exportacion.incluirFormulas = document.getElementById('configIncludeFormulas')?.checked || false;
-        this.config.exportacion.comprimirArchivos = document.getElementById('configComprimirArchivos')?.checked || false;
+        // CONFIGURACIÓN DE DATOS
+        this.config.datos.mesDefecto = document.getElementById('mesDefecto')?.value || 'actual';
+        this.config.datos.hojaDefecto = document.getElementById('hojaDefecto')?.value || 'Diario WIND';
+        this.config.datos.validarDatos = document.getElementById('validarDatos')?.checked || false;
+        this.config.datos.backupAutomatico = document.getElementById('backupAutomatico')?.checked || false;
         
         // Guardar en localStorage
         localStorage.setItem('portfolioConfig', JSON.stringify(this.config));
@@ -605,6 +593,117 @@ class Configuracion {
         else if (ua.indexOf('Edge') > -1) browserName = 'Edge';
         
         return browserName;
+    }
+
+    // Métodos adicionales para configuración útil
+    actualizarEstado() {
+        // Actualizar información del sistema
+        const memoriaUsada = document.getElementById('memoriaUsada');
+        if (memoriaUsada) {
+            if (performance.memory) {
+                const used = (performance.memory.usedJSHeapSize / 1048576).toFixed(1);
+                const total = (performance.memory.totalJSHeapSize / 1048576).toFixed(1);
+                memoriaUsada.textContent = `${used} MB / ${total} MB`;
+            } else {
+                memoriaUsada.textContent = 'No disponible';
+            }
+        }
+        
+        const ultimoGuardado = document.getElementById('ultimoGuardado');
+        if (ultimoGuardado) {
+            const lastSave = localStorage.getItem('ultimoGuardado');
+            if (lastSave) {
+                ultimoGuardado.textContent = new Date(lastSave).toLocaleString('es-ES');
+            }
+        }
+    }
+
+    aplicarConfiguracion() {
+        this.applyConfigChanges();
+        this.showNotification('✅ Configuración aplicada correctamente', 'success');
+    }
+
+    exportarConfiguracion() {
+        const configJson = JSON.stringify(this.config, null, 2);
+        const blob = new Blob([configJson], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `portfolio_config_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        this.showNotification('✅ Configuración exportada', 'success');
+    }
+
+    importarConfiguracion() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const importedConfig = JSON.parse(event.target.result);
+                    this.config = { ...this.getDefaultConfig(), ...importedConfig };
+                    localStorage.setItem('portfolioConfig', JSON.stringify(this.config));
+                    
+                    this.showNotification('✅ Configuración importada', 'success');
+                    
+                    // Recargar para aplicar cambios
+                    setTimeout(() => location.reload(), 1000);
+                } catch (error) {
+                    this.showNotification('❌ Error al importar configuración', 'error');
+                }
+            };
+            reader.readAsText(file);
+        };
+        
+        input.click();
+    }
+
+    reiniciarRendimiento() {
+        // Limpiar caché
+        if ('caches' in window) {
+            caches.keys().then(names => {
+                names.forEach(name => caches.delete(name));
+            });
+        }
+        
+        // Limpiar localStorage no esencial
+        const keysToKeep = ['portfolioConfig'];
+        const allKeys = Object.keys(localStorage);
+        allKeys.forEach(key => {
+            if (!keysToKeep.includes(key)) {
+                localStorage.removeItem(key);
+            }
+        });
+        
+        this.showNotification('🔄 Rendimiento optimizado', 'success');
+    }
+
+    resetearTodo() {
+        if (!confirm('⚠️ ¡ADVERTENCIA! ¿Estás seguro de eliminar toda la configuración y datos?')) {
+            return;
+        }
+        
+        if (!confirm('🚨 ¿REALMENTE QUIERES ELIMINAR TODO? Se perderá toda la información.')) {
+            return;
+        }
+        
+        // Limpiar todo el almacenamiento
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Recargar la aplicación
+        location.reload();
     }
 
     showNotification(message, type = 'info') {
