@@ -10345,6 +10345,19 @@ function renderizarTablaDetallada(datos, benchmark) {
     };
     
     tbody.innerHTML = datos.map((d, i) => {
+        // Si no hay rentabilidad (mes sin datos), mostrar guiones
+        if (d.rentabilidad === 0 && d.diasOperados === 0) {
+            return `
+                <tr>
+                    <td>${formatMes(d.mes)}</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td></td>
+                </tr>
+            `;
+        }
+        
         const vsBench = d.rentabilidad - benchmark;
         const prevRent = i > 0 ? datos[i - 1].rentabilidad : d.rentabilidad;
         const trend = d.rentabilidad > prevRent ? 'trend-up' : d.rentabilidad < prevRent ? 'trend-down' : 'trend-flat';
@@ -10772,10 +10785,13 @@ function calcularKPIsTiempoReal(datosMeses) {
     // 🔥 CÁLCULO CORRECTO DE RENTABILIDAD: Beneficio / Inversión Neta
     const rentabilidadTotal = capitalNetoInvertido > 0 ? (beneficioEuro / capitalNetoInvertido) * 100 : 0;
     
-    // Mejor y peor mes
-    const mejorMes = datosMeses.reduce((a, b) => (a.rentabilidad || 0) > (b.rentabilidad || 0) ? a : b);
-    const peorMes = datosMeses.reduce((a, b) => (a.rentabilidad || 0) < (b.rentabilidad || 0) ? a : b);
-    const promedioMensual = rentabilidadTotal / datosMeses.length;
+    // Mejor y peor mes (solo meses con rentabilidad > 0)
+    const mesesConRentabilidad = datosMeses.filter(m => (m.rentabilidad || 0) !== 0);
+    const mejorMes = mesesConRentabilidad.length > 0 ? 
+        mesesConRentabilidad.reduce((a, b) => (a.rentabilidad || 0) > (b.rentabilidad || 0) ? a : b) : null;
+    const peorMes = mesesConRentabilidad.length > 0 ? 
+        mesesConRentabilidad.reduce((a, b) => (a.rentabilidad || 0) < (b.rentabilidad || 0) ? a : b) : null;
+    const promedioMensual = mesesConRentabilidad.length > 0 ? rentabilidadTotal / mesesConRentabilidad.length : 0;
     
     console.log(`💰 KPIs CORREGIDOS:`);
     console.log(`   Inversión: ${inversion.toFixed(2)}`);
@@ -11352,6 +11368,9 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
     const peorMesPositivo = kpis.peorMes && kpis.peorMes.rentabilidad >= 0;
     const peorMesClass = peorMesPositivo ? 'positive' : 'negative';
     const peorMesSigno = kpis.peorMes && kpis.peorMes.rentabilidad >= 0 ? '+' : '';
+    const peorMesTexto = kpis.peorMes ? 
+        `${formatearMesCorto(kpis.peorMes.mes)}: ${peorMesSigno}${kpis.peorMes.rentabilidad.toFixed(2)}%` : 
+        'Sin operaciones';
     
     container.innerHTML = `
         <div class="client-stats-kpis">
@@ -11380,11 +11399,11 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
         <div class="client-stats-kpis" style="margin-top: 1rem;">
             <div class="client-stat-card">
                 <div class="label">Mejor Mes</div>
-                <div class="value positive">${kpis.mejorMes ? formatearMesCorto(kpis.mejorMes.mes) + ': +' + kpis.mejorMes.rentabilidad.toFixed(2) + '%' : '-'}</div>
+                <div class="value positive">${kpis.mejorMes ? formatearMesCorto(kpis.mejorMes.mes) + ': +' + kpis.mejorMes.rentabilidad.toFixed(2) + '%' : 'Sin operaciones'}</div>
             </div>
             <div class="client-stat-card">
                 <div class="label">Peor Mes</div>
-                <div class="value ${peorMesClass}">${kpis.peorMes ? formatearMesCorto(kpis.peorMes.mes) + ': ' + peorMesSigno + kpis.peorMes.rentabilidad.toFixed(2) + '%' : '-'}</div>
+                <div class="value ${peorMesClass}">${peorMesTexto}</div>
             </div>
             <div class="client-stat-card">
                 <div class="label">Promedio Mensual</div>
