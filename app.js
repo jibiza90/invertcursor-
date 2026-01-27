@@ -5846,9 +5846,20 @@ async function renderVistaClientes() {
     let clientes = [];
     let hojaParaProporcion = null;
     
+    // DEBUG: Mostrar qué hoja y datos se están usando
+    console.log(`🔍 DEBUG renderVistaClientes: hojaActual=${hojaActual}`);
+    console.log(`🔍 DEBUG datosEditados.hojas disponibles:`, Object.keys(datosEditados?.hojas || {}));
+    
     // Usar siempre los datos de la hoja actual que están actualizados
     const hoja = datosEditados?.hojas?.[hojaActual];
-    if (!hoja) return;
+    if (!hoja) {
+        console.error(`❌ ERROR: No se encontró hoja para ${hojaActual}`);
+        return;
+    }
+    
+    console.log(`🔍 DEBUG hoja encontrada, clientes count:`, hoja.clientes?.length || 0);
+    console.log(`🔍 DEBUG primer cliente datos:`, hoja.clientes?.[0]?.datos);
+    
     clientes = hoja.clientes || [];
     hojaParaProporcion = hoja;
 
