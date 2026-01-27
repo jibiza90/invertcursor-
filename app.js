@@ -902,6 +902,29 @@ function ocultarSidebarAlNavegar() {
     }
 }
 
+// Sincronizar selector de hoja con hojaActual
+function sincronizarSelectorHoja() {
+    const selectorHoja = document.getElementById('selectorHoja');
+    if (!selectorHoja) {
+        console.warn('⚠️ Selector de hoja no encontrado');
+        return;
+    }
+    
+    console.log(`🔄 Sincronizando selector: hojaActual="${hojaActual}" -> selector.value="${selectorHoja.value}"`);
+    
+    // Si el selector no tiene el valor correcto, actualizarlo
+    if (selectorHoja.value !== hojaActual) {
+        selectorHoja.value = hojaActual;
+        console.log(`✅ Selector actualizado a: ${hojaActual}`);
+        
+        // Disparar evento change para notificar el cambio si es necesario
+        const event = new Event('change', { bubbles: true });
+        selectorHoja.dispatchEvent(event);
+    } else {
+        console.log(`✅ Selector ya estaba correcto: ${hojaActual}`);
+    }
+}
+
 // Inicialización
 async function inicializarApp() {
     try {
@@ -911,12 +934,20 @@ async function inicializarApp() {
         await cargarClientesAnuales();
         await cargarDatos();
         console.log('✅ Datos cargados');
+        
+        // Sincronizar selector de hoja con hojaActual
+        sincronizarSelectorHoja();
+        console.log('✅ Selector de hoja sincronizado');
+        
         inicializarEventos();
         console.log('✅ Eventos inicializados');
 
         await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'init' });
         mostrarVistaGeneral();
         console.log('✅ Vista general mostrada');
+        
+        // Sincronizar selector de hoja nuevamente después de cargar todo
+        sincronizarSelectorHoja();
         
         // Ocultar loading y sidebar en móvil
         ocultarLoadingOverlay();
