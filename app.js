@@ -1755,10 +1755,66 @@ async function cargarDatos() {
         
         mostrarNotificacion(`${hojaActual} ${mesActual} | ${totalClientes} clientes`, 'success');
         
+        // CRÍTICO: Para Diario Xavi, limpiar saldos residuales más allá del último movimiento
+        if (esXavi) {
+            limpiarSaldosResidualesDiarioXavi(data);
+        }
+        
         actualizarSelectorClientes();
     } catch (error) {
         console.error('❌ Error al cargar datos:', error);
         mostrarNotificacion('Error al cargar los datos: ' + error.message, 'error');
+    }
+}
+
+// Función para limpiar saldos residuales en Diario Xavi al cargar
+function limpiarSaldosResidualesDiarioXavi(hoja) {
+    if (!hoja || !hoja.clientes) return;
+    
+    console.log('🧹 Limpiando saldos residuales en Diario Xavi...');
+    let totalLimpiadas = 0;
+    
+    hoja.clientes.forEach((cliente, idx) => {
+        if (!cliente || !cliente.datos_diarios) return;
+        
+        // Encontrar última fila con movimiento del cliente
+        let ultimaFilaConMovimiento = 0;
+        cliente.datos_diarios.forEach(d => {
+            if (d && d.fila >= 15) {
+                const tieneInc = typeof d.incremento === 'number' && d.incremento > 0;
+                const tieneDec = typeof d.decremento === 'number' && d.decremento > 0;
+                if (tieneInc || tieneDec) {
+                    ultimaFilaConMovimiento = Math.max(ultimaFilaConMovimiento, d.fila);
+                }
+            }
+        });
+        
+        // Limpiar saldos más allá de la última fila con movimiento
+        if (ultimaFilaConMovimiento > 0) {
+            cliente.datos_diarios.forEach(d => {
+                if (d && d.fila > ultimaFilaConMovimiento) {
+                    const teniaDatos = d.base !== null || d.saldo_diario !== null || 
+                                      d.beneficio_diario !== null || d.beneficio_diario_pct !== null ||
+                                      d.beneficio_acumulado !== null || d.beneficio_acumulado_pct !== null;
+                    
+                    if (teniaDatos) {
+                        d.base = null;
+                        d.saldo_diario = null;
+                        d.beneficio_diario = null;
+                        d.beneficio_diario_pct = null;
+                        d.beneficio_acumulado = null;
+                        d.beneficio_acumulado_pct = null;
+                        totalLimpiadas++;
+                    }
+                }
+            });
+            
+            console.log(`🧹 Cliente ${idx + 1}: límite fila ${ultimaFilaConMovimiento}`);
+        }
+    });
+    
+    if (totalLimpiadas > 0) {
+        console.log(`🧹 Diario Xavi: limpiadas ${totalLimpiadas} filas residuales de clientes`);
     }
 }
 
@@ -5840,6 +5896,45 @@ function calcularDetalleComisionesCobradas(cliente, clienteIdx = -1) {
     return { totalCobrada, eventos };
 }
 
+// Función para limpiar saldos de clientes más allá del límite permitido
+function limpiarSaldosClienteMasAllaLimite(cliente, limiteFila, clienteIdx) {
+    if (!cliente || !cliente.datos_diarios || limiteFila <= 0) return;
+    
+    let limpiadas = 0;
+    cliente.datos_diarios.forEach(d => {
+        if (d && d.fila > limiteFila) {
+            // Limpiar todos los campos calculados
+            const teniaDatos = d.base !== null || d.saldo_diario !== null || 
+                              d.beneficio_diario !== null || d.beneficio_diario_pct !== null ||
+                              d.beneficio_acumulado !== null || d.beneficio_acumulado_pct !== null;
+            
+            if (teniaDatos) {
+                d.base = null;
+                d.saldo_diario = null;
+                d.beneficio_diario = null;
+                d.beneficio_diario_pct = null;
+                d.beneficio_acumulado = null;
+                d.beneficio_acumulado_pct = null;
+                limpiadas++;
+                
+                // También limpiar en UI si es el cliente actual
+                if (clienteActual === clienteIdx) {
+                    actualizarCeldaClienteEnUI(clienteIdx, d.fila, 'base', null);
+                    actualizarCeldaClienteEnUI(clienteIdx, d.fila, 'saldo_diario', null);
+                    actualizarCeldaClienteEnUI(clienteIdx, d.fila, 'beneficio_diario', null);
+                    actualizarCeldaClienteEnUI(clienteIdx, d.fila, 'beneficio_diario_pct', null);
+                    actualizarCeldaClienteEnUI(clienteIdx, d.fila, 'beneficio_acumulado', null);
+                    actualizarCeldaClienteEnUI(clienteIdx, d.fila, 'beneficio_acumulado_pct', null);
+                }
+            }
+        }
+    });
+    
+    if (limpiadas > 0) {
+        console.log(`🧹 Cliente ${clienteIdx + 1}: limpiadas ${limpiadas} filas más allá del límite ${limiteFila}`);
+    }
+}
+
 async function renderVistaClientes() {
     // CRÍTICO: Usar SIEMPRE los datos actualizados de la hoja actual
     // clientesAnuales puede tener datos viejos de otras hojas (ej: Diario WIND)
@@ -7184,7 +7279,15 @@ async function recalcularFormulasPorCambioClienteInterno(clienteIdx, filaIdx, ca
 
             // Límite: si el cliente ha empezado, propagar hasta la última fila con imp_final general
             // (en WIND también hay % diario por hoja general, así que deben verse beneficios y saldo propagado).
-            const limiteCalculo = Math.max(ultimaFilaConMovimiento, ultimaFilaConImpFinal);
+            // EN DIARIO XAVI: solo calcular hasta la última fila con movimiento del cliente
+            const limiteCalculo = (nombreHoja === 'Diario Xavi') 
+                ? ultimaFilaConMovimiento 
+                : Math.max(ultimaFilaConMovimiento, ultimaFilaConImpFinal);
+            
+            // CRÍTICO: Para Diario Xavi, limpiar saldos más allá del límite del cliente
+            if (nombreHoja === 'Diario Xavi' && limiteCalculo > 0) {
+                limpiarSaldosClienteMasAllaLimite(clienteItem, limiteCalculo, idxActual);
+            }
             
             // NO usar saldo_inicial_mes - solo leer saldo_diario del JSON
             let saldoAnterior = 0;
