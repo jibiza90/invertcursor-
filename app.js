@@ -5989,7 +5989,12 @@ async function renderVistaClientes() {
         }
         const inc = typeof c.incrementos_total === 'number' ? c.incrementos_total : 0;
         const dec = typeof c.decrementos_total === 'number' ? c.decrementos_total : 0;
-        const saldo = typeof c.saldo_actual === 'number' ? c.saldo_actual : obtenerSaldoActualClienteSinLogs(c);
+        // CRÍTICO: Usar siempre la misma función que Info Clientes para consistencia
+        const saldo = obtenerSaldoActualClienteSinLogs(c);
+        
+        // DEBUG: Log para comparar con Info Clientes
+        const clienteNum = c.numero_cliente || (idx + 1);
+        console.log(`🔍 DEBUG Cliente ${clienteNum} en pestaña Clientes: saldo=${saldo}`);
 
         const datosCliente = c?.datos || {};
         const gIniRaw = datosCliente['GARANTIA_INICIAL']?.valor ?? datosCliente['GARANTIA']?.valor ?? 0;
@@ -8781,6 +8786,10 @@ function cargarInfoClienteDetalle(index, container, hojaParaUsar) {
             break;
         }
     }
+    
+    // DEBUG: Log para comparar con pestaña Clientes
+    const clienteNum = cliente.numero_cliente || (index + 1);
+    console.log(`🔍 DEBUG Cliente ${clienteNum} en Info Clientes: saldo=${saldoActual}`);
     
     const fechaObjetivoProporcion = hojaData ? obtenerUltimaFechaImpFinalManual(hojaData) : null;
     const saldoEnFechaObjetivo = (fechaObjetivoProporcion && typeof obtenerSaldoClienteEnFecha === 'function')
