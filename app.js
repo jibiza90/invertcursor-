@@ -964,7 +964,13 @@ async function mostrarVistaGeneralAuto() {
     try {
         // Solo recalcular si hay cambios pendientes
         if (__dirtyRecalculoMasivo || requiereRecalculoImpInicial) {
-            await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_general' });
+            await actualizarTodoElDiario({ 
+                silent: true, 
+                skipVistaRefresh: true, 
+                skipGuardar: true, 
+                incremental: true, // Usar modo incremental
+                reason: 'nav_general' 
+            });
         }
         await mostrarVistaGeneral();
         ocultarSidebarAlNavegar();
@@ -978,7 +984,13 @@ async function mostrarVistaClientesAuto() {
     try {
         // Solo recalcular si hay cambios pendientes
         if (__dirtyRecalculoMasivo || requiereRecalculoImpInicial) {
-            await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'nav_clientes' });
+            await actualizarTodoElDiario({ 
+                silent: true, 
+                skipVistaRefresh: true, 
+                skipGuardar: true, 
+                incremental: true, // Usar modo incremental
+                reason: 'nav_clientes' 
+            });
         }
         mostrarVistaClientes();
         ocultarSidebarAlNavegar();
@@ -12156,6 +12168,7 @@ async function actualizarTodoElDiario(opts = {}) {
         const silent = !!opts.silent;
         const skipVistaRefresh = !!opts.skipVistaRefresh;
         const skipGuardar = !!opts.skipGuardar;
+        const incremental = !!opts.incremental;
         const hoja = datosEditados?.hojas?.[hojaActual];
         if (!hoja) {
             if (!silent) {
@@ -12166,11 +12179,18 @@ async function actualizarTodoElDiario(opts = {}) {
         if (!silent) {
             mostrarNotificacion('⟳ Actualizando todas las casillas...', 'info');
         }
-        console.log(`🔄 Actualizando todo el diario: ${hojaActual}`);
+        console.log(`🔄 Actualizando todo el diario: ${hojaActual}${incremental ? ' (modo incremental)' : ''}`);
         
         const esXavi = hojaActual === 'Diario Xavi';
 
         __cacheSaldosWindKey = null;
+        
+        // Si es incremental y está disponible el updater, usar modo incremental
+        if (incremental && window.incrementalUpdater) {
+            console.log('⚡ Usando actualización incremental');
+            await window.incrementalUpdater.checkForUpdates();
+            return;
+        }
 
         let cambiosRealizados = 0;
         const clientes = hoja.clientes || [];

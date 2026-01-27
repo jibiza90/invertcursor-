@@ -1,0 +1,174 @@
+/* Controles para actualizaciones incrementales */
+.incremental-controls {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid #4a5568;
+    border-radius: 8px;
+    padding: 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    color: #e2e8f0;
+    z-index: 10000;
+    min-width: 250px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.incremental-controls.hidden {
+    display: none;
+}
+
+.incremental-controls h4 {
+    margin: 0 0 10px 0;
+    font-size: 0.9rem;
+    color: #63b3ed;
+    border-bottom: 1px solid #4a5568;
+    padding-bottom: 5px;
+}
+
+.incremental-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.incremental-stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.incremental-stat-label {
+    font-size: 0.7rem;
+    color: #a0aec0;
+    margin-bottom: 2px;
+}
+
+.incremental-stat-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #48bb78;
+}
+
+.incremental-controls-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.incremental-btn {
+    flex: 1;
+    padding: 6px 8px;
+    background: #2d3748;
+    border: 1px solid #4a5568;
+    border-radius: 4px;
+    color: #e2e8f0;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.incremental-btn:hover {
+    background: #374151;
+    border-color: #63b3ed;
+}
+
+.incremental-btn:active {
+    transform: translateY(1px);
+}
+
+.incremental-btn.primary {
+    background: #3182ce;
+    border-color: #3182ce;
+}
+
+.incremental-btn.primary:hover {
+    background: #2c5aa0;
+}
+
+.incremental-btn.danger {
+    background: #e53e3e;
+    border-color: #e53e3e;
+}
+
+.incremental-btn.danger:hover {
+    background: #c53030;
+}
+
+.incremental-status {
+    margin-top: 8px;
+    padding: 4px 8px;
+    background: rgba(72, 187, 120, 0.1);
+    border: 1px solid #48bb78;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    color: #48bb78;
+    text-align: center;
+}
+
+.incremental-status.warning {
+    background: rgba(237, 137, 54, 0.1);
+    border-color: #ed8936;
+    color: #ed8936;
+}
+
+.incremental-status.error {
+    background: rgba(245, 101, 101, 0.1);
+    border-color: #f56565;
+    color: #f56565;
+}
+
+.incremental-toggle {
+    position: fixed;
+    top: 10px;
+    right: 270px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid #4a5568;
+    border-radius: 4px;
+    padding: 8px;
+    color: #e2e8f0;
+    font-size: 0.7rem;
+    cursor: pointer;
+    z-index: 9999;
+    transition: all 0.2s ease;
+}
+
+.incremental-toggle:hover {
+    background: #374151;
+    border-color: #63b3ed;
+}
+
+.incremental-controls.show {
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .incremental-controls {
+        top: auto;
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+    }
+    
+    .incremental-toggle {
+        top: auto;
+        bottom: 10px;
+        right: 10px;
+        left: auto;
+    }
+}
