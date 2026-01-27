@@ -10563,8 +10563,17 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
     const datosPorMes = {};
     
     // Procesar CADA fila de datos diarios
+    let benefAcumCount = 0;
     datosDiarios.forEach(fila => {
         if (fila.fila < 15 || fila.fila > 1120) return; // Solo filas válidas
+        
+        // Debug de beneficios acumulados disponibles
+        if (typeof fila.beneficio_acumulado === 'number') {
+            benefAcumCount++;
+            if (benefAcumCount <= 5) {
+                console.log(`💰 Beneficio acumulado fila ${fila.fila}: ${fila.beneficio_acumulado}`);
+            }
+        }
         
         // Calcular mes basado en posición (30 días por mes)
         const diaDelAno = fila.fila - 14; // Fila 15 = día 1
@@ -10592,16 +10601,18 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
         mesDatos.incrementos += inc;
         mesDatos.decrementos += dec;
         
-        // 🔥 CÁLCULO DE BENEFICIO MENSUAL DETALLADO
-        const beneficioDiario = (inc + dec) * (benefPct / 100);
-        mesDatos.beneficio += beneficioDiario;
+        // 🔥 USAR MISMA FÓRMULA QUE ESTADÍSTICAS GENERALES: beneficio_acumulado
+        if (typeof fila.beneficio_acumulado === 'number') {
+            // Guardar el último beneficio_acumulado del mes
+            mesDatos.beneficio = fila.beneficio_acumulado;
+        }
         
         if (inc > 0 || dec > 0) {
             mesDatos.diasConDatos++;
             
             // Debug de los primeros movimientos
             if (mesDatos.diasConDatos <= 3) {
-                console.log(`💰 Mes ${mesKey}: inc=${inc}, dec=${dec}, benef%=${benefPct}, benef€=${beneficioDiario.toFixed(2)}`);
+                console.log(`💰 Mes ${mesKey}: inc=${inc}, dec=${dec}, benef_acum=${fila.beneficio_acumulado}`);
             }
         }
         
@@ -10614,6 +10625,8 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
         
         mesDatos.filas.push(fila);
     });
+    
+    console.log(`💰 Total beneficios acumulados encontrados: ${benefAcumCount}`);
     
     console.log('📅 Meses con datos:', Object.keys(datosPorMes));
     
@@ -10644,7 +10657,7 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
                 capitalInvertido: mesDatos.incrementos,
                 capitalRetirado: mesDatos.decrementos,
                 beneficio: mesDatos.beneficio,
-                rentabilidad: mesDatos.incrementos > 0 ? (mesDatos.beneficio / mesDatos.incrementos) * 100 : 0,
+                rentabilidad: mesDatos.incrementos > 0 ? (mesDatos.beneficio / mesDatos.incrementos) : 0,
                 saldoInicial: mesDatos.saldoInicial,
                 saldoFinal: mesDatos.saldoFinal,
                 diasOperados: mesDatos.diasConDatos,
