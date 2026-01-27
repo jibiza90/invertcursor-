@@ -403,6 +403,9 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
         }
     });
 
+    // Para Diario Xavi, SIEMPRE usar el límite del general para evitar escritura más allá
+    const esDiarioXavi = hojaActual === 'Diario Xavi';
+    
     // Determinar hasta qué fila recalcular:
     // - Si hay movimientos: hasta la última fila con movimiento (capada por imp_final manual si existe)
     // - Si NO hay movimientos pero hay saldo arrastrado: recalcular igualmente
@@ -410,16 +413,24 @@ function recalcularSaldosClienteEnMemoria(hoja, clienteIdx) {
     // LEER DIRECTAMENTE del JSON del mes anterior (no memoria)
     const numeroCliente = cliente.numero_cliente || (clienteIdx + 1);
     const saldoArrastre = obtenerSaldoClienteMesAnteriorDirecto(numeroCliente);
-    if (hayMovimientosCliente) {
-        last = Math.max(lastMovimientoFila, ultimaFilaImpFinal || 0);
-    } else if (saldoArrastre > 0) {
-        last = ultimaFilaConFechaGeneral;
-        if (ultimaFilaImpFinal > 0) last = Math.min(last, ultimaFilaImpFinal);
-    }
-
-    // Si hay saldo (por arrastre o movimientos), recalcular hasta la última fila con fecha del mes.
-    if (last > 0 && ultimaFilaConFechaGeneral > 0) {
-        last = Math.max(last, ultimaFilaConFechaGeneral);
+    
+    if (esDiarioXavi) {
+        // En Diario Xavi, SIEMPRE usar el límite del general
+        last = ultimaFilaImpFinal || 0;
+        console.log(`🔒 Diario Xavi: forzando límite del general = ${last}`);
+    } else {
+        // En otros diarios, usar lógica normal
+        if (hayMovimientosCliente) {
+            last = Math.max(lastMovimientoFila, ultimaFilaImpFinal || 0);
+        } else if (saldoArrastre > 0) {
+            last = ultimaFilaConFechaGeneral;
+            if (ultimaFilaImpFinal > 0) last = Math.min(last, ultimaFilaImpFinal);
+        }
+        
+        // Si hay saldo (por arrastre o movimientos), recalcular hasta la última fila con fecha del mes.
+        if (last > 0 && ultimaFilaConFechaGeneral > 0) {
+            last = Math.max(last, ultimaFilaConFechaGeneral);
+        }
     }
 
     // Si no hay actividad ni saldo arrastrado, limpiar cualquier arrastre (evita "fantasmas" en clientes nuevos)
@@ -1234,10 +1245,12 @@ function obtenerUltimaFilaImpFinalManual(hoja) {
         if (!d || typeof d.fila !== 'number') return;
         if (d.fila < 15 || d.fila > 1120) return;
         if (!d.fecha || d.fecha === 'FECHA') return;
-        // CRÍTICO: Solo considerar imp_final REALMENTE manual (editable). Ignorar valores bloqueados.
-        if (!(esCeldaManualGeneral(d, 'imp_final') && esImpFinalConValorGeneral(d))) return;
-        maxFila = Math.max(maxFila, d.fila);
+        // SIMPLIFICADO: Buscar cualquier imp_final con valor (manual o calculado)
+        if (typeof d.imp_final === 'number' && isFinite(d.imp_final) && d.imp_final >= 0) {
+            maxFila = Math.max(maxFila, d.fila);
+        }
     });
+    console.log(`🔍 DEBUG obtenerUltimaFilaImpFinalManual: última fila con imp_final > 0 = ${maxFila}`);
     return maxFila;
 }
 
@@ -10326,8 +10339,8 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
         datosMes.saldoInicial = saldoAnterior;
         saldoAnterior = datosMes.saldoFinal;
         
-        // Solo incluir meses con actividad
-        if (datosMes.incrementos > 0 || datosMes.decrementos > 0 || datosMes.beneficio !== 0) {
+        // Incluir todos los meses que tengan datos (incluso sin actividad)
+        if (datosMes.filas.length > 0) {
             const resultado = {
                 mes: mes,
                 nombreMes: formatearNombreMes(mes),
@@ -10927,8 +10940,8 @@ function renderizarGraficoEvolucionCliente(datos) {
     
     const ctx = canvas.getContext('2d');
     const labels = datos.map(d => formatearMesCorto(d.mes));
-    // Usar saldoFinalMes = último saldo diario de cada mes
-    const saldos = datos.map(d => d.saldoFinalMes || 0);
+    // Usar saldoFinal = último saldo diario de cada mes
+    const saldos = datos.map(d => d.saldoFinal || 0);
     
     // Calcular gradiente
     const gradient = ctx.createLinearGradient(0, 0, 0, 300);
