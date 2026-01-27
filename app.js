@@ -5853,7 +5853,7 @@ async function renderVistaClientes() {
     hojaParaProporcion = hoja;
 
     // Obtener hoja para cálculos de proporción
-    const hoja = hojaParaProporcion || datosEditados?.hojas?.[hojaActual];
+    const hojaCalculos = hojaParaProporcion || datosEditados?.hojas?.[hojaActual];
 
     const selectorPlantilla = document.getElementById('selectorPlantillaCliente');
     if (selectorPlantilla) {
@@ -9910,9 +9910,18 @@ async function mostrarEstadisticasCliente() {
     
     // Cargar datos de todos los meses del cliente
     try {
-        const meses = mesesDisponibles[hojaActual] || [];
-        const numeroCliente = cliente.numero_cliente || (clienteActual + 1);
-        const datosClienteMeses = await calcularRentabilidadClientePorMes(hojaActual, numeroCliente, meses, cliente);
+        let datosClienteMeses = [];
+        
+        if (esHojaAnual(hojaActual)) {
+            // HOJA ANUAL (Diario Xavi): Simular meses desde los datos diarios
+            const numeroCliente = cliente.numero_cliente || (clienteActual + 1);
+            datosClienteMeses = await calcularRentabilidadClienteAnualPorMeses(hojaActual, numeroCliente, cliente);
+        } else {
+            // HOJA MENSUAL: Usar lógica normal de meses separados
+            const meses = mesesDisponibles[hojaActual] || [];
+            const numeroCliente = cliente.numero_cliente || (clienteActual + 1);
+            datosClienteMeses = await calcularRentabilidadClientePorMes(hojaActual, numeroCliente, meses, cliente);
+        }
         
         // Calcular KPIs totales (desde primer incremento hasta última fecha)
         // Pasar el cliente en memoria para obtener saldos calculados
@@ -9926,6 +9935,113 @@ async function mostrarEstadisticasCliente() {
             <p style="color: #ff6b6b;">Error al cargar las estadísticas: ${error.message}</p>
         `;
     }
+}
+
+// Función para procesar datos anuales y agrupar por meses (para Diario Xavi)
+// Formatear nombre del mes (ej: "2026-01" -> "Enero 2026")
+function formatearNombreMes(mesStr) {
+    const [year, month] = mesStr.split('-');
+    const nombresMes = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const mesNum = parseInt(month);
+    return `${nombresMes[mesNum - 1]} ${year}`;
+}
+
+async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, clienteEnMemoria) {
+    const resultados = [];
+    const datosDiariosCliente = (clienteEnMemoria.datos_diarios || [])
+        .filter(d => d.fila >= 15 && d.fila <= 1120)
+        .sort((a, b) => a.fila - b.fila);
+    
+    // Obtener datos generales para rentabilidades
+    const hojaData = datosEditados?.hojas?.[hoja];
+    const datosGenerales = hojaData?.datos_diarios_generales || [];
+    const benefPctPorFila = {};
+    datosGenerales.forEach(d => {
+        if (typeof d.benef_porcentaje === 'number' && isFinite(d.benef_porcentaje)) {
+            benefPctPorFila[d.fila] = d.benef_porcentaje;
+        }
+    });
+    
+    // Agrupar datos por mes
+    const datosPorMes = {};
+    
+    for (const filaCliente of datosDiariosCliente) {
+        const benefPct = benefPctPorFila[filaCliente.fila] || 0;
+        
+        // Extraer mes de la fecha si existe, o usar el número de fila
+        let mes = '';
+        if (filaCliente.fecha && filaCliente.fecha !== 'FECHA') {
+            // Formato esperado: "2026-01-15" o similar
+            const partesFecha = String(filaCliente.fecha).split('-');
+            if (partesFecha.length >= 2) {
+                mes = partesFecha.slice(0, 2).join('-'); // "2026-01"
+            }
+        }
+        
+        // Si no hay fecha válida, estimar mes basado en la fila
+        if (!mes) {
+            const diaEstimado = filaCliente.fila - 14; // Fila 15 = día 1
+            const mesEstimado = Math.min(12, Math.max(1, Math.ceil(diaEstimado / 30)));
+            mes = `2026-${String(mesEstimado).padStart(2, '0')}`;
+        }
+        
+        if (!datosPorMes[mes]) {
+            datosPorMes[mes] = {
+                mes: mes,
+                incrementos: 0,
+                decrementos: 0,
+                beneficio: 0,
+                saldoInicial: 0,
+                saldoFinal: 0,
+                filas: []
+            };
+        }
+        
+        const datosMes = datosPorMes[mes];
+        const inc = typeof filaCliente.incremento === 'number' ? filaCliente.incremento : 0;
+        const dec = typeof filaCliente.decremento === 'number' ? filaCliente.decremento : 0;
+        
+        datosMes.incrementos += inc;
+        datosMes.decrementos += dec;
+        datosMes.beneficio += (inc + dec) * benefPct;
+        datosMes.filas.push(filaCliente);
+        
+        // Guardar saldo final si existe
+        if (typeof filaCliente.saldo_diario === 'number') {
+            datosMes.saldoFinal = filaCliente.saldo_diario;
+        } else if (typeof filaCliente.imp_final === 'number') {
+            datosMes.saldoFinal = filaCliente.imp_final;
+        }
+    }
+    
+    // Calcular saldos iniciales y generar resultados
+    let saldoAnterior = 0;
+    const mesesOrdenados = Object.keys(datosPorMes).sort();
+    
+    for (const mes of mesesOrdenados) {
+        const datosMes = datosPorMes[mes];
+        datosMes.saldoInicial = saldoAnterior;
+        saldoAnterior = datosMes.saldoFinal;
+        
+        // Solo incluir meses con actividad
+        if (datosMes.incrementos > 0 || datosMes.decrementos > 0 || datosMes.beneficio !== 0) {
+            resultados.push({
+                mes: mes,
+                nombreMes: formatearNombreMes(mes),
+                capitalInvertido: datosMes.incrementos,
+                capitalRetirado: datosMes.decrementos,
+                beneficio: datosMes.beneficio,
+                rentabilidad: datosMes.incrementos > 0 ? (datosMes.beneficio / datosMes.incrementos) * 100 : 0,
+                saldoInicial: datosMes.saldoInicial,
+                saldoFinal: datosMes.saldoFinal,
+                detalles: datosMes.filas
+            });
+        }
+    }
+    
+    console.log(`📊 Cliente ${numeroCliente} en hoja anual: ${resultados.length} meses con actividad`);
+    return resultados;
 }
 
 async function calcularRentabilidadClientePorMes(hoja, numeroCliente, meses, clienteEnMemoria) {
