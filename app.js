@@ -10568,6 +10568,24 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
     console.log(`🔍 DEBUG datosDiariosCliente filtrados length:`, datosDiariosCliente.length);
     console.log(`🔍 DEBUG primeras 3 filas:`, datosDiariosCliente.slice(0, 3));
     
+    // DEBUG: Mostrar TODAS las fechas encontradas
+    const todasLasFechas = datosDiariosCliente
+        .filter(d => d.fecha && d.fecha !== 'FECHA')
+        .map(d => ({ fila: d.fila, fecha: d.fecha }));
+    console.log(`🔍 DEBUG TODAS las fechas encontradas (${todasLasFechas.length}):`, todasLasFechas);
+    
+    // DEBUG: Mostrar distribución por filas
+    const fechasPorMes = {};
+    datosDiariosCliente.forEach(d => {
+        if (d.fecha && d.fecha !== 'FECHA') {
+            const mesEstimado = Math.min(12, Math.max(1, Math.ceil((d.fila - 14) / 30)));
+            const key = `Mes ${mesEstimado}`;
+            if (!fechasPorMes[key]) fechasPorMes[key] = [];
+            fechasPorMes[key].push({ fila: d.fila, fecha: d.fecha });
+        }
+    });
+    console.log(`🔍 DEBUG fechas por mes estimado:`, fechasPorMes);
+    
     // Obtener datos generales para rentabilidades
     const hojaData = datosEditados?.hojas?.[hoja];
     const datosGenerales = hojaData?.datos_diarios_generales || [];
@@ -10599,22 +10617,62 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
             const fechaStr = String(filaCliente.fecha).trim();
             console.log(`🔍 DEBUG procesando fecha: "${fechaStr}" en fila ${filaCliente.fila}`);
             
-            // Formato 1: "2026-01-15" o "15/01/2026" o "15-01-2026"
-            if (fechaStr.includes('-')) {
-                const partesFecha = fechaStr.split('-');
-                if (partesFecha.length === 3 && partesFecha[0].length === 4) {
-                    // Formato ISO: "2026-01-15"
-                    mes = partesFecha.slice(0, 2).join('-'); // "2026-01"
-                } else if (partesFecha.length === 3 && partesFecha[2].length === 4) {
-                    // Formato europeo: "15-01-2026"
-                    mes = `2026-${partesFecha[1]}`; // "2026-01"
+            // LIMPIAR fecha: remover espacios extra y caracteres especiales
+            const fechaLimpia = fechaStr.replace(/\s+/g, '').trim();
+            
+            // Formato 1: "2026-01-15" (ISO)
+            if (fechaLimpia.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                const partes = fechaLimpia.split('-');
+                mes = `${partes[0]}-${partes[1]}`;
+                console.log(`🔍 DEBUG formato ISO detectado: "${mes}"`);
+            }
+            // Formato 2: "15/01/2026" (europeo)
+            else if (fechaLimpia.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                const partes = fechaLimpia.split('/');
+                mes = `2026-${partes[1]}`;
+                console.log(`🔍 DEBUG formato europeo / detectado: "${mes}"`);
+            }
+            // Formato 3: "15-01-2026" (europeo con guion)
+            else if (fechaLimpia.match(/^\d{2}-\d{2}-\d{4}$/)) {
+                const partes = fechaLimpia.split('-');
+                mes = `2026-${partes[1]}`;
+                console.log(`🔍 DEBUG formato europeo - detectado: "${mes}"`);
+            }
+            // Formato 4: "15/01/26" (año corto)
+            else if (fechaLimpia.match(/^\d{2}\/\d{2}\/\d{2}$/)) {
+                const partes = fechaLimpia.split('/');
+                const año = parseInt(partes[2]) + 2000; // Asumir 2000s
+                mes = `${año}-${partes[1]}`;
+                console.log(`🔍 DEBUG formato año corto detectado: "${mes}"`);
+            }
+            // Formato 5: "20260115" (YYYYMMDD)
+            else if (fechaLimpia.match(/^\d{8}$/)) {
+                const año = fechaLimpia.substring(0, 4);
+                const mesNum = fechaLimpia.substring(4, 6);
+                mes = `${año}-${mesNum}`;
+                console.log(`🔍 DEBUG formato YYYYMMDD detectado: "${mes}"`);
+            }
+            // Formato 6: "01/15/2026" (US)
+            else if (fechaLimpia.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                const partes = fechaLimpia.split('/');
+                // Podría ser MM/DD/YYYY o DD/MM/YYYY, intentar ambos
+                const mesNum = parseInt(partes[0]);
+                if (mesNum <= 12) {
+                    mes = `2026-${partes[0]}`;
+                    console.log(`🔍 DEBUG formato US MM/DD/YYYY detectado: "${mes}"`);
+                } else {
+                    mes = `2026-${partes[1]}`;
+                    console.log(`🔍 DEBUG formato DD/MM/YYYY detectado: "${mes}"`);
                 }
-            } else if (fechaStr.includes('/')) {
-                const partesFecha = fechaStr.split('/');
-                if (partesFecha.length === 3 && partesFecha[2].length === 4) {
-                    // Formato europeo: "15/01/2026"
-                    mes = `2026-${partesFecha[1]}`; // "2026-01"
-                }
+            }
+            // Formato 7: Solo mes-año "01-2026" o "01/2026"
+            else if (fechaLimpia.match(/^\d{2}[-\/]\d{4}$/)) {
+                const partes = fechaLimpia.split(/[-\/]/);
+                mes = `2026-${partes[0]}`;
+                console.log(`🔍 DEBUG formato mes-año detectado: "${mes}"`);
+            }
+            else {
+                console.log(`🔍 DEBUG formato no reconocido: "${fechaStr}" -> "${fechaLimpia}"`);
             }
             
             console.log(`🔍 DEBUG mes extraído: "${mes}" de fecha "${fechaStr}"`);
