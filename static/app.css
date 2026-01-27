@@ -2881,13 +2881,13 @@ input[type="text"]:focus {
 .stats-table th {
     text-align: left;
     padding: 1rem;
-    color: #00d4ff;
+    color: #ffffff;
     font-weight: 700;
-    background: rgba(0, 0, 0, 0.3);
-    font-size: 0.8rem;
+    background: rgba(0, 212, 255, 0.15);
+    font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 2px solid rgba(0, 212, 255, 0.4);
 }
 
 .stats-table td {
