@@ -6221,9 +6221,9 @@ async function renderVistaClientes() {
                                 <div class="kpi-breakdown-title">${title}</div>
                                 <div><strong>${formatearMoneda(gAct)}</strong></div>
                                 <div class="kpi-breakdown-sub">
-                                    Empezaste con: ${formatearMoneda(gIni)} | Has retirado: ${formatearMoneda(retirado)}
+                                    Garantía inicial: ${formatearMoneda(gIni)} | Retirado: ${formatearMoneda(retirado)}
                                     <br>
-                                    Te queda disponible: ${formatearMoneda(gAct)}
+                                    Disponible: ${formatearMoneda(gAct)}
                                 </div>
                             </div>
                         `;
