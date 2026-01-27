@@ -177,7 +177,6 @@ def generar_diario_xavi_2026():
         cliente = {
             "numero_cliente": num_cliente,
             "datos": {
-                "nombre": f"CLIENTE {num_cliente}",
                 "NOMBRE": {"valor": ""},
                 "APELLIDOS": {"valor": ""},
                 "TELEFONO": {"valor": ""},
