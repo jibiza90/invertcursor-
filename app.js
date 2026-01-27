@@ -9959,26 +9959,40 @@ function formatearNombreMes(mesStr) {
 }
 
 async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, clienteEnMemoria) {
+    console.log(`🔍 DEBUG calcularRentabilidadClienteAnualPorMeses: hoja=${hoja}, cliente=${numeroCliente}`);
+    console.log(`🔍 DEBUG clienteEnMemoria.datos_diarios length:`, clienteEnMemoria.datos_diarios?.length || 0);
+    
     const resultados = [];
     const datosDiariosCliente = (clienteEnMemoria.datos_diarios || [])
         .filter(d => d.fila >= 15 && d.fila <= 1120)
         .sort((a, b) => a.fila - b.fila);
     
+    console.log(`🔍 DEBUG datosDiariosCliente filtrados length:`, datosDiariosCliente.length);
+    console.log(`🔍 DEBUG primeras 3 filas:`, datosDiariosCliente.slice(0, 3));
+    
     // Obtener datos generales para rentabilidades
     const hojaData = datosEditados?.hojas?.[hoja];
     const datosGenerales = hojaData?.datos_diarios_generales || [];
+    console.log(`🔍 DEBUG datosGenerales length:`, datosGenerales.length);
+    
     const benefPctPorFila = {};
+    let benefCount = 0;
     datosGenerales.forEach(d => {
         if (typeof d.benef_porcentaje === 'number' && isFinite(d.benef_porcentaje)) {
             benefPctPorFila[d.fila] = d.benef_porcentaje;
+            benefCount++;
         }
     });
+    console.log(`🔍 DEBUG benefPctPorFila entries:`, benefCount);
     
     // Agrupar datos por mes
     const datosPorMes = {};
+    let totalProcesadas = 0;
+    let totalConDatos = 0;
     
     for (const filaCliente of datosDiariosCliente) {
         const benefPct = benefPctPorFila[filaCliente.fila] || 0;
+        totalProcesadas++;
         
         // Extraer mes de la fecha si existe, o usar el número de fila
         let mes = '';
@@ -10013,6 +10027,10 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
         const inc = typeof filaCliente.incremento === 'number' ? filaCliente.incremento : 0;
         const dec = typeof filaCliente.decremento === 'number' ? filaCliente.decremento : 0;
         
+        if (inc > 0 || dec > 0) {
+            totalConDatos++;
+        }
+        
         datosMes.incrementos += inc;
         datosMes.decrementos += dec;
         datosMes.beneficio += (inc + dec) * benefPct;
@@ -10026,6 +10044,8 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
         }
     }
     
+    console.log(`🔍 DEBUG total filas procesadas: ${totalProcesadas}, con datos: ${totalConDatos}`);
+    
     // Calcular saldos iniciales y generar resultados
     let saldoAnterior = 0;
     const mesesOrdenados = Object.keys(datosPorMes).sort();
@@ -10037,7 +10057,7 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
         
         // Solo incluir meses con actividad
         if (datosMes.incrementos > 0 || datosMes.decrementos > 0 || datosMes.beneficio !== 0) {
-            resultados.push({
+            const resultado = {
                 mes: mes,
                 nombreMes: formatearNombreMes(mes),
                 capitalInvertido: datosMes.incrementos,
@@ -10047,11 +10067,14 @@ async function calcularRentabilidadClienteAnualPorMeses(hoja, numeroCliente, cli
                 saldoInicial: datosMes.saldoInicial,
                 saldoFinal: datosMes.saldoFinal,
                 detalles: datosMes.filas
-            });
+            };
+            resultados.push(resultado);
+            console.log(`🔍 DEBUG mes ${mes}: inc=${datosMes.incrementos}, dec=${datosMes.decrementos}, benef=${datosMes.beneficio}`);
         }
     }
     
     console.log(`📊 Cliente ${numeroCliente} en hoja anual: ${resultados.length} meses con actividad`);
+    console.log(`🔍 DEBUG resultados finales:`, resultados);
     return resultados;
 }
 
@@ -10305,10 +10328,16 @@ async function actualizarEstadisticasCliente() {
 }
 
 function calcularKPIsTotalesCliente(datosClienteMeses, clienteEnMemoria) {
-    // Filtrar meses con datos de rentabilidad
-    const mesesConDatos = datosClienteMeses.filter(m => m && m.diasOperados > 0);
+    console.log(`🔍 DEBUG calcularKPIsTotalesCliente: recibe ${datosClienteMeses.length} meses`);
+    console.log(`🔍 DEBUG primer mes datos:`, datosClienteMeses[0]);
+    
+    // Filtrar meses con datos de rentabilidad (usar campos correctos)
+    const mesesConDatos = datosClienteMeses.filter(m => m && (m.capitalInvertido > 0 || m.capitalRetirado > 0 || m.beneficio !== 0));
+    
+    console.log(`🔍 DEBUG mesesConDatos: ${mesesConDatos.length}`);
     
     if (mesesConDatos.length === 0) {
+        console.log(`❌ No hay meses con datos, retornando KPIs a 0`);
         return {
             inversion: 0,
             saldoActual: 0,
@@ -10322,26 +10351,25 @@ function calcularKPIsTotalesCliente(datosClienteMeses, clienteEnMemoria) {
         };
     }
     
-    // INVERSIÓN = suma de incrementos de TODOS los meses (recalculados)
-    const inversion = mesesConDatos.reduce((sum, m) => sum + (m.incrementos || 0), 0);
+    // INVERSIÓN = suma de capitalInvertido de TODOS los meses
+    const inversion = mesesConDatos.reduce((sum, m) => sum + (m.capitalInvertido || 0), 0);
     
-    // SALDO ACTUAL = último saldoFinalMes recalculado
+    // SALDO ACTUAL = último saldoFinal
     const ultimoMes = mesesConDatos[mesesConDatos.length - 1];
-    const saldoActual = ultimoMes?.saldoFinalMes || 0;
+    const saldoActual = ultimoMes?.saldoFinal || 0;
     
-    // DECREMENTOS = suma de decrementos de TODOS los meses (recalculados)
-    const decrementos = mesesConDatos.reduce((sum, m) => sum + (m.decrementos || 0), 0);
+    // DECREMENTOS = suma de capitalRetirado de TODOS los meses
+    const decrementos = mesesConDatos.reduce((sum, m) => sum + (m.capitalRetirado || 0), 0);
     
-    // BENEFICIO TOTAL = saldo actual - inversión + retiradas
-    const beneficioEuro = saldoActual - inversion + decrementos;
+    // BENEFICIO TOTAL = suma de beneficios de todos los meses
+    const beneficioEuro = mesesConDatos.reduce((sum, m) => sum + (m.beneficio || 0), 0);
     
-    // RENTABILIDAD TOTAL = % entre saldo actual e inversión
-    // Fórmula: ((saldoActual + decrementos) / inversion - 1) * 100
-    const rentabilidadTotal = inversion > 0 ? ((saldoActual + decrementos) / inversion - 1) * 100 : 0;
+    // RENTABILIDAD TOTAL = % entre beneficio e inversión
+    const rentabilidadTotal = inversion > 0 ? (beneficioEuro / inversion) * 100 : 0;
     
-    // Mejor y peor mes
-    const mejorMes = mesesConDatos.reduce((a, b) => a.rentabilidad > b.rentabilidad ? a : b);
-    const peorMes = mesesConDatos.reduce((a, b) => a.rentabilidad < b.rentabilidad ? a : b);
+    // Mejor y peor mes (usar rentabilidad correcta)
+    const mejorMes = mesesConDatos.reduce((a, b) => (a.rentabilidad || 0) > (b.rentabilidad || 0) ? a : b);
+    const peorMes = mesesConDatos.reduce((a, b) => (a.rentabilidad || 0) < (b.rentabilidad || 0) ? a : b);
     const promedioMensual = rentabilidadTotal / mesesConDatos.length;
     
     console.log(`📊 KPIs recalculados: inversion=${inversion}, saldoActual=${saldoActual}, dec=${decrementos}, benef=${beneficioEuro}, rent=${rentabilidadTotal}%`);
