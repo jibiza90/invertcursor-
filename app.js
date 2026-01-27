@@ -3421,7 +3421,7 @@ function recalcularImpInicialSync(hoja) {
         if (esXavi && __loadingProgressVisible) {
             actualizarProgresoCarga(60, 100, 'Cargando...');
         }
-        precalcularFACache(hoja);
+        await precalcularFACache(hoja);
         if (esXavi && __loadingProgressVisible) {
             actualizarProgresoCarga(65, 100, 'Cargando...');
         }
@@ -3432,6 +3432,11 @@ function recalcularImpInicialSync(hoja) {
     
     for (const filaData of datosGenOrd) {
         filasProc++;
+        
+        // CRÍTICO: Yield cada 10 filas para evitar cuelgue del navegador
+        if (filasProc % 10 === 0) {
+            await yieldToBrowser();
+        }
         
         // Reportar progreso cada 20 filas para Xavi (65-90%)
         if (esXavi && __loadingProgressVisible && filasProc % 20 === 0) {
@@ -3475,9 +3480,14 @@ function recalcularImpInicialSync(hoja) {
 
     // CRÍTICO: Limpiar imp_inicial de TODAS las filas después de la última con imp_final
     if ((hojaActual === 'Diario WIND' || hojaActual === 'Diario Xavi') && ultimaFilaImpFinalManual > 0) {
+        let contador = 0;
         for (const d of datosGen) {
             if (d && d.fila > ultimaFilaImpFinalManual) {
                 d.imp_inicial = null;
+            }
+            // Yield cada 50 filas para evitar cuelgue
+            if (++contador % 50 === 0) {
+                await yieldToBrowser();
             }
         }
     }
@@ -3499,7 +3509,7 @@ let __cacheFA = null;
 let __cacheFAKey = null;
 
 // Precalcular FA para todas las filas de una vez (OPTIMIZACIÓN CRÍTICA)
-function precalcularFACache(hoja) {
+async function precalcularFACache(hoja) {
     if (!hoja || !hoja.clientes) return {};
     
     const cacheKey = `${hojaActual}_${mesActual}_${__recalculoVersion}`;
@@ -3511,20 +3521,21 @@ function precalcularFACache(hoja) {
     const datosGen = hoja.datos_diarios_generales || [];
     
     // Precalcular FA para cada fila
-    datosGen.forEach(filaGeneral => {
+    let contador = 0;
+    for (const filaGeneral of datosGen) {
         const filaNum = filaGeneral.fila;
         const fechaDia = filaGeneral?.fecha ? (normalizarFechaKey(filaGeneral.fecha) || String(filaGeneral.fecha).split(' ')[0]) : null;
         
         let sumaFA = 0;
         
         // Sumar incrementos - decrementos de todos los clientes para este DÍA
-        hoja.clientes.forEach((cliente) => {
+        for (const cliente of hoja.clientes) {
             const datosCliente = cliente.datos_diarios || [];
             
             let incCliente = 0;
             let decCliente = 0;
             
-            datosCliente.forEach(d => {
+            for (const d of datosCliente) {
                 let esDelDia = false;
                 if (fechaDia && d.fecha) {
                     const fechaFila = normalizarFechaKey(d.fecha) || String(d.fecha).split(' ')[0];
@@ -3539,13 +3550,18 @@ function precalcularFACache(hoja) {
                     incCliente = Math.max(incCliente, inc);
                     decCliente = Math.max(decCliente, dec);
                 }
-            });
+            }
             
             sumaFA += (incCliente - decCliente);
-        });
+        }
         
         cache[filaNum] = sumaFA;
-    });
+        
+        // CRÍTICO: Yield cada 5 filas para evitar cuelgue (365 filas × 100 clientes = mucho trabajo)
+        if (++contador % 5 === 0) {
+            await yieldToBrowser();
+        }
+    }
     
     __cacheFA = cache;
     __cacheFAKey = cacheKey;
