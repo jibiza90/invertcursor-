@@ -9908,6 +9908,9 @@ async function calcularRentabilidadAnualPorMeses(hoja) {
 
     console.log(`📊 Procesando ${datosGenerales.length} datos diarios generales con NUEVA FÓRMULA NORMALIZADA`);
 
+    // 🔥 DEBUG: Contar días por mes para comparar con cliente
+    const diasPorMes = {};
+    
     for (const fila of datosGenerales) {
         if (!fila || !fila.fecha || fila.fecha === 'FECHA') continue;
 
@@ -9941,7 +9944,26 @@ async function calcularRentabilidadAnualPorMeses(hoja) {
         datosPorMes[mes].porcentajesDiarios.push(benefPct); // Mantener decimales exactos
         datosPorMes[mes].diasOperados++;
         datosPorMes[mes].filas.push(fila);
+        
+        // 🔥 DEBUG: Contar días por mes
+        if (!diasPorMes[mes]) diasPorMes[mes] = [];
+        diasPorMes[mes].push({
+            fila: fila.fila,
+            fecha: fila.fecha,
+            benefPct: benefPct
+        });
     }
+    
+    // 🔥 DEBUG: Mostrar días contados por mes
+    console.log(`🔍 DÍAS CONTADOS POR MES (ESTADÍSTICAS GENERALES):`);
+    Object.keys(diasPorMes).forEach(mes => {
+        console.log(`   ${mes}: ${diasPorMes[mes].length} días`);
+        if (diasPorMes[mes].length <= 5) {
+            diasPorMes[mes].forEach(d => {
+                console.log(`      Fila ${d.fila}: ${d.fecha} → ${(d.benefPct * 100).toFixed(4)}%`);
+            });
+        }
+    });
     
     // 🔥 NUEVO CÁLCULO: Rentabilidad normalizada con saldo base de 100,000€
     const resultados = [];
@@ -9958,12 +9980,13 @@ async function calcularRentabilidadAnualPorMeses(hoja) {
         console.log(`   Saldo inicial: ${saldoSimulado.toFixed(2)}`);
         
         // Aplicar cada % diario al saldo simulado (efecto compuesto)
+        // 🔥 CORRECCIÓN: benef_porcentaje ya es decimal (0.0464), no dividir por 100
         datosMes.porcentajesDiarios.forEach((pctDiario, index) => {
             const saldoAnterior = saldoSimulado;
-            saldoSimulado = saldoSimulado * (1 + pctDiario / 100);
+            saldoSimulado = saldoSimulado * (1 + pctDiario); // pctDiario ya es decimal
             
             if (index < 3 || index === datosMes.porcentajesDiarios.length - 1) {
-                console.log(`   Día ${index + 1}: ${pctDiario.toFixed(6)}% → ${saldoAnterior.toFixed(2)} → ${saldoSimulado.toFixed(2)}`);
+                console.log(`   Día ${index + 1}: ${(pctDiario * 100).toFixed(6)}% → ${saldoAnterior.toFixed(2)} → ${saldoSimulado.toFixed(2)}`);
             }
         });
         
@@ -10005,9 +10028,10 @@ async function calcularRentabilidadPorMes(hoja, meses) {
             
             const datosGenerales = data.datos_diarios_generales || [];
             const datosConBenef = datosGenerales
-                .filter(d => d && d.fila >= 15 && d.fila <= 1120)
+                .filter(d => d && d.fila >= 15 && d.fila <= 1120) // 🔥 DÍA 1 = FILA 15, ya está incluido
                 .filter(d => typeof d.benef_porcentaje === 'number' && isFinite(d.benef_porcentaje));
             
+            // 🔥 CORRECCIÓN: benef_porcentaje ya es decimal, multiplicar por 100 para convertir a %
             const rentabilidadMes = datosConBenef.reduce((sum, d) => sum + (d.benef_porcentaje * 100), 0);
             benefAcumAnual += rentabilidadMes;
             
