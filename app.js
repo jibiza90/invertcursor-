@@ -8898,6 +8898,26 @@ async function actualizarInfoCliente(input) {
     
     input.classList.add('cell-modified');
     
+    // CRÍTICO: También actualizar clientesAnuales para sincronizar con pestaña Clientes
+    if (clientesAnuales && clientesAnuales[clienteIndex]) {
+        if (!clientesAnuales[clienteIndex].datos) {
+            clientesAnuales[clienteIndex].datos = {};
+        }
+        if (!clientesAnuales[clienteIndex].datos[campo]) {
+            clientesAnuales[clienteIndex].datos[campo] = { valor: nuevoValor };
+        } else {
+            clientesAnuales[clienteIndex].datos[campo].valor = nuevoValor;
+        }
+        // Si es GARANTIA_INICIAL, también actualizar GARANTIA
+        if (campo === 'GARANTIA_INICIAL') {
+            if (!clientesAnuales[clienteIndex].datos['GARANTIA']) {
+                clientesAnuales[clienteIndex].datos['GARANTIA'] = { valor: nuevoValor };
+            } else {
+                clientesAnuales[clienteIndex].datos['GARANTIA'].valor = nuevoValor;
+            }
+        }
+    }
+    
     // Guardar automáticamente
     await guardarDatosAutomatico(0, 0);
     mostrarNotificacion(`Información de ${campo.replace('_', ' ')} actualizada`, 'success');
