@@ -2901,11 +2901,45 @@ input[type="text"]:focus {
     background: rgba(255, 255, 255, 0.05);
 }
 
-.stats-table .positive { color: #00ff88; }
-.stats-table .negative { color: #ff6b6b; }
-.stats-table .trend-up::after { content: ' ↗'; color: #00ff88; }
-.stats-table .trend-down::after { content: ' ↘'; color: #ff6b6b; }
-.stats-table .trend-flat::after { content: ' →'; color: #ffd700; }
+.stats-table .positive { 
+    color: #00ff88; 
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.1) 0%, rgba(0, 255, 136, 0.05) 100%);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 255, 136, 0.3);
+}
+.stats-table .negative { 
+    color: #ff6b6b; 
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 107, 107, 0.05) 100%);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 107, 107, 0.3);
+}
+.stats-table .trend-up::after { 
+    content: ' ↗'; 
+    color: #00ff88;
+    font-weight: 900;
+    font-size: 1.2em;
+    text-shadow: 0 0 8px rgba(0, 255, 136, 0.8);
+}
+.stats-table .trend-down::after { 
+    content: ' ↘'; 
+    color: #ff6b6b;
+    font-weight: 900;
+    font-size: 1.2em;
+    text-shadow: 0 0 8px rgba(255, 107, 107, 0.8);
+}
+.stats-table .trend-flat::after { 
+    content: ' →'; 
+    color: #ffd700;
+    font-weight: 900;
+    font-size: 1.2em;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
+}
 
 /* Comparativa */
 .stats-comparison {
