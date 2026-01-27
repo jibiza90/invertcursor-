@@ -1,0 +1,265 @@
+/* Estilos optimizados para Virtual Scrolling */
+.virtual-viewport {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    scrollbar-width: thin;
+    scrollbar-color: #4a5568 #1a202c;
+}
+
+.virtual-viewport::-webkit-scrollbar {
+    width: 8px;
+}
+
+.virtual-viewport::-webkit-scrollbar-track {
+    background: #1a202c;
+}
+
+.virtual-viewport::-webkit-scrollbar-thumb {
+    background: #4a5568;
+    border-radius: 4px;
+}
+
+.virtual-viewport::-webkit-scrollbar-thumb:hover {
+    background: #718096;
+}
+
+.virtual-content {
+    position: relative;
+    width: 100%;
+    min-height: 100%;
+}
+
+.virtual-spacer-top,
+.virtual-spacer-bottom {
+    width: 100%;
+    pointer-events: none;
+}
+
+.virtual-item {
+    position: absolute;
+    left: 0;
+    right: 0;
+    box-sizing: border-box;
+    will-change: transform;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+}
+
+/* Optimizaciones para tablas virtuales */
+.cliente-virtual-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 120px 100px;
+    gap: 1px;
+    background: #2d3748;
+    align-items: center;
+    padding: 0 8px;
+    border-bottom: 1px solid #4a5568;
+    height: 35px;
+    box-sizing: border-box;
+}
+
+.cliente-virtual-row:hover {
+    background: #374151;
+    z-index: 1;
+}
+
+.cliente-virtual-cell {
+    padding: 4px 8px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cliente-virtual-cell.cliente-numero {
+    font-weight: 600;
+    color: #a0aec0;
+}
+
+.cliente-virtual-cell.cliente-nombre {
+    color: #e2e8f0;
+    font-weight: 500;
+}
+
+.cliente-virtual-cell.cliente-saldo {
+    text-align: right;
+    font-weight: 600;
+}
+
+.cliente-virtual-cell.cliente-saldo.positive {
+    color: #48bb78;
+}
+
+.cliente-virtual-cell.cliente-saldo.negative {
+    color: #f56565;
+}
+
+.cliente-virtual-cell.cliente-proporcion {
+    text-align: center;
+    color: #a0aec0;
+    font-size: 0.8rem;
+}
+
+/* Animaciones optimizadas */
+.virtual-item {
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Estados de carga */
+.virtual-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: #a0aec0;
+}
+
+.virtual-loading::before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border: 2px solid #4a5568;
+    border-top-color: #63b3ed;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Optimizaciones de rendimiento */
+.virtual-item,
+.cliente-virtual-row {
+    contain: layout style paint;
+}
+
+.virtual-viewport {
+    contain: strict;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .cliente-virtual-row {
+        grid-template-columns: 60px 1fr 80px;
+        gap: 4px;
+        padding: 0 4px;
+        height: 40px;
+    }
+    
+    .cliente-virtual-cell {
+        padding: 2px 4px;
+        font-size: 0.8rem;
+    }
+    
+    .cliente-virtual-cell.cliente-proporcion {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .cliente-virtual-row {
+        grid-template-columns: 50px 1fr 60px;
+        height: 45px;
+    }
+    
+    .cliente-virtual-cell {
+        font-size: 0.75rem;
+    }
+}
+
+/* Tema oscuro adicional */
+@media (prefers-color-scheme: dark) {
+    .virtual-viewport {
+        scrollbar-color: #718096 #2d3748;
+    }
+    
+    .virtual-viewport::-webkit-scrollbar-track {
+        background: #2d3748;
+    }
+    
+    .virtual-viewport::-webkit-scrollbar-thumb {
+        background: #718096;
+    }
+    
+    .virtual-viewport::-webkit-scrollbar-thumb:hover {
+        background: #a0aec0;
+    }
+}
+
+/* Estados vacíos */
+.virtual-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: #718096;
+    text-align: center;
+}
+
+.virtual-empty::before {
+    content: '📊';
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* Indicadores de rendimiento */
+.virtual-performance-indicator {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #48bb78;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.75rem;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.virtual-performance-indicator.visible {
+    opacity: 1;
+}
+
+/* Optimizaciones para scroll suave */
+.virtual-viewport {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Placeholder para contenido cargando */
+.virtual-placeholder {
+    background: linear-gradient(90deg, #2d3748 25%, #374151 50%, #2d3748 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}

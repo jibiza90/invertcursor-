@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="static/app.css?v=3">
     <link rel="stylesheet" href="static/animations.css?v=3">
     <link rel="stylesheet" href="static/loading.css?v=2.9.16">
+    <link rel="stylesheet" href="static/virtual-scroll.css?v=1">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E💎%3C/text%3E%3C/svg%3E">
 </head>
 <body>
@@ -353,8 +354,58 @@
     <script src="js/utils/numeros.js?v=2.9.18"></script>
     <script src="js/core/calculadora.js?v=2.9.18"></script>
     
+    <!-- Optimizaciones de rendimiento -->
+    <script src="static/cache-manager.js?v=1"></script>
+    <script src="static/render-optimizer.js?v=1"></script>
+    <script src="static/virtual-scroll.js?v=1"></script>
+    
+    <!-- Web Workers -->
+    <script>
+        // Inicializar Web Worker para cálculos pesados
+        let calculationsWorker = null;
+        
+        function initCalculationsWorker() {
+            if (typeof Worker !== 'undefined') {
+                calculationsWorker = new Worker('static/calculations-worker.js?v=1');
+                
+                calculationsWorker.onmessage = function(e) {
+                    const { type, result, error } = e.data;
+                    
+                    if (error) {
+                        console.error('Error en Web Worker:', error);
+                        return;
+                    }
+                    
+                    // Manejar resultados del worker
+                    switch(type) {
+                        case 'recalcularSaldos':
+                            window.handleWorkerSaldos?.(result);
+                            break;
+                        case 'calcularEstadisticas':
+                            window.handleWorkerEstadisticas?.(result);
+                            break;
+                        case 'procesarDatosCliente':
+                            window.handleWorkerCliente?.(result);
+                            break;
+                    }
+                };
+                
+                console.log('🚀 Web Worker de cálculos inicializado');
+            } else {
+                console.warn('⚠️ Web Workers no soportados');
+            }
+        }
+        
+        // Inicializar al cargar la página
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initCalculationsWorker);
+        } else {
+            initCalculationsWorker();
+        }
+    </script>
+    
     <!-- Aplicación principal -->
-    <script src="app.js?v=2.9.20"></script>
+    <script src="app.js?v=2.9.21"></script>
     <script src="test_recalculo.js?v=2.9.18"></script>
 </body>
 </html>
