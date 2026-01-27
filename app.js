@@ -1675,6 +1675,12 @@ async function guardarDatosAutomatico(numFormulasGenerales = 0, numFormulasClien
 async function cargarDatos() {
     const esXavi = hojaActual === 'Diario Xavi';
     
+    // Activar indicador de progreso ANTES de cargar para Diario Xavi
+    if (esXavi) {
+        mostrarProgresoCarga();
+        actualizarProgresoCarga(0, 100, 'Cargando datos...');
+    }
+    
     // Diario Xavi es anual, usa año 2026
     if (esXavi) {
         mesActual = '2026';
@@ -1693,6 +1699,9 @@ async function cargarDatos() {
     
     try {
         // Cargar solo la hoja actual para mayor velocidad y fiabilidad
+        if (esXavi) {
+            actualizarProgresoCarga(10, 100, 'Descargando JSON...');
+        }
         const response = await fetch(`/api/datos/${hojaActual.replace(/\s/g, '_')}/${mesActual}`, { cache: 'no-store' });
         
         if (!response.ok) {
@@ -1700,8 +1709,16 @@ async function cargarDatos() {
         }
         
         const data = await response.json();
+        
+        if (esXavi) {
+            actualizarProgresoCarga(20, 100, 'Procesando JSON...');
+        }
 
         await aplicarArrastreAnualAlCargar(hojaActual, mesActual, data);
+        
+        if (esXavi) {
+            actualizarProgresoCarga(30, 100, 'Inicializando estructuras...');
+        }
         
         // Inicializar estructuras si no existen
         if (!datosCompletos) datosCompletos = { hojas: {} };
@@ -1714,10 +1731,15 @@ async function cargarDatos() {
         __recalculoVersion++;
         __cacheSaldosWindKey = null;
         
+        if (esXavi) {
+            actualizarProgresoCarga(40, 100, 'Preservando bloqueos...');
+        }
+        
         preservarBloqueadas(datosCompletos, datosEditados);
         
         // Diario Xavi: aplicar arrastre de fin de semana al cargar
         if (esXavi) {
+            actualizarProgresoCarga(45, 100, 'Aplicando arrastre fin de semana...');
             aplicarArrastreFinDeSemanaXavi(data);
         }
         
@@ -2349,6 +2371,12 @@ async function cambiarHoja() {
         await cargarDatos();
         requiereRecalculoImpInicial = true;
         await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'cambiarHoja' });
+        
+        // Progreso final para Diario Xavi
+        if (hojaActual === 'Diario Xavi' && __loadingProgressVisible) {
+            actualizarProgresoCarga(95, 100, 'Renderizando vista...');
+        }
+        
         mostrarVistaGeneral();
         mostrarNotificacion(`Cambiado a ${hojaActual}`, 'success');
         console.log('✅ cambiarHoja: completado para', hojaActual);
@@ -3368,6 +3396,9 @@ function recalcularImpInicialSync(hoja) {
     const esXavi = hojaActual === 'Diario Xavi';
     if (esXavi || (hojaActual === 'Diario WIND' && datosGenOrd.length > 50)) {
         console.log('⚡ Precalculando cache de FA para optimizar rendimiento...');
+        if (esXavi && __loadingProgressVisible) {
+            actualizarProgresoCarga(60, 100, 'Precalculando FA...');
+        }
         precalcularFACache(hoja);
     }
     
@@ -3377,9 +3408,10 @@ function recalcularImpInicialSync(hoja) {
     for (const filaData of datosGenOrd) {
         filasProc++;
         
-        // Reportar progreso cada 50 filas para Xavi (reducir overhead)
-        if (esXavi && __loadingProgressVisible && filasProc % 50 === 0) {
-            actualizarProgresoCarga(filasProc, totalFilas, 'Calculando días:');
+        // Reportar progreso cada 30 filas para Xavi (60-90%)
+        if (esXavi && __loadingProgressVisible && filasProc % 30 === 0) {
+            const porcentaje = 60 + Math.round((filasProc / totalFilas) * 30);
+            actualizarProgresoCarga(porcentaje, 100, `Calculando días: ${filasProc}/${totalFilas}`);
         }
         const fila = filaData.fila;
         const fa = calcularFA(fila, hoja);
@@ -11294,11 +11326,7 @@ async function actualizarTodoElDiario(opts = {}) {
         }
         console.log(`🔄 Actualizando todo el diario: ${hojaActual}`);
         
-        // Activar indicador de progreso para Diario Xavi
         const esXavi = hojaActual === 'Diario Xavi';
-        if (esXavi) {
-            mostrarProgresoCarga();
-        }
 
         __cacheSaldosWindKey = null;
 
@@ -11328,9 +11356,10 @@ async function actualizarTodoElDiario(opts = {}) {
             for (let i = 0; i < clientes.length; i++) {
                 recalcularTotalesCliente(clientes[i], i);
                 
-                // Reportar progreso de clientes para Xavi
+                // Reportar progreso de clientes para Xavi (50-60%)
                 if (i % 10 === 0) {
-                    actualizarProgresoCarga(i + 1, clientes.length, 'Preparando clientes:');
+                    const porcentaje = 50 + Math.round((i / clientes.length) * 10);
+                    actualizarProgresoCarga(porcentaje, 100, 'Preparando clientes:');
                 }
             }
         }
