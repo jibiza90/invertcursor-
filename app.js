@@ -11864,11 +11864,14 @@ function renderizarGraficoRentabilidadCliente(datos) {
 
 function renderizarGraficoEvolucionCliente(datos) {
     console.log('📈 renderizarGraficoEvolucionCliente recibió:', datos.length, 'meses');
-    console.log('📈 Datos:', datos.map(d => ({ mes: d.nombreMes, saldo: d.saldoFinal })));
+    console.log('📈 Datos completos:', datos);
+    console.log('📈 Campos disponibles:', datos.length > 0 ? Object.keys(datos[0]) : 'Sin datos');
     
     const canvas = document.getElementById('chartClienteEvolucion');
     if (!canvas || datos.length === 0) {
         console.log('❌ No hay canvas o no hay datos para el gráfico');
+        console.log('❌ Canvas existe:', !!canvas);
+        console.log('❌ Datos length:', datos.length);
         return;
     }
     
@@ -11880,12 +11883,22 @@ function renderizarGraficoEvolucionCliente(datos) {
     const tipoGrafico = document.getElementById('tipoGraficoEvolucion')?.value || 'line';
     
     const labels = datos.map(d => formatearMesCorto(d.mes));
-    // Usar saldoFinal = último saldo diario de cada mes
-    const saldos = datos.map(d => d.saldoFinal || 0);
+    // Usar saldoFinal = último saldo diario de cada mes (corregido para cliente)
+    const saldos = datos.map(d => {
+        console.log(`📈 Mes ${d.mes}: saldoFinal=${d.saldoFinal}, beneficio=${d.beneficio}`);
+        return d.saldoFinal || d.beneficio || 0;
+    });
     
     console.log('📈 Labels:', labels);
     console.log('📈 Saldos:', saldos);
     console.log('📈 Tipo gráfico:', tipoGrafico);
+    
+    // Verificar si hay datos válidos
+    const tieneDatosValidos = saldos.some(saldo => saldo > 0);
+    if (!tieneDatosValidos) {
+        console.log('❌ No hay saldos válidos para mostrar en el gráfico');
+        return;
+    }
     
     // Configuración base
     const baseConfig = {
