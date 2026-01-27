@@ -9541,12 +9541,20 @@ async function mostrarEstadisticas() {
         meses = meses.slice(-numMeses);
     }
     
-    if (meses.length === 0) {
+    if (!esHojaAnual(hojaParaMostrar) && meses.length === 0) {
         container.innerHTML = '<div class="info-box"><p>No hay meses disponibles para esta hoja</p></div>';
         return;
     }
     
-    const rentabilidadMeses = await calcularRentabilidadPorMes(hojaParaMostrar, meses);
+    let rentabilidadMeses = [];
+    
+    if (esHojaAnual(hojaParaMostrar)) {
+        // HOJA ANUAL (Diario Xavi): Calcular rentabilidad por meses desde datos actuales
+        rentabilidadMeses = await calcularRentabilidadAnualPorMeses(hojaParaMostrar);
+    } else {
+        // HOJA MENSUAL: Usar lógica normal
+        rentabilidadMeses = await calcularRentabilidadPorMes(hojaParaMostrar, meses);
+    }
     datosEstadisticasCache[hojaParaMostrar] = rentabilidadMeses;
     
     const benchmark = parseFloat(document.getElementById('benchmarkInput')?.value) || 2;
@@ -9556,6 +9564,91 @@ async function mostrarEstadisticas() {
     renderizarIndicadoresAvanzados(rentabilidadMeses);
     renderizarTablaDetallada(rentabilidadMeses, benchmark);
     renderizarProyeccion(rentabilidadMeses);
+}
+
+async function calcularRentabilidadAnualPorMeses(hoja) {
+    console.log(`📊 Calculando rentabilidad anual por meses para ${hoja} (estadísticas generales)`);
+    
+    const hojaData = datosEditados?.hojas?.[hoja];
+    if (!hojaData || !hojaData.datos_diarios_generales) {
+        console.warn(`No hay datos generales para ${hoja}`);
+        return [];
+    }
+    
+    const datosGenerales = hojaData.datos_diarios_generales;
+    const benefPctPorFila = {};
+    let benefCount = 0;
+    
+    // Extraer beneficios porcentuales por fila
+    datosGenerales.forEach(d => {
+        if (d && d.fila >= 15 && d.fila <= 1120 && typeof d.benef_porcentaje === 'number' && isFinite(d.benef_porcentaje)) {
+            benefPctPorFila[d.fila] = d.benef_porcentaje;
+            benefCount++;
+        }
+    });
+    
+    console.log(`🔍 DEBUG: Encontrados ${benefCount} beneficios porcentuales en ${datosGenerales.length} filas generales`);
+    
+    // Agrupar por mes
+    const datosPorMes = {};
+    let benefAcumAnual = 0;
+    
+    for (const fila of datosGenerales) {
+        if (!fila || fila.fila < 15 || fila.fila > 1120) continue;
+        
+        const benefPct = benefPctPorFila[fila.fila] || 0;
+        if (benefPct === 0) continue;
+        
+        // Extraer mes de la fecha
+        let mes = '';
+        if (fila.fecha && fila.fecha !== 'FECHA') {
+            const partesFecha = String(fila.fecha).split('-');
+            if (partesFecha.length >= 2) {
+                mes = partesFecha.slice(0, 2).join('-'); // "2026-01"
+            }
+        }
+        
+        // Si no hay fecha válida, estimar mes basado en la fila
+        if (!mes) {
+            const diaEstimado = fila.fila - 14; // Fila 15 = día 1
+            const mesEstimado = Math.min(12, Math.max(1, Math.ceil(diaEstimado / 30)));
+            mes = `2026-${String(mesEstimado).padStart(2, '0')}`;
+        }
+        
+        if (!datosPorMes[mes]) {
+            datosPorMes[mes] = {
+                mes: mes,
+                rentabilidad: 0,
+                diasOperados: 0,
+                filas: []
+            };
+        }
+        
+        datosPorMes[mes].rentabilidad += benefPct * 100; // Convertir a porcentaje
+        datosPorMes[mes].diasOperados++;
+        datosPorMes[mes].filas.push(fila);
+    }
+    
+    // Generar resultados ordenados por mes
+    const resultados = [];
+    const mesesOrdenados = Object.keys(datosPorMes).sort();
+    
+    for (const mes of mesesOrdenados) {
+        const datosMes = datosPorMes[mes];
+        benefAcumAnual += datosMes.rentabilidad;
+        
+        resultados.push({
+            mes: mes,
+            rentabilidad: datosMes.rentabilidad,
+            benefAcumAnual: benefAcumAnual,
+            diasOperados: datosMes.diasOperados
+        });
+        
+        console.log(`📅 ${mes}: rentabilidad=${datosMes.rentabilidad.toFixed(2)}%, diasOperados=${datosMes.diasOperados}`);
+    }
+    
+    console.log(`📊 Estadísticas generales anuales: ${resultados.length} meses con datos`);
+    return resultados;
 }
 
 async function calcularRentabilidadPorMes(hoja, meses) {
