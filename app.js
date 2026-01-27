@@ -10640,7 +10640,13 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
         
         if (mesDatos && (mesDatos.incrementos > 0 || mesDatos.decrementos > 0 || mesDatos.saldoFinal > 0)) {
             // 🔥 CÁLCULO CORRECTO DE SALDOS
-            mesDatos.saldoInicial = saldoAnterior;
+            // Si no hay saldo anterior (primer mes), usar primer incremento como saldo inicial
+            if (saldoAnterior === 0 && mesDatos.incrementos > 0) {
+                mesDatos.saldoInicial = mesDatos.incrementos;
+                console.log(`🎯 Primer mes ${mesKey}: usando primer incremento ${mesDatos.incrementos.toFixed(2)} como saldo inicial`);
+            } else {
+                mesDatos.saldoInicial = saldoAnterior;
+            }
             
             // Si no hay saldo final pero hay movimientos, calcularlo
             if (mesDatos.saldoFinal === 0 && (mesDatos.incrementos > 0 || mesDatos.decrementos > 0)) {
@@ -10668,8 +10674,9 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
             resultados.push(resultado);
             // 🔥 DEBUG NUEVA FÓRMULA
             console.log(`✅ Mes ${mesKey}:`);
-            console.log(`   Saldo Inicial: ${mesDatos.saldoInicial.toFixed(2)}`);
+            console.log(`   Saldo Inicial: ${mesDatos.saldoInicial.toFixed(2)} ${saldoAnterior === 0 && mesDatos.incrementos > 0 ? '(primer incremento)' : '(saldo anterior)'}`);
             console.log(`   Saldo Final: ${mesDatos.saldoFinal.toFixed(2)}`);
+            console.log(`   Incrementos: ${mesDatos.incrementos.toFixed(2)}`);
             console.log(`   Rentabilidad: ${resultado.rentabilidad.toFixed(2)}%`);
             console.log(`   Fórmula: (${mesDatos.saldoFinal.toFixed(2)} - ${mesDatos.saldoInicial.toFixed(2)}) / ${mesDatos.saldoInicial.toFixed(2)} * 100`);
         } else {
