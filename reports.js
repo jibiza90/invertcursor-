@@ -202,25 +202,28 @@ class ReportsManager {
             // 🔄 PASO 1: Recopilar datos del cliente
             const datosCliente = this.recopilarDatosCliente(cliente);
 
-            // 🔄 PASO 2: Generar HTML temporal del informe
-            const htmlInforme = this.generarHTMLInforme(datosCliente);
+            // 🔄 PASO 2: Generar gráficos como imágenes
+            const graficosImagenes = await this.generarGraficosParaPDF(datosCliente);
 
-            // 🔄 PASO 3: Crear contenedor temporal para captura
+            // 🔄 PASO 3: Generar HTML temporal del informe con gráficos
+            const htmlInforme = this.generarHTMLInforme(datosCliente, graficosImagenes);
+
+            // 🔄 PASO 4: Crear contenedor temporal para captura
             const contenedorTemporal = this.crearContenedorTemporal(htmlInforme);
 
-            // 🔄 PASO 4: Convertir a PDF
+            // 🔄 PASO 5: Convertir a PDF
             const pdfBlob = await this.convertirHTMLaPDF(contenedorTemporal);
 
-            // 🔄 PASO 5: Limpiar contenedor temporal
+            // 🔄 PASO 6: Limpiar contenedor temporal
             document.body.removeChild(contenedorTemporal);
 
-            // 🔄 PASO 6: Guardar en historial
+            // 🔄 PASO 7: Guardar en historial
             this.guardarInformeEnHistorial(cliente, pdfBlob);
 
-            // 🔄 PASO 7: Mostrar previsualización
+            // 🔄 PASO 8: Mostrar previsualización
             this.mostrarPrevisualizacionPDF(pdfBlob, cliente);
 
-            // 🔄 PASO 8: Actualizar historial visual
+            // 🔄 PASO 9: Actualizar historial visual
             this.actualizarHistorialVisual();
 
         } catch (error) {
@@ -233,6 +236,189 @@ class ReportsManager {
             boton.innerHTML = '<i class="fas fa-file-pdf"></i> Generar Informe PDF';
             this.actualizarEstadoBotonGenerar();
         }
+    }
+
+    // 📊 Generar gráficos como imágenes para el PDF
+    async generarGraficosParaPDF(datosCliente) {
+        console.log('📈 Generando gráficos para PDF...');
+        
+        const graficos = {};
+        
+        try {
+            // 📊 Gráfico 1: Rentabilidad Mensual
+            const rentabilidadImg = await this.generarGraficoRentabilidad(datosCliente.datosMensuales);
+            if (rentabilidadImg) {
+                graficos.rentabilidad = rentabilidadImg;
+            }
+            
+            // 📈 Gráfico 2: Evolución del Saldo
+            const evolucionImg = await this.generarGraficoEvolucion(datosCliente.datosMensuales);
+            if (evolucionImg) {
+                graficos.evolucion = evolucionImg;
+            }
+            
+            console.log('✅ Gráficos generados:', Object.keys(graficos));
+            return graficos;
+            
+        } catch (error) {
+            console.error('❌ Error generando gráficos:', error);
+            return {}; // Retornar vacío si fallan los gráficos
+        }
+    }
+
+    // 📊 Generar gráfico de rentabilidad
+    async generarGraficoRentabilidad(datosMensuales) {
+        if (!datosMensuales || datosMensuales.length === 0) {
+            console.log('⚠️ No hay datos mensuales para gráfico de rentabilidad');
+            return null;
+        }
+
+        // Crear canvas temporal
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 400;
+        canvas.style.backgroundColor = 'white';
+        
+        const ctx = canvas.getContext('2d');
+        
+        // Preparar datos
+        const labels = datosMensuales.map(d => d.nombreMes);
+        const valores = datosMensuales.map(d => d.rentabilidad);
+        
+        // Generar gráfico con Chart.js
+        return new Promise((resolve) => {
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Rentabilidad %',
+                        data: valores,
+                        backgroundColor: valores.map(v => v >= 0 ? 'rgba(72, 187, 120, 0.8)' : 'rgba(245, 101, 101, 0.8)'),
+                        borderColor: valores.map(v => v >= 0 ? 'rgba(72, 187, 120, 1)' : 'rgba(245, 101, 101, 1)'),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Rentabilidad Mensual',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Rentabilidad (%)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Mes'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Esperar a que el gráfico se renderice
+            setTimeout(() => {
+                const imgData = canvas.toDataURL('image/png');
+                chart.destroy();
+                resolve(imgData);
+            }, 1000);
+        });
+    }
+
+    // 📈 Generar gráfico de evolución
+    async generarGraficoEvolucion(datosMensuales) {
+        if (!datosMensuales || datosMensuales.length === 0) {
+            console.log('⚠️ No hay datos mensuales para gráfico de evolución');
+            return null;
+        }
+
+        // Crear canvas temporal
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 400;
+        canvas.style.backgroundColor = 'white';
+        
+        const ctx = canvas.getContext('2d');
+        
+        // Preparar datos
+        const labels = datosMensuales.map(d => d.nombreMes);
+        const valores = datosMensuales.map(d => d.valor);
+        
+        // Generar gráfico con Chart.js
+        return new Promise((resolve) => {
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Saldo',
+                        data: valores,
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgba(102, 126, 234, 1)',
+                        pointBorderColor: 'white',
+                        pointBorderWidth: 2,
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Evolución del Saldo',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Saldo (€)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '€' + value.toLocaleString('es-ES');
+                                }
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Mes'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Esperar a que el gráfico se renderice
+            setTimeout(() => {
+                const imgData = canvas.toDataURL('image/png');
+                chart.destroy();
+                resolve(imgData);
+            }, 1000);
+        });
     }
 
     // 📊 Recopilar datos completos del cliente
@@ -439,7 +625,7 @@ class ReportsManager {
     }
 
     // 🎨 Generar HTML del informe
-    generarHTMLInforme(datos) {
+    generarHTMLInforme(datos, graficosImagenes = {}) {
         return `
             <div class="informe-pdf" style="font-family: Arial, sans-serif; padding: 40px; background: white;">
                 <!-- Cabecera -->
@@ -556,6 +742,31 @@ class ReportsManager {
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+
+                <!-- Gráficos -->
+                <div style="margin-bottom: 30px;">
+                    <h2 style="color: #2d3748; border-left: 4px solid #667eea; padding-left: 15px; margin-bottom: 15px;">📈 Gráficos de Evolución</h2>
+                    
+                    ${graficosImagenes.rentabilidad ? `
+                        <div style="margin-bottom: 30px; text-align: center;">
+                            <h3 style="color: #4a5568; margin-bottom: 15px;">Rentabilidad Mensual</h3>
+                            <img src="${graficosImagenes.rentabilidad}" style="max-width: 100%; height: auto; border: 1px solid #e2e8f0; border-radius: 8px;" />
+                        </div>
+                    ` : ''}
+                    
+                    ${graficosImagenes.evolucion ? `
+                        <div style="margin-bottom: 30px; text-align: center;">
+                            <h3 style="color: #4a5568; margin-bottom: 15px;">Evolución del Saldo</h3>
+                            <img src="${graficosImagenes.evolucion}" style="max-width: 100%; height: auto; border: 1px solid #e2e8f0; border-radius: 8px;" />
+                        </div>
+                    ` : ''}
+                    
+                    ${!graficosImagenes.rentabilidad && !graficosImagenes.evolucion ? `
+                        <div style="text-align: center; padding: 40px; background: #f8f9fa; border-radius: 8px; color: #718096;">
+                            <p style="margin: 0; font-size: 16px;">No hay datos suficientes para generar gráficos</p>
+                        </div>
+                    ` : ''}
                 </div>
 
                 <!-- Pie de página -->
