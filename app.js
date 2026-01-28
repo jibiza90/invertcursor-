@@ -11388,13 +11388,29 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
         }
     });
     
+    // 🔥 EXTRAER DETALLES DE BENEFICIOS PARA BOTÓN +
+    const todosBeneficios = [];
+    
+    datosMeses.forEach(mes => {
+        if (mes.beneficio && Math.abs(mes.beneficio) > 0.01) {
+            todosBeneficios.push({
+                mes: mes.mes,
+                nombreMes: mes.nombreMes,
+                beneficio: mes.beneficio,
+                rentabilidad: mes.rentabilidad || 0
+            });
+        }
+    });
+    
     // Guardar en variables globales para los botones +
     window._detallesIncrementosCliente = todosIncrementos;
     window._detallesDecrementosCliente = todosDecrementos;
+    window._detallesBeneficioCliente = todosBeneficios;
     
     console.log('💰 Detalles extraídos:', {
         incrementos: todosIncrementos.length,
-        decrementos: todosDecrementos.length
+        decrementos: todosDecrementos.length,
+        beneficios: todosBeneficios.length
     });
     
     // 🔥 NO FILTRAR - Usar TODOS los meses para gráficos
@@ -11425,7 +11441,7 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
                 <div class="value ${kpis.decrementos > 0 ? 'negative' : ''}">${kpis.decrementos > 0 ? '-' : ''}${formatearMoneda(kpis.decrementos)}</div>
             </div>
             <div class="client-stat-card">
-                <div class="label">Beneficio Total €</div>
+                <div class="label">Beneficio Total € <button class="btn-detalle-stats" onclick="mostrarDetalleBeneficio()" title="Ver detalle">+</button></div>
                 <div class="value ${kpis.beneficioEuro >= 0 ? 'positive' : 'negative'}">${kpis.beneficioEuro >= 0 ? '+' : ''}${formatearMoneda(kpis.beneficioEuro)}</div>
             </div>
             <div class="client-stat-card">
@@ -11542,6 +11558,94 @@ function mostrarDetalleDecrementos() {
     mostrarPopupDetalles('Detalle de Retiradas', detallesReales, 'negative');
 }
 
+function mostrarDetalleBeneficio() {
+    const detalles = window._detallesBeneficioCliente || [];
+    console.log('Detalles beneficios:', detalles);
+    
+    if (detalles.length === 0) {
+        mostrarNotificacion('No se han registrado beneficios', 'info');
+        return;
+    }
+    
+    // Crear popup especial para beneficios con tabla de meses
+    const existente = document.querySelector('.popup-detalles-cliente');
+    if (existente) existente.remove();
+    
+    // Ordenar por mes
+    const detOrdenados = [...detalles].sort((a, b) => a.mes.localeCompare(b.mes));
+    
+    const total = detalles.reduce((sum, d) => sum + (d.beneficio || 0), 0);
+    
+    const popup = document.createElement('div');
+    popup.className = 'popup-detalles-cliente';
+    popup.innerHTML = `
+        <div class="popup-detalles-content">
+            <div class="popup-detalles-header">
+                <h3>Detalle de Beneficios Mensuales</h3>
+                <button class="popup-close">×</button>
+            </div>
+            <div class="popup-detalles-body">
+                <table class="tabla-detalles">
+                    <thead>
+                        <tr>
+                            <th class="th-mes">Mes</th>
+                            <th class="th-beneficio">Beneficio €</th>
+                            <th class="th-rentabilidad">Rentabilidad %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${detOrdenados.map(d => {
+                            const beneficioClass = d.beneficio >= 0 ? 'positive' : 'negative';
+                            const rentabilidadClass = d.rentabilidad >= 0 ? 'positive' : 'negative';
+                            const beneficioSigno = d.beneficio >= 0 ? '+' : '';
+                            const rentabilidadSigno = d.rentabilidad >= 0 ? '+' : '';
+                            return `
+                                <tr>
+                                    <td>${d.nombreMes}</td>
+                                    <td class="${beneficioClass}">${beneficioSigno}${formatearMoneda(d.beneficio)}</td>
+                                    <td class="${rentabilidadClass}">${rentabilidadSigno}${d.rentabilidad.toFixed(2)}%</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td><strong>TOTAL</strong></td>
+                            <td class="${total >= 0 ? 'positive' : 'negative'}"><strong>${total >= 0 ? '+' : ''}${formatearMoneda(total)}</strong></td>
+                            <td>-</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(popup);
+    
+    // 🔥 ARREGLAR BOTÓN X
+    const closeBtn = popup.querySelector('.popup-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            popup.remove();
+        });
+    }
+    
+    // Cerrar al hacer click fuera
+    popup.addEventListener('click', (e) => {
+        if (e.target === popup) popup.remove();
+    });
+    
+    // 🔥 AÑADIR SOPORTE PARA ESC
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            popup.remove();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+}
+
 function formatearSoloFecha(fecha) {
     if (!fecha) return '-';
     // Si tiene hora (espacio o T), quedarse solo con la parte de fecha
@@ -11570,7 +11674,7 @@ function mostrarPopupDetalles(titulo, detalles, tipo) {
         <div class="popup-detalles-content">
             <div class="popup-detalles-header">
                 <h3>${titulo}</h3>
-                <button class="popup-close" onclick="this.closest('.popup-detalles-cliente').remove()">×</button>
+                <button class="popup-close">×</button>
             </div>
             <div class="popup-detalles-body">
                 <table class="tabla-detalles">
@@ -11601,9 +11705,28 @@ function mostrarPopupDetalles(titulo, detalles, tipo) {
     
     document.body.appendChild(popup);
     
+    // 🔥 ARREGLAR BOTÓN X
+    const closeBtn = popup.querySelector('.popup-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            popup.remove();
+        });
+    }
+    
+    // Cerrar al hacer click fuera
     popup.addEventListener('click', (e) => {
         if (e.target === popup) popup.remove();
     });
+    
+    // 🔥 AÑADIR SOPORTE PARA ESC
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            popup.remove();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
 }
 
 function renderizarGraficoRentabilidadCliente(datos) {
