@@ -10031,10 +10031,8 @@ function mostrarVistaReports() {
                         // Generar HTML del informe
                         const htmlInforme = this.generarHTMLInforme(cliente);
                         
-                        // Abrir directamente en nueva ventana como al principio
-                        const nuevaVentana = window.open('', '_blank');
-                        nuevaVentana.document.write(htmlInforme);
-                        nuevaVentana.document.close();
+                        // Mostrar modal grande con el informe
+                        this.mostrarModalInforme(htmlInforme, cliente);
                         
                         mostrarNotificacion('Informe generado correctamente', 'success');
                         
@@ -10051,48 +10049,88 @@ function mostrarVistaReports() {
                     }
                 }
                 
-                mostrarPrevisualizacionPDF(htmlInforme, pdfUrl, cliente) {
+                mostrarModalInforme(htmlInforme, cliente) {
                     // Eliminar modal existente si hay alguno
-                    const modalExistente = document.querySelector('.pdf-preview-modal');
+                    const modalExistente = document.querySelector('.modal-informe-cliente');
                     if (modalExistente) {
                         modalExistente.remove();
                     }
                     
-                    // Crear modal
+                    // Crear modal grande
                     const modal = document.createElement('div');
-                    modal.className = 'pdf-preview-modal active';
-                    modal.innerHTML = `
-                        <div class="pdf-preview-content">
-                            <div class="pdf-preview-header">
-                                <h3 class="pdf-preview-title">📄 Vista Previa del Informe</h3>
-                                <button class="pdf-preview-close" onclick="this.closest('.pdf-preview-modal').remove()">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                            <div class="pdf-preview-body">
-                                <div class="pdf-preview-info">
-                                    <p><strong>Cliente:</strong> ${cliente.nombre}</p>
-                                    <p><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-ES')}</p>
-                                </div>
-                                <div class="pdf-preview-actions">
-                                    <button class="pdf-preview-btn" onclick="window.reportsManager.descargarPDF('${pdfUrl}', '${cliente.nombre}')">
-                                        <i class="fas fa-download"></i> Descargar PDF
-                                    </button>
-                                    <button class="pdf-preview-btn" onclick="window.reportsManager.imprimirPDF('${htmlInforme}')">
-                                        <i class="fas fa-print"></i> Imprimir
-                                    </button>
-                                    <button class="pdf-preview-btn secondary" onclick="window.reportsManager.prepararEmail('${pdfUrl}', '${cliente.nombre}')">
-                                        <i class="fas fa-envelope"></i> Compartir por Email
-                                    </button>
-                                </div>
-                                <div class="pdf-preview-content-area">
-                                    <iframe srcdoc="${htmlInforme}" style="width: 100%; height: 500px; border: 1px solid #ddd; border-radius: 8px;"></iframe>
-                                </div>
-                            </div>
-                        </div>
+                    modal.className = 'modal-informe-cliente';
+                    modal.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0, 0, 0, 0.8);
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        z-index: 10000;
+                        backdrop-filter: blur(5px);
                     `;
                     
+                    // Crear contenedor del informe
+                    const contenedor = document.createElement('div');
+                    contenedor.style.cssText = `
+                        width: 95%;
+                        height: 95%;
+                        max-width: 1400px;
+                        background: white;
+                        border-radius: 20px;
+                        overflow: hidden;
+                        position: relative;
+                        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+                    `;
+                    
+                    // Botón de cerrar
+                    const btnCerrar = document.createElement('button');
+                    btnCerrar.innerHTML = '×';
+                    btnCerrar.style.cssText = `
+                        position: absolute;
+                        top: 15px;
+                        right: 15px;
+                        width: 40px;
+                        height: 40px;
+                        border: none;
+                        background: rgba(255, 255, 255, 0.9);
+                        border-radius: 50%;
+                        font-size: 24px;
+                        cursor: pointer;
+                        z-index: 10001;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.3s ease;
+                    `;
+                    btnCerrar.onmouseover = () => btnCerrar.style.background = 'rgba(255, 255, 255, 1)';
+                    btnCerrar.onmouseout = () => btnCerrar.style.background = 'rgba(255, 255, 255, 0.9)';
+                    btnCerrar.onclick = () => modal.remove();
+                    
+                    // Crear iframe para el informe
+                    const iframe = document.createElement('iframe');
+                    iframe.style.cssText = `
+                        width: 100%;
+                        height: 100%;
+                        border: none;
+                        background: white;
+                    `;
+                    
+                    // Añadir elementos al DOM
+                    contenedor.appendChild(btnCerrar);
+                    contenedor.appendChild(iframe);
+                    modal.appendChild(contenedor);
                     document.body.appendChild(modal);
+                    
+                    // Cargar el HTML en el iframe
+                    iframe.onload = () => {
+                        console.log('✅ Informe cargado en modal');
+                    };
+                    
+                    iframe.srcdoc = htmlInforme;
                     
                     // Cerrar al hacer clic fuera
                     modal.addEventListener('click', (e) => {
@@ -10100,6 +10138,15 @@ function mostrarVistaReports() {
                             modal.remove();
                         }
                     });
+                    
+                    // Cerrar con ESC
+                    const handleEscape = (e) => {
+                        if (e.key === 'Escape') {
+                            modal.remove();
+                            document.removeEventListener('keydown', handleEscape);
+                        }
+                    };
+                    document.addEventListener('keydown', handleEscape);
                 }
                 
                 descargarPDF(pdfUrl, nombreCliente) {
@@ -10176,127 +10223,263 @@ InvertCursor Sistema de Gestión
                 generarHTMLInforme(cliente) {
                     const fecha = new Date().toLocaleDateString('es-ES');
                     
-                    // Obtener datos del cliente
+                    // Obtener datos reales del cliente como en mostrarEstadisticasCliente
                     const datosCliente = cliente.datos || {};
-                    const nombre = datosCliente['NOMBRE']?.valor || '';
-                    const apellidos = datosCliente['APELLIDOS']?.valor || '';
-                    const nombreCompleto = nombre || apellidos ? `${nombre} ${apellidos}`.trim() : `Cliente ${cliente.numeroCliente}`;
-                    const email = datosCliente['EMAIL']?.valor || '';
-                    
-                    // Obtener datos diarios
                     const datosDiarios = datosCliente.datos_diarios || [];
                     
-                    // Calcular estadísticas
-                    let stats = { invertido: 0, saldoActual: 0, beneficioTotal: 0, rentabilidadTotal: 0 };
-                    if (datosDiarios.length > 0) {
-                        const ultimoDia = datosDiarios[0];
-                        stats.invertido = ultimoDia.invertido || 0;
-                        stats.saldoActual = ultimoDia.saldo || 0;
-                        stats.beneficioTotal = ultimoDia.beneficio_acumulado || 0;
-                        stats.rentabilidadTotal = stats.invertido > 0 ? (stats.beneficioTotal / stats.invertido) : 0;
-                    }
+                    // Calcular estadísticas exactamente como en las estadísticas de clientes
+                    const stats = this.calcularEstadisticasCliente(datosDiarios);
+                    
+                    // Generar ID único para los gráficos
+                    const chartId = Date.now();
                     
                     return `
                         <!DOCTYPE html>
                         <html>
                         <head>
-                            <title>Informe de Cliente - ${nombreCompleto}</title>
+                            <title>Informe de Cliente - ${cliente.nombreCompleto || `Cliente ${cliente.numeroCliente}`}</title>
+                            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                             <style>
-                                body { font-family: Arial, sans-serif; margin: 20px; }
-                                .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; }
-                                .cliente-info { margin: 20px 0; }
-                                .estadisticas { margin: 20px 0; }
-                                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                                th { background-color: #f2f2f2; }
-                                .acciones { text-align: center; margin: 30px 0; }
-                                button { padding: 10px 20px; margin: 5px; cursor: pointer; }
-                                .positive { color: green; }
-                                .negative { color: red; }
+                                body { 
+                                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+                                    margin: 0; 
+                                    padding: 20px; 
+                                    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 50%, #d4dbe6 100%);
+                                }
+                                .modal-stats-client-content {
+                                    background: rgba(255, 255, 255, 0.72);
+                                    backdrop-filter: blur(20px) saturate(180%);
+                                    -webkit-backdrop-filter: blur(20px) saturate(180%);
+                                    border-radius: 20px;
+                                    border: 1px solid rgba(255, 255, 255, 0.5);
+                                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+                                    max-width: 1200px;
+                                    margin: 0 auto;
+                                    overflow: hidden;
+                                }
+                                .modal-stats-client-header {
+                                    background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.1));
+                                    padding: 2rem;
+                                    border-bottom: 1px solid rgba(255,255,255,0.5);
+                                    display: flex;
+                                    justify-content: space-between;
+                                    align-items: center;
+                                }
+                                .modal-stats-client-header h2 {
+                                    margin: 0;
+                                    color: #2c3e50;
+                                    font-size: 1.8rem;
+                                    font-weight: 700;
+                                }
+                                .client-stats-grid {
+                                    display: grid;
+                                    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                                    gap: 1.5rem;
+                                    padding: 2rem;
+                                }
+                                .client-stat-card {
+                                    background: var(--crystal-white, #ffffff);
+                                    border: 1px solid var(--border-light, #e5e5e5);
+                                    border-radius: 16px;
+                                    padding: 1.5rem;
+                                    text-align: center;
+                                    transition: all 0.3s ease;
+                                }
+                                .client-stat-card:hover {
+                                    transform: translateY(-2px);
+                                    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+                                }
+                                .client-stat-value {
+                                    font-size: 2rem;
+                                    font-weight: 700;
+                                    margin-bottom: 0.5rem;
+                                }
+                                .client-stat-label {
+                                    color: var(--text-secondary, #7f8c8d);
+                                    font-size: 0.9rem;
+                                    text-transform: uppercase;
+                                    letter-spacing: 0.05em;
+                                }
+                                .client-chart-container {
+                                    background: var(--crystal-white, #ffffff);
+                                    border: 1px solid var(--border-light, #e5e5e5);
+                                    border-radius: 16px;
+                                    padding: 2rem;
+                                    margin: 1.5rem;
+                                }
+                                .client-chart-container h3 {
+                                    margin: 0 0 1.5rem 0;
+                                    color: #2c3e50;
+                                    font-size: 1.3rem;
+                                    font-weight: 600;
+                                }
+                                .chart-controls-premium {
+                                    display: flex;
+                                    gap: 1rem;
+                                    margin-bottom: 1.5rem;
+                                    flex-wrap: wrap;
+                                }
+                                .control-group {
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 0.5rem;
+                                }
+                                .control-group label {
+                                    font-size: 0.9rem;
+                                    color: #7f8c8d;
+                                    font-weight: 500;
+                                }
+                                .control-group select {
+                                    padding: 0.5rem 1rem;
+                                    border: 1px solid #e5e5e5;
+                                    border-radius: 8px;
+                                    background: white;
+                                    font-size: 0.9rem;
+                                }
+                                .client-chart-wrapper {
+                                    position: relative;
+                                    height: 400px;
+                                    width: 100%;
+                                }
+                                .positive { color: #27ae60; }
+                                .negative { color: #e74c3c; }
+                                .acciones {
+                                    text-align: center;
+                                    padding: 2rem;
+                                    border-top: 1px solid rgba(255,255,255,0.5);
+                                    background: rgba(255,255,255,0.3);
+                                    display: flex;
+                                    gap: 1rem;
+                                    justify-content: center;
+                                    flex-wrap: wrap;
+                                }
+                                .btn-accion {
+                                    padding: 0.75rem 1.5rem;
+                                    border: none;
+                                    border-radius: 10px;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    transition: all 0.3s ease;
+                                    font-size: 0.9rem;
+                                }
+                                .btn-accion.primary {
+                                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                    color: white;
+                                }
+                                .btn-accion.secondary {
+                                    background: rgba(255,255,255,0.8);
+                                    color: #2c3e50;
+                                    border: 1px solid rgba(255,255,255,0.5);
+                                }
+                                .btn-accion:hover {
+                                    transform: translateY(-2px);
+                                    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+                                }
                                 @media print {
-                                    body { margin: 0; }
+                                    body { background: white; }
+                                    .modal-stats-client-content { box-shadow: none; }
                                     .acciones { display: none; }
                                 }
                             </style>
                         </head>
                         <body>
-                            <div class="header">
-                                <h1>📄 Informe de Cliente</h1>
-                                <p>Generado el ${fecha}</p>
+                            <div class="modal-stats-client-content">
+                                <div class="modal-stats-client-header">
+                                    <h2>📊 Estadísticas de ${cliente.nombreCompleto || `Cliente ${cliente.numeroCliente}`}</h2>
+                                    <div style="color: #7f8c8d; font-size: 0.9rem;">Generado el ${fecha}</div>
+                                </div>
+                                
+                                <div class="client-stats-grid">
+                                    <div class="client-stat-card">
+                                        <div class="client-stat-value" style="color: #3498db;">${formatearMoneda(stats.invertido)}</div>
+                                        <div class="client-stat-label">Capital Invertido</div>
+                                    </div>
+                                    <div class="client-stat-card">
+                                        <div class="client-stat-value" style="color: #2ecc71;">${formatearMoneda(stats.saldoActual)}</div>
+                                        <div class="client-stat-label">Saldo Actual</div>
+                                    </div>
+                                    <div class="client-stat-card">
+                                        <div class="client-stat-value ${stats.beneficioTotal >= 0 ? 'positive' : 'negative'}">${formatearMoneda(stats.beneficioTotal)}</div>
+                                        <div class="client-stat-label">Beneficio Total</div>
+                                    </div>
+                                    <div class="client-stat-card">
+                                        <div class="client-stat-value ${stats.rentabilidadTotal >= 0 ? 'positive' : 'negative'}">${formatearPorcentaje(stats.rentabilidadTotal)}</div>
+                                        <div class="client-stat-label">Rentabilidad Total</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="client-chart-container">
+                                    <h3>📊 Rentabilidad Mensual</h3>
+                                    <div class="chart-controls-premium">
+                                        <div class="control-group">
+                                            <label>Tipo de gráfico:</label>
+                                            <select id="tipoGraficoCliente_${chartId}">
+                                                <option value="bar" selected>Barras</option>
+                                                <option value="line">Línea</option>
+                                                <option value="radar">Radar</option>
+                                                <option value="doughnut">Dona</option>
+                                            </select>
+                                        </div>
+                                        <div class="control-group">
+                                            <label>Vista:</label>
+                                            <select id="vistaCliente_${chartId}">
+                                                <option value="mensual">Mensual</option>
+                                                <option value="acumulado">Acumulado</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="client-chart-wrapper">
+                                        <canvas id="chartClienteRentabilidad_${chartId}"></canvas>
+                                    </div>
+                                </div>
+                                
+                                <div class="client-chart-container">
+                                    <h3>📈 Evolución del Patrimonio</h3>
+                                    <div class="chart-controls-premium">
+                                        <div class="control-group">
+                                            <label>Tipo de gráfico:</label>
+                                            <select id="tipoGraficoEvolucion_${chartId}">
+                                                <option value="line" selected>Línea</option>
+                                                <option value="bar">Barras</option>
+                                                <option value="area">Área</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="client-chart-wrapper">
+                                        <canvas id="chartClienteEvolucion_${chartId}"></canvas>
+                                    </div>
+                                </div>
+                                
+                                <div class="acciones">
+                                    <button class="btn-accion primary" onclick="window.print()">
+                                        <i class="fas fa-print"></i> Imprimir Informe
+                                    </button>
+                                    <button class="btn-accion secondary" onclick="window.close()">
+                                        <i class="fas fa-times"></i> Cerrar
+                                    </button>
+                                </div>
                             </div>
                             
-                            <div class="cliente-info">
-                                <h2>📋 Información del Cliente</h2>
-                                <p><strong>Nombre:</strong> ${nombreCompleto}</p>
-                                <p><strong>Número de Cliente:</strong> ${cliente.numeroCliente}</p>
-                                ${email ? `<p><strong>Email:</strong> ${email}</p>` : ''}
-                            </div>
-                            
-                            <div class="estadisticas">
-                                <h2>📊 Estadísticas Principales</h2>
-                                <table>
-                                    <tr>
-                                        <th>Métrica</th>
-                                        <th>Valor</th>
-                                    </tr>
-                                    <tr>
-                                        <td>Capital Invertido</td>
-                                        <td>${formatearMoneda(stats.invertido)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Saldo Actual</td>
-                                        <td>${formatearMoneda(stats.saldoActual)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Beneficio Total</td>
-                                        <td class="${stats.beneficioTotal >= 0 ? 'positive' : 'negative'}">${formatearMoneda(stats.beneficioTotal)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Rentabilidad Total</td>
-                                        <td class="${stats.rentabilidadTotal >= 0 ? 'positive' : 'negative'}">${formatearPorcentaje(stats.rentabilidadTotal)}</td>
-                                    </tr>
-                                </table>
-                            </div>
-                            
-                            ${datosDiarios.length > 0 ? `
-                            <div class="estadisticas">
-                                <h2>📈 Evolución Mensual</h2>
-                                <table>
-                                    <tr>
-                                        <th>Fecha</th>
-                                        <th>Saldo</th>
-                                        <th>Beneficio Acumulado</th>
-                                        <th>Rentabilidad</th>
-                                    </tr>
-                                    ${datosDiarios.slice(0, 10).map(dia => {
-                                        const rentabilidad = dia.invertido > 0 ? ((dia.beneficio_acumulado || 0) / dia.invertido) * 100 : 0;
-                                        return `
-                                        <tr>
-                                            <td>${formatearFecha(dia.fecha)}</td>
-                                            <td>${formatearMoneda(dia.saldo || 0)}</td>
-                                            <td class="${(dia.beneficio_acumulado || 0) >= 0 ? 'positive' : 'negative'}">${formatearMoneda(dia.beneficio_acumulado || 0)}</td>
-                                            <td class="${rentabilidad >= 0 ? 'positive' : 'negative'}">${formatearPorcentaje(rentabilidad)}</td>
-                                        </tr>
-                                        `;
-                                    }).join('')}
-                                </table>
-                            </div>
-                            ` : ''}
-                            
-                            <div class="estadisticas">
-                                <h2>📊 Resumen</h2>
-                                <p>Este informe muestra el estado actual y la evolución del cliente ${nombreCompleto}.</p>
-                                <p>Para obtener más detalles, consulte la sección de Estadísticas de Clientes en la aplicación.</p>
-                            </div>
-                            
-                            <div class="acciones">
-                                <button onclick="window.print()">🖨️ Imprimir</button>
-                                <button onclick="window.close()">❌ Cerrar</button>
-                            </div>
-                            
-                            <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666;">
-                                <p>Informe generado automáticamente por InvertCursor</p>
-                            </div>
+                            <script>
+                                // Datos del cliente
+                                const datosCliente_${chartId} = ${JSON.stringify(datosDiarios)};
+                                
+                                // Función para renderizar gráficos
+                                function renderizarGraficosInforme() {
+                                    renderizarGraficoRentabilidadCliente(datosCliente_${chartId}, ${chartId});
+                                    renderizarGraficoEvolucionCliente(datosCliente_${chartId}, ${chartId});
+                                }
+                                
+                                // Renderizar al cargar
+                                window.addEventListener('load', renderizarGraficosInforme);
+                                
+                                // Event listeners para los selects
+                                document.getElementById('tipoGraficoCliente_${chartId}').addEventListener('change', () => renderizarGraficoRentabilidadCliente(datosCliente_${chartId}, ${chartId}));
+                                document.getElementById('vistaCliente_${chartId}').addEventListener('change', () => renderizarGraficoRentabilidadCliente(datosCliente_${chartId}, ${chartId}));
+                                document.getElementById('tipoGraficoEvolucion_${chartId}').addEventListener('change', () => renderizarGraficoEvolucionCliente(datosCliente_${chartId}, ${chartId}));
+                                
+                                ${this.obtenerFuncionesGraficos(chartId)}
+                            </script>
                         </body>
                         </html>
                     `;
