@@ -9891,7 +9891,7 @@ function mostrarVistaReports() {
     console.log('📄 Vista de informes activada');
     
     // 🔥 RECARGAR CLIENTES PARA INFORMES
-    console.log('🔍 Verificando reportsManager:', typeof reportsManager, !!reportsManager);
+    console.log('🔍 Verificando reportsManager:', typeof window.reportsManager, !!window.reportsManager);
     console.log('🔍 Verificando datosEditados:', typeof datosEditados, !!datosEditados);
     
     // 🔥 ESPERAR A QUE reportsManager ESTÉ DISPONIBLE
