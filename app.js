@@ -2313,6 +2313,12 @@ function inicializarEventos() {
         btnVistaEstadisticas.addEventListener('click', () => { void mostrarVistaEstadisticasAuto(); });
     }
     
+    // Vista Informes
+    const btnVistaReports = document.getElementById('btnVistaReports');
+    if (btnVistaReports) {
+        btnVistaReports.addEventListener('click', () => { void mostrarVistaReports(); });
+    }
+    
     // Estadísticas del Cliente
     const btnEstadisticasCliente = document.getElementById('btnEstadisticasCliente');
     if (btnEstadisticasCliente) {
@@ -9853,6 +9859,36 @@ function inicializarEventosEstadisticas() {
 
 async function mostrarVistaEstadisticasAuto() {
     mostrarVistaEstadisticas();
+}
+
+function mostrarVistaReports() {
+    vistaActual = 'reports';
+    
+    // Ocultar todas las vistas
+    document.getElementById('vistaGeneral').classList.remove('active');
+    document.getElementById('vistaClientes').classList.remove('active');
+    document.getElementById('vistaInfoClientes').classList.remove('active');
+    document.getElementById('vistaComision').classList.remove('active');
+    document.getElementById('vistaEstadisticas').classList.remove('active');
+    
+    // Mostrar vista de informes
+    document.getElementById('vistaReports').classList.add('active');
+    
+    // Actualizar botones de navegación
+    document.getElementById('btnVistaGeneral').classList.remove('active');
+    document.getElementById('btnVistaClientes').classList.remove('active');
+    document.getElementById('btnVistaInfoClientes').classList.remove('active');
+    document.getElementById('btnVistaComision').classList.remove('active');
+    document.getElementById('btnVistaEstadisticas').classList.remove('active');
+    document.getElementById('btnVistaReports').classList.add('active');
+    
+    // Ocultar elementos específicos de otras vistas
+    const busquedaClientes = document.getElementById('busquedaClientes');
+    if (busquedaClientes) busquedaClientes.style.display = 'none';
+    const listaClientes = document.getElementById('listaClientes');
+    if (listaClientes) listaClientes.style.display = 'none';
+    
+    console.log('📄 Vista de informes activada');
 }
 
 async function mostrarEstadisticas() {

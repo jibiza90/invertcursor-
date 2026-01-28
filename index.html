@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="static/loading.css?v=2.9.16">
     <link rel="stylesheet" href="static/virtual-scroll.css?v=1">
     <link rel="stylesheet" href="static/incremental-controls.css?v=1">
+    <link rel="stylesheet" href="reports-styles.css?v=1">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E💎%3C/text%3E%3C/svg%3E">
 </head>
 <body>
@@ -79,6 +80,9 @@
                     </button>
                     <button class="nav-btn" data-vista="estadisticas" id="btnVistaEstadisticas">
                         📊 Estadísticas
+                    </button>
+                    <button class="nav-btn" data-vista="reports" id="btnVistaReports">
+                        📄 Informes
                     </button>
                 </div>
                 
@@ -328,6 +332,41 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Vista Informes -->
+                <div id="vistaReports" class="view">
+                    <div class="reports-header">
+                        <h1><i class="fas fa-file-pdf"></i> Informes de Clientes</h1>
+                        <p>Genera informes PDF detallados para cada cliente con estadísticas completas</p>
+                    </div>
+
+                    <!-- Selección de Cliente -->
+                    <div class="client-selection-container">
+                        <h3 class="client-selection-title">
+                            <i class="fas fa-users"></i> Seleccionar Cliente
+                        </h3>
+                        <select id="reportClientSelect" class="client-dropdown">
+                            <option value="">Selecciona un cliente...</option>
+                        </select>
+                        <button id="generateReportBtn" class="generate-report-btn" disabled>
+                            <i class="fas fa-file-pdf"></i> Generar Informe PDF
+                        </button>
+                    </div>
+
+                    <!-- Historial de Informes -->
+                    <div class="reports-history-container">
+                        <h3 class="reports-history-title">
+                            <i class="fas fa-history"></i> Informes Recientes
+                        </h3>
+                        <ul id="reportsHistoryList" class="reports-list">
+                            <li class="empty-state">
+                                <div class="empty-state-icon">📄</div>
+                                <div class="empty-state-text">No hay informes generados</div>
+                                <div class="empty-state-subtext">Selecciona un cliente y genera tu primer informe</div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </main>
         </div>
 
@@ -349,6 +388,13 @@
 
     <!-- Chart.js para gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Librerías para generación de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <!-- Módulos de utilidades -->
     <script src="js/utils/fechas.js?v=2.9.18"></script>
@@ -410,5 +456,8 @@
     <!-- Aplicación principal -->
     <script src="app.js?v=2.9.21"></script>
     <script src="test_recalculo.js?v=2.9.18"></script>
+    
+    <!-- Módulo de informes -->
+    <script src="reports.js?v=1"></script>
 </body>
 </html>
