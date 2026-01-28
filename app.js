@@ -10345,6 +10345,17 @@ InvertCursor Sistema de Gestión
                             }
                         });
                         
+                        // Guardar en variables globales para los botones + (igual que estadísticas)
+                        window._detallesIncrementosCliente = todosIncrementos;
+                        window._detallesDecrementosCliente = todosDecrementos;
+                        window._detallesBeneficioCliente = todosBeneficios;
+                        
+                        console.log('💰 Detalles extraídos para informe:', {
+                            incrementos: todosIncrementos.length,
+                            decrementos: todosDecrementos.length,
+                            beneficios: todosBeneficios.length
+                        });
+                        
                         // Color del peor mes
                         const peorMesPositivo = kpisTotales.peorMes && kpisTotales.peorMes.rentabilidad >= 0;
                         const peorMesClass = peorMesPositivo ? 'positive' : 'negative';
@@ -10541,7 +10552,7 @@ InvertCursor Sistema de Gestión
                                             <div class="value ${kpisTotales.decrementos > 0 ? 'negative' : ''}">${kpisTotales.decrementos > 0 ? '-' : ''}${formatearMoneda(kpisTotales.decrementos)}</div>
                                         </div>
                                         <div class="client-stat-card">
-                                            <div class="label">Beneficio Total € <button class="btn-detalle-stats" onclick="mostrarDetalleBeneficios()" title="Ver detalle">+</button></div>
+                                            <div class="label">Beneficio Total € <button class="btn-detalle-stats" onclick="mostrarDetalleBeneficio()" title="Ver detalle">+</button></div>
                                             <div class="value ${kpisTotales.beneficioEuro >= 0 ? 'positive' : 'negative'}">${kpisTotales.beneficioEuro >= 0 ? '+' : ''}${formatearMoneda(kpisTotales.beneficioEuro)}</div>
                                         </div>
                                         <div class="client-stat-card">
@@ -10805,6 +10816,121 @@ InvertCursor Sistema de Gestión
                                         renderizarGraficoRentabilidadCliente(datosCliente);
                                         renderizarGraficoEvolucionCliente(datosCliente);
                                     });
+                                    
+                                    // Funciones para mostrar detalles (igual que estadísticas del cliente)
+                                    function mostrarDetalleIncrementos() {
+                                        const detalles = window._detallesIncrementosCliente || [];
+                                        console.log('Detalles incrementos:', detalles);
+                                        const detallesReales = detalles.filter(d => d.importe > 0);
+                                        if (detallesReales.length === 0) {
+                                            alert('No se han registrado inversiones de capital');
+                                            return;
+                                        }
+                                        mostrarPopupDetalles('Detalle de Inversiones', detallesReales, 'positive');
+                                    }
+                                    
+                                    function mostrarDetalleDecrementos() {
+                                        const detalles = window._detallesDecrementosCliente || [];
+                                        console.log('Detalles decrementos:', detalles);
+                                        const detallesReales = detalles.filter(d => d.importe > 0);
+                                        if (detallesReales.length === 0) {
+                                            alert('No se ha realizado ninguna retirada de capital');
+                                            return;
+                                        }
+                                        mostrarPopupDetalles('Detalle de Retiradas', detallesReales, 'negative');
+                                    }
+                                    
+                                    function mostrarDetalleBeneficio() {
+                                        const detalles = window._detallesBeneficioCliente || [];
+                                        console.log('Detalles beneficios:', detalles);
+                                        if (detalles.length === 0) {
+                                            alert('No se han registrado beneficios');
+                                            return;
+                                        }
+                                        mostrarPopupDetalles('Detalle de Beneficios Mensuales', detalles, 'beneficio');
+                                    }
+                                    
+                                    function mostrarPopupDetalles(titulo, detalles, tipo) {
+                                        const existente = document.querySelector('.popup-detalles-cliente');
+                                        if (existente) existente.remove();
+                                        
+                                        const popup = document.createElement('div');
+                                        popup.className = 'popup-detalles-cliente';
+                                        popup.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 10000;';
+                                        
+                                        let contenido = '';
+                                        if (tipo === 'beneficio') {
+                                            const detOrdenados = [...detalles].sort((a, b) => a.mes.localeCompare(b.mes));
+                                            const total = detalles.reduce((sum, d) => sum + (d.beneficio || 0), 0);
+                                            
+                                            let filasHTML = '';
+                                            detOrdenados.forEach(d => {
+                                                const beneficioClass = d.beneficio >= 0 ? 'color: green;' : 'color: red;';
+                                                const rentabilidadClass = d.rentabilidad >= 0 ? 'color: green;' : 'color: red;';
+                                                const beneficioSigno = d.beneficio >= 0 ? '+' : '';
+                                                const rentabilidadSigno = d.rentabilidad >= 0 ? '+' : '';
+                                                filasHTML += '<tr>' +
+                                                    '<td style="padding: 10px; border: 1px solid #ddd;">' + d.nombreMes + '</td>' +
+                                                    '<td style="padding: 10px; border: 1px solid #ddd; ' + beneficioClass + '">' + beneficioSigno + formatearMoneda(d.beneficio) + '</td>' +
+                                                    '<td style="padding: 10px; border: 1px solid #ddd; ' + rentabilidadClass + '">' + rentabilidadSigno + d.rentabilidad.toFixed(2) + '%</td>' +
+                                                    '</tr>';
+                                            });
+                                            
+                                            const totalClass = total >= 0 ? 'color: green;' : 'color: red;';
+                                            const totalSigno = total >= 0 ? '+' : '';
+                                            
+                                            contenido = '<table style="width: 100%; border-collapse: collapse;">' +
+                                                '<thead>' +
+                                                    '<tr>' +
+                                                        '<th style="padding: 10px; border: 1px solid #ddd; background: #f5f5f5;">Mes</th>' +
+                                                        '<th style="padding: 10px; border: 1px solid #ddd; background: #f5f5f5;">Beneficio €</th>' +
+                                                        '<th style="padding: 10px; border: 1px solid #ddd; background: #f5f5f5;">Rentabilidad %</th>' +
+                                                    '</tr>' +
+                                                '</thead>' +
+                                                '<tbody>' + filasHTML + '</tbody>' +
+                                                '<tfoot>' +
+                                                    '<tr>' +
+                                                        '<td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">TOTAL</td>' +
+                                                        '<td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; ' + totalClass + '">' + totalSigno + formatearMoneda(total) + '</td>' +
+                                                        '<td style="padding: 10px; border: 1px solid #ddd;">-</td>' +
+                                                    '</tr>' +
+                                                '</tfoot>' +
+                                            '</table>';
+                                        } else {
+                                            let filasHTML = '';
+                                            detalles.forEach(d => {
+                                                const signo = tipo === 'positive' ? '+' : '-';
+                                                const color = tipo === 'positive' ? 'color: green;' : 'color: red;';
+                                                filasHTML += '<tr>' +
+                                                    '<td style="padding: 10px; border: 1px solid #ddd;">' + d.fecha + '</td>' +
+                                                    '<td style="padding: 10px; border: 1px solid #ddd; ' + color + '">' + signo + formatearMoneda(d.importe) + '</td>' +
+                                                    '</tr>';
+                                            });
+                                            
+                                            contenido = '<table style="width: 100%; border-collapse: collapse;">' +
+                                                '<thead>' +
+                                                    '<tr>' +
+                                                        '<th style="padding: 10px; border: 1px solid #ddd; background: #f5f5f5;">Fecha</th>' +
+                                                        '<th style="padding: 10px; border: 1px solid #ddd; background: #f5f5f5;">Importe</th>' +
+                                                    '</tr>' +
+                                                '</thead>' +
+                                                '<tbody>' + filasHTML + '</tbody>' +
+                                            '</table>';
+                                        }
+                                        
+                                        popup.innerHTML = '<div style="background: white; border-radius: 10px; padding: 20px; max-width: 600px; max-height: 80vh; overflow-y: auto;">' +
+                                            '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">' +
+                                                '<h3 style="margin: 0; color: #333;">' + titulo + '</h3>' +
+                                                '<button onclick="this.closest(\'.popup-detalles-cliente\').remove()" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>' +
+                                            '</div>' +
+                                            '<div>' + contenido + '</div>' +
+                                        '</div>';
+                                        
+                                        document.body.appendChild(popup);
+                                        popup.addEventListener('click', (e) => {
+                                            if (e.target === popup) popup.remove();
+                                        });
+                                    }
                                 </script>
                             </body>
                             </html>
