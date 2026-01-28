@@ -66,16 +66,24 @@ class ReportsManager {
                     
                     hoja.clientes.forEach((cliente, index) => {
                         if (cliente && typeof cliente === 'object') {
-                            // 🔥 CORRECCIÓN: Usar numero_cliente en lugar de nombre
-                            const numeroCliente = cliente.numero_cliente || (index + 1);
-                            const nombreCliente = `Cliente ${numeroCliente}`;
+                            // 🔥 EXTRAER NOMBRE Y APELLIDOS REALES
+                            const datosCliente = cliente.datos || {};
+                            const nombre = datosCliente['NOMBRE']?.valor || '';
+                            const apellidos = datosCliente['APELLIDOS']?.valor || '';
+                            const nombreCompleto = (nombre || apellidos) ? `${nombre} ${apellidos}`.trim() : '';
                             
-                            console.log(`✅ Cliente encontrado: ${nombreCliente} (índice: ${index}, número: ${numeroCliente})`);
+                            const numeroCliente = cliente.numero_cliente || (index + 1);
+                            const nombreParaMostrar = nombreCompleto ? `Cliente ${numeroCliente} - ${nombreCompleto}` : `Cliente ${numeroCliente}`;
+                            
+                            console.log(`✅ Cliente encontrado: ${nombreParaMostrar} (índice: ${index}, número: ${numeroCliente})`);
                             
                             this.clientesDisponibles.push({
                                 id: index, // Usar el índice del array
-                                nombre: nombreCliente,
+                                nombre: nombreParaMostrar,
                                 numeroCliente: numeroCliente,
+                                nombreCompleto: nombreCompleto,
+                                nombreSolo: nombre,
+                                apellidos: apellidos,
                                 hoja: nombreHoja,
                                 datos: cliente
                             });
@@ -140,7 +148,7 @@ class ReportsManager {
                 const option = document.createElement('option');
                 // 🔥 CORRECCIÓN: Formato correcto del value
                 option.value = `${cliente.hoja}|${cliente.id}`;
-                option.textContent = `${cliente.nombre} (${cliente.hoja})`;
+                option.textContent = cliente.nombre; // Solo el nombre, sin la hoja
                 dropdown.appendChild(option);
             });
             
@@ -254,10 +262,8 @@ class ReportsManager {
 
         return {
             info: {
-                nombre: cliente.nombre,
+                nombre: cliente.nombreCompleto || `Cliente ${cliente.numeroCliente}`,
                 numeroCliente: cliente.numeroCliente,
-                id: cliente.id,
-                hoja: cliente.hoja,
                 fechaGeneracion: new Date().toLocaleDateString('es-ES')
             },
             estadisticas,
@@ -449,13 +455,7 @@ class ReportsManager {
                         <tr>
                             <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold; background: #f8f9fa;">Nombre:</td>
                             <td style="padding: 8px; border: 1px solid #e2e8f0;">${datos.info.nombre}</td>
-                            <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold; background: #f8f9fa;">ID:</td>
-                            <td style="padding: 8px; border: 1px solid #e2e8f0;">${datos.info.id}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold; background: #f8f9fa;">Hoja:</td>
-                            <td style="padding: 8px; border: 1px solid #e2e8f0;">${datos.info.hoja}</td>
-                            <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold; background: #f8f9fa;">Fecha:</td>
+                            <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold; background: #f8f9fa;">Fecha Informe:</td>
                             <td style="padding: 8px; border: 1px solid #e2e8f0;">${datos.info.fechaGeneracion}</td>
                         </tr>
                     </table>
@@ -508,6 +508,53 @@ class ReportsManager {
                                 </tr>
                             `).join('')}
                         </tbody>
+                    </table>
+                </div>
+
+                <!-- Incrementos y Decrementos -->
+                <div style="margin-bottom: 30px;">
+                    <h2 style="color: #2d3748; border-left: 4px solid #667eea; padding-left: 15px; margin-bottom: 15px;">💰 Detalle de Incrementos y Decrementos</h2>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 8px; border: 1px solid #667eea; text-align: left;">Fecha</th>
+                                <th style="padding: 8px; border: 1px solid #667eea; text-align: left;">Concepto</th>
+                                <th style="padding: 8px; border: 1px solid #667eea; text-align: right;">Incremento</th>
+                                <th style="padding: 8px; border: 1px solid #667eea; text-align: right;">Decremento</th>
+                                <th style="padding: 8px; border: 1px solid #667eea; text-align: center;">Tipo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${datos.operaciones.map(op => `
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid #e2e8f0;">${op.fecha}</td>
+                                    <td style="padding: 6px; border: 1px solid #e2e8f0;">${op.concepto}</td>
+                                    <td style="padding: 6px; border: 1px solid #e2e8f0; text-align: right; color: #48bb78;">
+                                        ${op.incremento > 0 ? '+' + this.formatearNumero(op.incremento) : '-'}
+                                    </td>
+                                    <td style="padding: 6px; border: 1px solid #e2e8f0; text-align: right; color: #f56565;">
+                                        ${op.decremento > 0 ? '-' + this.formatearNumero(op.decremento) : '-'}
+                                    </td>
+                                    <td style="padding: 6px; border: 1px solid #e2e8f0; text-align: center;">
+                                        <span style="background: ${op.tipo === 'inversion' ? '#48bb78' : '#f56565'}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">
+                                            ${op.tipo === 'inversion' ? 'INVERSIÓN' : 'RETIRADA'}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                        <tfoot>
+                            <tr style="background: #f8f9fa; font-weight: bold;">
+                                <td colspan="2" style="padding: 8px; border: 1px solid #e2e8f0; text-align: right;">TOTALES:</td>
+                                <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: right; color: #48bb78;">
+                                    +${this.formatearNumero(datos.operaciones.reduce((sum, op) => sum + op.incremento, 0))}
+                                </td>
+                                <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: right; color: #f56565;">
+                                    -${this.formatearNumero(datos.operaciones.reduce((sum, op) => sum + op.decremento, 0))}
+                                </td>
+                                <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">-</td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
 
