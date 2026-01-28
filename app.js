@@ -10177,29 +10177,264 @@ InvertCursor Sistema de Gestión
                 generarHTMLInforme(cliente) {
                     const fecha = new Date().toLocaleDateString('es-ES');
                     
+                    // Obtener datos reales del cliente
+                    const datosCliente = cliente.datos || {};
+                    const datosDiarios = datosCliente.datos_diarios || [];
+                    
+                    // Calcular estadísticas reales
+                    const stats = this.calcularEstadisticasReales(datosDiarios);
+                    
+                    // Obtener datos mensuales
+                    const datosMensuales = this.obtenerDatosMensuales(datosDiarios);
+                    
+                    // Obtener operaciones
+                    const operaciones = this.obtenerOperacionesCliente(datosDiarios);
+                    
                     return `
-                        <div class="header">
-                            <h1>📄 Informe de Cliente</h1>
-                            <p>Generado el ${fecha}</p>
-                        </div>
-                        
-                        <div class="cliente-info">
-                            <h2>📋 Información del Cliente</h2>
-                            <p><strong>Nombre:</strong> ${cliente.nombreCompleto || `Cliente ${cliente.numeroCliente}`}</p>
-                            <p><strong>Número de Cliente:</strong> ${cliente.numeroCliente}</p>
-                            ${cliente.email ? `<p><strong>Email:</strong> ${cliente.email}</p>` : ''}
-                        </div>
-                        
-                        <div class="estadisticas">
-                            <h2>📊 Estadísticas Generales</h2>
-                            <p>Este es un informe básico del cliente con la información disponible.</p>
-                            <p>Para obtener estadísticas detalladas, consulta la sección de Estadísticas de Clientes.</p>
-                        </div>
-                        
-                        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666;">
-                            <p>Informe generado automáticamente por InvertCursor</p>
+                        <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+                            <div style="text-align: center; border-bottom: 3px solid #2c3e50; padding-bottom: 20px; margin-bottom: 30px;">
+                                <h1 style="color: #2c3e50; margin: 0;">📄 Informe de Cliente</h1>
+                                <p style="color: #7f8c8d; margin: 5px 0;">Generado el ${fecha}</p>
+                            </div>
+                            
+                            <!-- Información del Cliente (sin Hoja ni ID) -->
+                            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 30px; border-left: 4px solid #3498db;">
+                                <h2 style="color: #2c3e50; margin-top: 0;">📋 Información del Cliente</h2>
+                                <p style="margin: 8px 0;"><strong>Nombre:</strong> ${cliente.nombreCompleto || `Cliente ${cliente.numeroCliente}`}</p>
+                                ${cliente.email ? `<p style="margin: 8px 0;"><strong>Email:</strong> ${cliente.email}</p>` : ''}
+                            </div>
+                            
+                            <!-- Estadísticas Principales -->
+                            <div style="margin-bottom: 30px;">
+                                <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">📊 Estadísticas Principales</h2>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                    <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; text-align: center;">
+                                        <div style="font-size: 24px; font-weight: bold; color: #27ae60;">${formatearMoneda(stats.invertido)}</div>
+                                        <div style="color: #27ae60;">Capital Invertido</div>
+                                    </div>
+                                    <div style="background: #e8f4f8; padding: 15px; border-radius: 8px; text-align: center;">
+                                        <div style="font-size: 24px; font-weight: bold; color: #2980b9;">${formatearMoneda(stats.saldoActual)}</div>
+                                        <div style="color: #2980b9;">Saldo Actual</div>
+                                    </div>
+                                    <div style="background: ${stats.beneficioTotal >= 0 ? '#e8f5e8' : '#fde8e8'}; padding: 15px; border-radius: 8px; text-align: center;">
+                                        <div style="font-size: 24px; font-weight: bold; color: ${stats.beneficioTotal >= 0 ? '#27ae60' : '#e74c3c'};">${formatearMoneda(stats.beneficioTotal)}</div>
+                                        <div style="color: ${stats.beneficioTotal >= 0 ? '#27ae60' : '#e74c3c'};">Beneficio Total</div>
+                                    </div>
+                                    <div style="background: ${stats.rentabilidadTotal >= 0 ? '#e8f5e8' : '#fde8e8'}; padding: 15px; border-radius: 8px; text-align: center;">
+                                        <div style="font-size: 24px; font-weight: bold; color: ${stats.rentabilidadTotal >= 0 ? '#27ae60' : '#e74c3c'};">${formatearPorcentaje(stats.rentabilidadTotal)}</div>
+                                        <div style="color: ${stats.rentabilidadTotal >= 0 ? '#27ae60' : '#e74c3c'};">Rentabilidad Total</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Evolución Mensual -->
+                            <div style="margin-bottom: 30px;">
+                                <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">📈 Evolución Mensual</h2>
+                                <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                                    <thead>
+                                        <tr style="background: #3498db; color: white;">
+                                            <th style="padding: 12px; text-align: left;">Mes</th>
+                                            <th style="padding: 12px; text-align: right;">Saldo Inicial</th>
+                                            <th style="padding: 12px; text-align: right;">Saldo Final</th>
+                                            <th style="padding: 12px; text-align: right;">Beneficio</th>
+                                            <th style="padding: 12px; text-align: right;">Rentabilidad</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${datosMensuales.map(mes => `
+                                            <tr style="border-bottom: 1px solid #ddd;">
+                                                <td style="padding: 10px;">${mes.mes}</td>
+                                                <td style="padding: 10px; text-align: right;">${formatearMoneda(mes.saldoInicial)}</td>
+                                                <td style="padding: 10px; text-align: right;">${formatearMoneda(mes.saldoFinal)}</td>
+                                                <td style="padding: 10px; text-align: right; color: ${mes.beneficio >= 0 ? '#27ae60' : '#e74c3c'};">${formatearMoneda(mes.beneficio)}</td>
+                                                <td style="padding: 10px; text-align: right; color: ${mes.rentabilidad >= 0 ? '#27ae60' : '#e74c3c'};">${formatearPorcentaje(mes.rentabilidad)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Detalle de Incrementos y Decrementos -->
+                            <div style="margin-bottom: 30px;">
+                                <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">💰 Detalle de Incrementos y Decrementos</h2>
+                                <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                                    <thead>
+                                        <tr style="background: #3498db; color: white;">
+                                            <th style="padding: 12px; text-align: left;">Fecha</th>
+                                            <th style="padding: 12px; text-align: left;">Concepto</th>
+                                            <th style="padding: 12px; text-align: right;">Incremento</th>
+                                            <th style="padding: 12px; text-align: right;">Decremento</th>
+                                            <th style="padding: 12px; text-align: left;">Tipo</th>
+                                            <th style="padding: 12px; text-align: right;">Saldo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${operaciones.map(op => `
+                                            <tr style="border-bottom: 1px solid #ddd;">
+                                                <td style="padding: 10px;">${formatearFecha(op.fecha)}</td>
+                                                <td style="padding: 10px;">${op.concepto || '-'}</td>
+                                                <td style="padding: 10px; text-align: right; color: #27ae60;">${op.incremento > 0 ? formatearMoneda(op.incremento) : '-'}</td>
+                                                <td style="padding: 10px; text-align: right; color: #e74c3c;">${op.decremento > 0 ? formatearMoneda(op.decremento) : '-'}</td>
+                                                <td style="padding: 10px;">${op.tipo || '-'}</td>
+                                                <td style="padding: 10px; text-align: right; font-weight: bold;">${formatearMoneda(op.saldo)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Gráficos (simulados como placeholders) -->
+                            <div style="margin-bottom: 30px;">
+                                <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">📊 Gráficos de Rendimiento</h2>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                    <div style="border: 2px solid #3498db; border-radius: 10px; padding: 20px; text-align: center; background: #f8f9fa;">
+                                        <h3 style="color: #2c3e50; margin-top: 0;">📈 Rentabilidad Mensual</h3>
+                                        <div style="height: 200px; display: flex; align-items: center; justify-content: center; background: white; border-radius: 5px;">
+                                            <p style="color: #7f8c8d;">[Gráfico de Rentabilidad Mensual]</p>
+                                        </div>
+                                    </div>
+                                    <div style="border: 2px solid #3498db; border-radius: 10px; padding: 20px; text-align: center; background: #f8f9fa;">
+                                        <h3 style="color: #2c3e50; margin-top: 0;">💰 Evolución del Saldo</h3>
+                                        <div style="height: 200px; display: flex; align-items: center; justify-content: center; background: white; border-radius: 5px;">
+                                            <p style="color: #7f8c8d;">[Gráfico de Evolución del Saldo]</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Footer -->
+                            <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #7f8c8d;">
+                                <p>Informe generado automáticamente por InvertCursor</p>
+                                <p style="font-size: 12px;">Fecha de generación: ${new Date().toLocaleString('es-ES')}</p>
+                            </div>
                         </div>
                     `;
+                }
+                
+                calcularEstadisticasReales(datosDiarios) {
+                    if (!datosDiarios || datosDiarios.length === 0) {
+                        return {
+                            invertido: 0,
+                            saldoActual: 0,
+                            beneficioTotal: 0,
+                            rentabilidadTotal: 0
+                        };
+                    }
+                    
+                    const ultimoDia = datosDiarios[0];
+                    const primerDia = datosDiarios[datosDiarios.length - 1];
+                    
+                    const invertido = ultimoDia.invertido || 0;
+                    const saldoActual = ultimoDia.saldo || 0;
+                    const beneficioTotal = ultimoDia.beneficio_acumulado || 0;
+                    const rentabilidadTotal = invertido > 0 ? (beneficioTotal / invertido) : 0;
+                    
+                    return {
+                        invertido,
+                        saldoActual,
+                        beneficioTotal,
+                        rentabilidadTotal
+                    };
+                }
+                
+                obtenerDatosMensuales(datosDiarios) {
+                    if (!datosDiarios || datosDiarios.length === 0) return [];
+                    
+                    const meses = {};
+                    
+                    datosDiarios.forEach(dia => {
+                        const mes = dia.fecha.substring(0, 7); // YYYY-MM
+                        
+                        if (!meses[mes]) {
+                            meses[mes] = {
+                                mes: this.formatearMes(mes),
+                                saldoInicial: dia.saldo || 0,
+                                saldoFinal: dia.saldo || 0,
+                                beneficio: 0,
+                                rentabilidad: 0
+                            };
+                        }
+                        
+                        meses[mes].saldoFinal = dia.saldo || 0;
+                        meses[mes].beneficio = dia.beneficio_acumulado || 0;
+                    });
+                    
+                    // Calcular rentabilidad mensual
+                    Object.keys(meses).forEach(mes => {
+                        const datos = meses[mes];
+                        if (datos.saldoInicial > 0) {
+                            datos.rentabilidad = ((datos.saldoFinal - datos.saldoInicial) / datos.saldoInicial) * 100;
+                        }
+                    });
+                    
+                    return Object.values(meses).reverse();
+                }
+                
+                obtenerOperacionesCliente(datosDiarios) {
+                    if (!datosDiarios || datosDiarios.length === 0) return [];
+                    
+                    const operaciones = [];
+                    
+                    datosDiarios.forEach(dia => {
+                        if (dia.detalles && Array.isArray(dia.detalles)) {
+                            dia.detalles.forEach(detalle => {
+                                if (detalle.incremento > 0 || detalle.decremento > 0) {
+                                    operaciones.push({
+                                        fecha: dia.fecha,
+                                        concepto: detalle.concepto || 'Operación',
+                                        incremento: detalle.incremento || 0,
+                                        decremento: detalle.decremento || 0,
+                                        tipo: detalle.tipo || 'General',
+                                        saldo: dia.saldo || 0
+                                    });
+                                }
+                            });
+                        }
+                    });
+                    
+                    return operaciones.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+                }
+                
+                formatearMes(mes) {
+                    const meses = {
+                        '2024-01': 'Enero 2024',
+                        '2024-02': 'Febrero 2024',
+                        '2024-03': 'Marzo 2024',
+                        '2024-04': 'Abril 2024',
+                        '2024-05': 'Mayo 2024',
+                        '2024-06': 'Junio 2024',
+                        '2024-07': 'Julio 2024',
+                        '2024-08': 'Agosto 2024',
+                        '2024-09': 'Septiembre 2024',
+                        '2024-10': 'Octubre 2024',
+                        '2024-11': 'Noviembre 2024',
+                        '2024-12': 'Diciembre 2024',
+                        '2025-01': 'Enero 2025',
+                        '2025-02': 'Febrero 2025',
+                        '2025-03': 'Marzo 2025',
+                        '2025-04': 'Abril 2025',
+                        '2025-05': 'Mayo 2025',
+                        '2025-06': 'Junio 2025',
+                        '2025-07': 'Julio 2025',
+                        '2025-08': 'Agosto 2025',
+                        '2025-09': 'Septiembre 2025',
+                        '2025-10': 'Octubre 2025',
+                        '2025-11': 'Noviembre 2025',
+                        '2025-12': 'Diciembre 2025',
+                        '2026-01': 'Enero 2026',
+                        '2026-02': 'Febrero 2026',
+                        '2026-03': 'Marzo 2026',
+                        '2026-04': 'Abril 2026',
+                        '2026-05': 'Mayo 2026',
+                        '2026-06': 'Junio 2026',
+                        '2026-07': 'Julio 2026',
+                        '2026-08': 'Agosto 2026',
+                        '2026-09': 'Septiembre 2026',
+                        '2026-10': 'Octubre 2026',
+                        '2026-11': 'Noviembre 2026',
+                        '2026-12': 'Diciembre 2026'
+                    };
+                    return meses[mes] || mes;
                 }
             };
         }
