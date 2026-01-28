@@ -12108,10 +12108,27 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
             }
         }
         
-        // Calcular mes basado en posición (30 días por mes)
-        const diaDelAno = fila.fila - 14; // Fila 15 = día 1
-        const mesNum = Math.min(12, Math.max(1, Math.ceil(diaDelAno / 30)));
-        const mesKey = `2026-${String(mesNum).padStart(2, '0')}`;
+        // 🔥 USAR FECHAS REALES como en estadísticas generales
+        let mesKey;
+        if (fila.fecha && fila.fecha !== 'FECHA') {
+            // Extraer año y mes de la fecha real
+            const fecha = new Date(fila.fecha);
+            if (!isNaN(fecha.getTime())) {
+                const year = fecha.getFullYear();
+                const month = String(fecha.getMonth() + 1).padStart(2, '0');
+                mesKey = `${year}-${month}`;
+            } else {
+                // Si la fecha no es válida, usar posición como fallback
+                const diaDelAno = fila.fila - 14;
+                const mesNum = Math.min(12, Math.max(1, Math.ceil(diaDelAno / 30)));
+                mesKey = `2026-${String(mesNum).padStart(2, '0')}`;
+            }
+        } else {
+            // Si no hay fecha, usar posición como fallback
+            const diaDelAno = fila.fila - 14;
+            const mesNum = Math.min(12, Math.max(1, Math.ceil(diaDelAno / 30)));
+            mesKey = `2026-${String(mesNum).padStart(2, '0')}`;
+        }
         
         if (!datosPorMes[mesKey]) {
             datosPorMes[mesKey] = {
@@ -12143,9 +12160,9 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
         if (inc > 0 || dec > 0) {
             mesDatos.diasConDatos++;
             
-            // Debug de los primeros movimientos
+            // Debug de los primeros movimientos y fechas reales
             if (mesDatos.diasConDatos <= 3) {
-                console.log(`💰 Mes ${mesKey}: inc=${inc}, dec=${dec}, benef_acum=${fila.beneficio_acumulado}`);
+                console.log(`💰 Mes ${mesKey}: inc=${inc}, dec=${dec}, benef_acum=${fila.beneficio_acumulado}, fecha=${fila.fecha}`);
             }
         }
         
@@ -12163,12 +12180,16 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
     
     console.log('📅 Meses con datos:', Object.keys(datosPorMes));
     
-    // Generar resultados para TODOS los meses del año
+    // 🔥 Generar resultados para TODOS los meses reales encontrados (no solo 2026)
     const resultados = [];
     let saldoAnterior = 0;
     
-    for (let mesNum = 1; mesNum <= 12; mesNum++) {
-        const mesKey = `2026-${String(mesNum).padStart(2, '0')}`;
+    // Obtener todos los meses reales y ordenarlos cronológicamente
+    const todosLosMeses = Object.keys(datosPorMes).sort();
+    
+    console.log('📅 TODOS LOS MESES REALES ENCONTRADOS:', todosLosMeses);
+    
+    for (const mesKey of todosLosMeses) {
         const mesDatos = datosPorMes[mesKey];
         
         if (mesDatos && (mesDatos.incrementos > 0 || mesDatos.decrementos > 0 || mesDatos.saldoFinal > 0)) {
@@ -12192,7 +12213,7 @@ async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
             // Crear resultado
             const resultado = {
                 mes: mesKey,
-                nombreMes: formatearNombreMes(mesKey),
+                nombreMes: formatearNombreMes(mesKey), // formatearNombreMes ya funciona con cualquier año
                 capitalInvertido: mesDatos.incrementos,
                 capitalRetirado: mesDatos.decrementos,
                 beneficio: mesDatos.beneficio,
