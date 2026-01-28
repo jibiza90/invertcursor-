@@ -11359,6 +11359,44 @@ function renderizarContenidoEstadisticasCliente(nombreCompleto, kpis, datosMeses
         dias: m.diasOperados 
     })));
     
+    // 🔥 EXTRAER DETALLES DE INCREMENTOS/DECREMENTOS PARA BOTONES +
+    const todosIncrementos = [];
+    const todosDecrementos = [];
+    
+    datosMeses.forEach(mes => {
+        if (mes.detalles && Array.isArray(mes.detalles)) {
+            mes.detalles.forEach(detalle => {
+                const fecha = detalle.fecha || '';
+                const inc = typeof detalle.incremento === 'number' ? detalle.incremento : 0;
+                const dec = typeof detalle.decremento === 'number' ? detalle.decremento : 0;
+                
+                if (inc > 0) {
+                    todosIncrementos.push({ 
+                        fecha, 
+                        importe: inc, 
+                        mes: mes.mes 
+                    });
+                }
+                if (dec > 0) {
+                    todosDecrementos.push({ 
+                        fecha, 
+                        importe: dec, 
+                        mes: mes.mes 
+                    });
+                }
+            });
+        }
+    });
+    
+    // Guardar en variables globales para los botones +
+    window._detallesIncrementosCliente = todosIncrementos;
+    window._detallesDecrementosCliente = todosDecrementos;
+    
+    console.log('💰 Detalles extraídos:', {
+        incrementos: todosIncrementos.length,
+        decrementos: todosDecrementos.length
+    });
+    
     // 🔥 NO FILTRAR - Usar TODOS los meses para gráficos
     const mesesConDatos = datosMeses; // Sin filtro
     
