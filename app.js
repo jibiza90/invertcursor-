@@ -10275,6 +10275,12 @@ InvertCursor Sistema de Gestión
                         const datosClienteMeses = await calcularEstadisticasClienteTiempoReal(cliente, hoja);
                         console.log('📊 Datos calculados:', datosClienteMeses.length, 'meses');
                         
+                        // Debug de los meses encontrados
+                        console.log('📅 MESES ENCONTRADOS:');
+                        datosClienteMeses.forEach(mes => {
+                            console.log(`   ${mes.mes}: ${mes.nombreMes} - Saldo: ${formatearMoneda(mes.saldoFinal)}`);
+                        });
+                        
                         const kpisTotales = calcularKPIsTiempoReal(datosClienteMeses);
                         
                         // Extraer detalles para botones +
