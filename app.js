@@ -10269,6 +10269,11 @@ InvertCursor Sistema de Gestión
                         tieneDatosDiarios: datosCliente.datos_diarios?.length || 0
                     });
                     
+                    // DEBUG EXACTO COMO ESTADÍSTICAS DEL CLIENTE
+                    console.log(`🔍 DEBUG INFORME: cliente=${cliente.numero_cliente}, hoja=${hoja.nombre}`);
+                    console.log(`🔍 DEBUG INFORME cliente.datos_diarios length:`, datosCliente.datos_diarios?.length || 0);
+                    console.log(`🔍 DEBUG INFORME hoja.datos_diarios_generales length:`, hoja.datos_diarios_generales?.length || 0);
+                    
                     // USAR EXACTAMENTE EL MISMO SISTEMA QUE ESTADÍSTICAS DE CLIENTES
                     try {
                         console.log('🚀 INICIando informe 100% en tiempo real');
@@ -10280,6 +10285,24 @@ InvertCursor Sistema de Gestión
                         datosClienteMeses.forEach(mes => {
                             console.log(`   ${mes.mes}: ${mes.nombreMes} - Saldo: ${formatearMoneda(mes.saldoFinal)}`);
                         });
+                        
+                        // COMPARACIÓN DIRECTA: Verificar si es igual que estadísticas del cliente
+                        console.log('🔍 COMPARACIÓN CON ESTADÍSTICAS DEL CLIENTE:');
+                        console.log('   ¿Mismos datos que estadísticas? - VERIFICAR');
+                        
+                        // Guardar datos para comparación
+                        if (!window._datosEstadisticasCliente) {
+                            console.log('   ⚠️  No hay datos de estadísticas del cliente para comparar');
+                        } else {
+                            console.log(`   📊 Estadísticas cliente: ${window._datosEstadisticasCliente.length} meses`);
+                            console.log(`   📄 Informe: ${datosClienteMeses.length} meses`);
+                            
+                            if (window._datosEstadisticasCliente.length !== datosClienteMeses.length) {
+                                console.log('   ❌ DIFERENCIA: No coinciden los meses');
+                            } else {
+                                console.log('   ✅ MISMA CANTIDAD de meses');
+                            }
+                        }
                         
                         const kpisTotales = calcularKPIsTiempoReal(datosClienteMeses);
                         
@@ -12027,6 +12050,13 @@ async function mostrarEstadisticasCliente() {
         
         const kpisTotales = calcularKPIsTiempoReal(datosClienteMeses);
         renderizarContenidoEstadisticasCliente(nombreCompleto, kpisTotales, datosClienteMeses);
+        
+        const datosCompletosCliente = { kpisTotales, datosClienteMeses };
+        window._datosCliente = datosCompletosCliente; // Guardar para acceso global
+        window._datosEstadisticasCliente = datosCompletosCliente; // Guardar para comparación con informe
+        
+        const statsHTML = generarHTMLStatsCliente(datosCompletosCliente, nombreCompleto);
+        document.getElementById('clientStatsContent').innerHTML = statsHTML;
     } catch (error) {
         console.error('Error en estadísticas tiempo real:', error);
         document.getElementById('clientStatsContent').innerHTML = `
@@ -12034,6 +12064,7 @@ async function mostrarEstadisticasCliente() {
         `;
     }
 }
+
 async function calcularEstadisticasClienteTiempoReal(cliente, hoja) {
     console.log('🔥 CALCULANDO ESTADÍSTICAS 100% EN TIEMPO REAL');
     
