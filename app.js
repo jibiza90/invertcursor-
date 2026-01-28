@@ -9889,6 +9889,15 @@ function mostrarVistaReports() {
     if (listaClientes) listaClientes.style.display = 'none';
     
     console.log('📄 Vista de informes activada');
+    
+    // 🔥 RECARGAR CLIENTES PARA INFORMES
+    if (typeof reportsManager !== 'undefined' && reportsManager) {
+        setTimeout(() => {
+            reportsManager.recargarClientes();
+        }, 100);
+    } else {
+        console.warn('⚠️ reportsManager no está disponible');
+    }
 }
 
 async function mostrarEstadisticas() {

@@ -348,9 +348,14 @@
                         <select id="reportClientSelect" class="client-dropdown">
                             <option value="">Selecciona un cliente...</option>
                         </select>
-                        <button id="generateReportBtn" class="generate-report-btn" disabled>
-                            <i class="fas fa-file-pdf"></i> Generar Informe PDF
-                        </button>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button id="generateReportBtn" class="generate-report-btn" disabled>
+                                <i class="fas fa-file-pdf"></i> Generar Informe PDF
+                            </button>
+                            <button id="reloadClientsBtn" class="generate-report-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                <i class="fas fa-sync-alt"></i> Recargar Clientes
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Historial de Informes -->

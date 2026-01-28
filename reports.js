@@ -5,62 +5,137 @@ class ReportsManager {
         this.clientesDisponibles = [];
         this.informesGenerados = [];
         this.pdfGenerator = null;
+        this.inicializado = false;
         this.init();
     }
 
     init() {
         console.log('📄 Inicializando gestor de informes...');
-        this.cargarClientesDisponibles();
         this.setupEventListeners();
         this.cargarHistorialInformes();
+        
+        // Intentar cargar clientes si los datos ya están disponibles
+        if (typeof datosEditados !== 'undefined' && datosEditados && datosEditados.hojas) {
+            this.cargarClientesDisponibles();
+            this.inicializado = true;
+        } else {
+            console.log('⏳ Esperando a que los datos se carguen...');
+        }
+    }
+
+    // 🔄 Recargar clientes (llamar cuando se accede a la vista)
+    recargarClientes() {
+        console.log('🔄 Recargando clientes para informes...');
+        
+        // Verificar si los datos están disponibles
+        if (typeof datosEditados === 'undefined' || !datosEditados || !datosEditados.hojas) {
+            console.warn('⚠️ Los datos aún no están disponibles');
+            mostrarNotificacion('Los datos están cargando, intenta de nuevo en unos segundos', 'warning');
+            return;
+        }
+        
+        this.cargarClientesDisponibles();
+        this.inicializado = true;
     }
 
     // 📋 Cargar clientes disponibles para informes
     cargarClientesDisponibles() {
         try {
-            // Obtener todos los clientes de todas las hojas
-            const hojas = datosEditados?.hojas || {};
+            console.log('🔍 Iniciando carga de clientes para informes...');
+            
+            // Verificar que datosEditados exista
+            if (typeof datosEditados === 'undefined' || !datosEditados) {
+                console.error('❌ datosEditados no está definido');
+                mostrarNotificacion('Error: datos no cargados', 'error');
+                return;
+            }
+
+            // Obtener todas las hojas
+            const hojas = datosEditados.hojas || {};
+            console.log('📊 Hojas disponibles:', Object.keys(hojas));
+            
             this.clientesDisponibles = [];
 
             Object.keys(hojas).forEach(nombreHoja => {
                 const hoja = hojas[nombreHoja];
-                if (hoja.clientes) {
-                    Object.keys(hoja.clientes).forEach(clienteId => {
+                console.log(`🔍 Analizando hoja: ${nombreHoja}`);
+                
+                if (hoja.clientes && typeof hoja.clientes === 'object') {
+                    const clientesHoja = Object.keys(hoja.clientes);
+                    console.log(`👥 Clientes en ${nombreHoja}:`, clientesHoja.length);
+                    
+                    clientesHoja.forEach(clienteId => {
                         const cliente = hoja.clientes[clienteId];
-                        this.clientesDisponibles.push({
-                            id: clienteId,
-                            nombre: cliente.nombre || `Cliente ${clienteId}`,
-                            hoja: nombreHoja,
-                            datos: cliente
-                        });
+                        if (cliente && typeof cliente === 'object') {
+                            const nombreCliente = cliente.nombre || `Cliente ${clienteId}`;
+                            console.log(`✅ Cliente encontrado: ${nombreCliente} (${clienteId})`);
+                            
+                            this.clientesDisponibles.push({
+                                id: clienteId,
+                                nombre: nombreCliente,
+                                hoja: nombreHoja,
+                                datos: cliente
+                            });
+                        } else {
+                            console.warn(`⚠️ Cliente inválido: ${clienteId}`);
+                        }
                     });
+                } else {
+                    console.warn(`⚠️ La hoja ${nombreHoja} no tiene clientes válidos`);
                 }
             });
 
-            console.log('👥 Clientes disponibles para informes:', this.clientesDisponibles.length);
+            console.log(`👥 Total de clientes disponibles para informes: ${this.clientesDisponibles.length}`);
+            
+            if (this.clientesDisponibles.length === 0) {
+                console.warn('⚠️ No se encontraron clientes');
+                mostrarNotificacion('No se encontraron clientes para generar informes', 'warning');
+            } else {
+                console.log('✅ Clientes cargados correctamente:', this.clientesDisponibles.map(c => c.nombre));
+            }
+            
             this.actualizarDropdownClientes();
 
         } catch (error) {
             console.error('❌ Error cargando clientes para informes:', error);
-            mostrarNotificacion('Error al cargar clientes', 'error');
+            mostrarNotificacion('Error al cargar clientes: ' + error.message, 'error');
         }
     }
 
     // 🔄 Actualizar dropdown de clientes
     actualizarDropdownClientes() {
         const dropdown = document.getElementById('reportClientSelect');
-        if (!dropdown) return;
+        if (!dropdown) {
+            console.warn('⚠️ Dropdown de clientes no encontrado');
+            return;
+        }
 
+        console.log('🔄 Actualizando dropdown de clientes...');
+        
         // Limpiar opciones existentes
         dropdown.innerHTML = '<option value="">Selecciona un cliente...</option>';
 
-        // Añadir clientes disponibles
-        this.clientesDisponibles.forEach(cliente => {
+        if (this.clientesDisponibles.length === 0) {
+            console.log('⚠️ No hay clientes disponibles para mostrar');
+            // Añadir opción deshabilitada indicando que no hay clientes
             const option = document.createElement('option');
-            option.value = `${cliente.hoja}|${cliente.id}`;
-            option.textContent = `${cliente.nombre} (${cliente.hoja})`;
+            option.value = '';
+            option.textContent = 'No hay clientes disponibles';
+            option.disabled = true;
             dropdown.appendChild(option);
-        });
+        } else {
+            console.log(`✅ Añadiendo ${this.clientesDisponibles.length} clientes al dropdown`);
+            
+            // Añadir clientes disponibles
+            this.clientesDisponibles.forEach(cliente => {
+                const option = document.createElement('option');
+                option.value = `${cliente.hoja}|${cliente.id}`;
+                option.textContent = `${cliente.nombre} (${cliente.hoja})`;
+                dropdown.appendChild(option);
+            });
+            
+            console.log('✅ Dropdown actualizado correctamente');
+        }
 
         // Habilitar/deshabilitar botón de generar
         this.actualizarEstadoBotonGenerar();
@@ -594,6 +669,14 @@ class ReportsManager {
         if (botonGenerar) {
             botonGenerar.addEventListener('click', () => {
                 this.generarInformePDF();
+            });
+        }
+
+        // 🔥 Botón de recargar clientes
+        const botonRecargar = document.getElementById('reloadClientsBtn');
+        if (botonRecargar) {
+            botonRecargar.addEventListener('click', () => {
+                this.recargarClientes();
             });
         }
     }
