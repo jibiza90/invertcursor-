@@ -10223,266 +10223,396 @@ InvertCursor Sistema de Gestión
                 generarHTMLInforme(cliente) {
                     const fecha = new Date().toLocaleDateString('es-ES');
                     
-                    // Obtener datos reales del cliente como en mostrarEstadisticasCliente
+                    // Obtener datos del cliente
                     const datosCliente = cliente.datos || {};
+                    const nombre = datosCliente['NOMBRE']?.valor || '';
+                    const apellidos = datosCliente['APELLIDOS']?.valor || '';
+                    const nombreCompleto = nombre || apellidos ? `${nombre} ${apellidos}`.trim() : `Cliente ${cliente.numeroCliente}`;
+                    
+                    // Obtener datos diarios
                     const datosDiarios = datosCliente.datos_diarios || [];
                     
-                    // Calcular estadísticas exactamente como en las estadísticas de clientes
-                    const stats = this.calcularEstadisticasCliente(datosDiarios);
+                    // Calcular estadísticas
+                    let stats = { 
+                        invertido: 0, 
+                        saldoActual: 0, 
+                        beneficioTotal: 0, 
+                        rentabilidadTotal: 0,
+                        incrementosTotal: 0,
+                        decrementosTotal: 0
+                    };
                     
-                    // Generar ID único para los gráficos
-                    const chartId = Date.now();
+                    // Calcular incrementos y decrementos
+                    const incrementosDetallados = [];
+                    const decrementosDetallados = [];
+                    
+                    if (datosDiarios.length > 0) {
+                        const ultimoDia = datosDiarios[0];
+                        stats.saldoActual = ultimoDia.saldo || 0;
+                        stats.beneficioTotal = ultimoDia.beneficio_acumulado || 0;
+                        
+                        // Sumar todos los incrementos y decrementos
+                        datosDiarios.forEach(dia => {
+                            if (dia.incremento && dia.incremento > 0) {
+                                stats.incrementosTotal += dia.incremento;
+                                incrementosDetallados.push({
+                                    fecha: dia.fecha,
+                                    valor: dia.incremento
+                                });
+                            }
+                            if (dia.decremento && dia.decremento > 0) {
+                                stats.decrementosTotal += dia.decremento;
+                                decrementosDetallados.push({
+                                    fecha: dia.fecha,
+                                    valor: dia.decremento
+                                });
+                            }
+                        });
+                        
+                        // Calcular capital invertido (saldo - beneficios + decrementos - incrementos)
+                        stats.invertido = stats.saldoActual - stats.beneficioTotal + stats.decrementosTotal - stats.incrementosTotal;
+                        stats.rentabilidadTotal = stats.invertido > 0 ? (stats.beneficioTotal / stats.invertido) : 0;
+                    }
+                    
+                    // Preparar datos para gráficos
+                    const rentabilidadMensual = [];
+                    const meses = {};
+                    
+                    datosDiarios.forEach(dia => {
+                        if (dia.beneficio_diario_pct !== null && dia.beneficio_diario_pct !== undefined) {
+                            const mes = dia.fecha.substring(0, 7);
+                            if (!meses[mes]) {
+                                meses[mes] = [];
+                            }
+                            meses[mes].push(dia.beneficio_diario_pct);
+                        }
+                    });
+                    
+                    Object.keys(meses).sort().forEach(mes => {
+                        const rentabilidades = meses[mes];
+                        const promedio = rentabilidades.reduce((a, b) => a + b, 0) / rentabilidades.length;
+                        rentabilidadMensual.push({
+                            mes: this.formatearMes(mes),
+                            valor: promedio * 100
+                        });
+                    });
                     
                     return `
                         <!DOCTYPE html>
                         <html>
                         <head>
-                            <title>Informe de Cliente - ${cliente.nombreCompleto || `Cliente ${cliente.numeroCliente}`}</title>
+                            <title>Informe de Cliente - ${nombreCompleto}</title>
                             <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                             <style>
                                 body { 
-                                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+                                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
                                     margin: 0; 
-                                    padding: 20px; 
-                                    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 50%, #d4dbe6 100%);
+                                    padding: 30px; 
+                                    background: #f8f9fa;
+                                    color: #2c3e50;
                                 }
-                                .modal-stats-client-content {
-                                    background: rgba(255, 255, 255, 0.72);
-                                    backdrop-filter: blur(20px) saturate(180%);
-                                    -webkit-backdrop-filter: blur(20px) saturate(180%);
-                                    border-radius: 20px;
-                                    border: 1px solid rgba(255, 255, 255, 0.5);
-                                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-                                    max-width: 1200px;
+                                .container {
+                                    max-width: 1000px;
                                     margin: 0 auto;
+                                    background: white;
+                                    border-radius: 15px;
+                                    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
                                     overflow: hidden;
                                 }
-                                .modal-stats-client-header {
-                                    background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.1));
-                                    padding: 2rem;
-                                    border-bottom: 1px solid rgba(255,255,255,0.5);
-                                    display: flex;
-                                    justify-content: space-between;
-                                    align-items: center;
-                                }
-                                .modal-stats-client-header h2 {
-                                    margin: 0;
-                                    color: #2c3e50;
-                                    font-size: 1.8rem;
-                                    font-weight: 700;
-                                }
-                                .client-stats-grid {
-                                    display: grid;
-                                    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                                    gap: 1.5rem;
-                                    padding: 2rem;
-                                }
-                                .client-stat-card {
-                                    background: var(--crystal-white, #ffffff);
-                                    border: 1px solid var(--border-light, #e5e5e5);
-                                    border-radius: 16px;
-                                    padding: 1.5rem;
+                                .header {
+                                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                    color: white;
+                                    padding: 30px;
                                     text-align: center;
-                                    transition: all 0.3s ease;
                                 }
-                                .client-stat-card:hover {
-                                    transform: translateY(-2px);
-                                    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-                                }
-                                .client-stat-value {
+                                .header h1 {
+                                    margin: 0;
                                     font-size: 2rem;
-                                    font-weight: 700;
-                                    margin-bottom: 0.5rem;
+                                    font-weight: 300;
                                 }
-                                .client-stat-label {
-                                    color: var(--text-secondary, #7f8c8d);
-                                    font-size: 0.9rem;
-                                    text-transform: uppercase;
-                                    letter-spacing: 0.05em;
+                                .header .fecha {
+                                    margin-top: 10px;
+                                    opacity: 0.9;
+                                    font-size: 1rem;
                                 }
-                                .client-chart-container {
-                                    background: var(--crystal-white, #ffffff);
-                                    border: 1px solid var(--border-light, #e5e5e5);
-                                    border-radius: 16px;
-                                    padding: 2rem;
-                                    margin: 1.5rem;
+                                .datos-cliente {
+                                    padding: 30px;
+                                    border-bottom: 1px solid #eee;
                                 }
-                                .client-chart-container h3 {
-                                    margin: 0 0 1.5rem 0;
+                                .datos-cliente h2 {
+                                    margin: 0 0 20px 0;
                                     color: #2c3e50;
-                                    font-size: 1.3rem;
-                                    font-weight: 600;
+                                    font-size: 1.5rem;
                                 }
-                                .chart-controls-premium {
-                                    display: flex;
-                                    gap: 1rem;
-                                    margin-bottom: 1.5rem;
-                                    flex-wrap: wrap;
+                                .info-grid {
+                                    display: grid;
+                                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                                    gap: 20px;
                                 }
-                                .control-group {
-                                    display: flex;
-                                    align-items: center;
-                                    gap: 0.5rem;
+                                .info-item {
+                                    background: #f8f9fa;
+                                    padding: 20px;
+                                    border-radius: 10px;
+                                    border-left: 4px solid #667eea;
                                 }
-                                .control-group label {
+                                .info-item .label {
                                     font-size: 0.9rem;
                                     color: #7f8c8d;
-                                    font-weight: 500;
+                                    margin-bottom: 5px;
                                 }
-                                .control-group select {
-                                    padding: 0.5rem 1rem;
-                                    border: 1px solid #e5e5e5;
-                                    border-radius: 8px;
-                                    background: white;
-                                    font-size: 0.9rem;
+                                .info-item .valor {
+                                    font-size: 1.5rem;
+                                    font-weight: bold;
+                                    color: #2c3e50;
                                 }
-                                .client-chart-wrapper {
-                                    position: relative;
-                                    height: 400px;
-                                    width: 100%;
+                                .section {
+                                    padding: 30px;
+                                    border-bottom: 1px solid #eee;
                                 }
-                                .positive { color: #27ae60; }
-                                .negative { color: #e74c3c; }
-                                .acciones {
-                                    text-align: center;
-                                    padding: 2rem;
-                                    border-top: 1px solid rgba(255,255,255,0.5);
-                                    background: rgba(255,255,255,0.3);
+                                .section:last-child {
+                                    border-bottom: none;
+                                }
+                                .section h2 {
+                                    margin: 0 0 20px 0;
+                                    color: #2c3e50;
+                                    font-size: 1.5rem;
                                     display: flex;
-                                    gap: 1rem;
-                                    justify-content: center;
-                                    flex-wrap: wrap;
+                                    align-items: center;
+                                    gap: 10px;
                                 }
-                                .btn-accion {
-                                    padding: 0.75rem 1.5rem;
-                                    border: none;
-                                    border-radius: 10px;
+                                .movimientos-table {
+                                    width: 100%;
+                                    border-collapse: collapse;
+                                    margin-top: 20px;
+                                }
+                                .movimientos-table th,
+                                .movimientos-table td {
+                                    padding: 12px;
+                                    text-align: left;
+                                    border-bottom: 1px solid #eee;
+                                }
+                                .movimientos-table th {
+                                    background: #f8f9fa;
                                     font-weight: 600;
-                                    cursor: pointer;
-                                    transition: all 0.3s ease;
-                                    font-size: 0.9rem;
+                                    color: #2c3e50;
                                 }
-                                .btn-accion.primary {
+                                .movimientos-table .valor {
+                                    font-weight: bold;
+                                }
+                                .movimientos-table .positivo {
+                                    color: #27ae60;
+                                }
+                                .movimientos-table .negativo {
+                                    color: #e74c3c;
+                                }
+                                .chart-container {
+                                    margin-top: 20px;
+                                    height: 400px;
+                                    position: relative;
+                                }
+                                .acciones {
+                                    padding: 30px;
+                                    text-align: center;
+                                    background: #f8f9fa;
+                                }
+                                .btn {
+                                    padding: 12px 30px;
+                                    border: none;
+                                    border-radius: 8px;
+                                    font-size: 1rem;
+                                    font-weight: 500;
+                                    cursor: pointer;
+                                    margin: 0 10px;
+                                    transition: all 0.3s ease;
+                                }
+                                .btn-primary {
                                     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                                     color: white;
                                 }
-                                .btn-accion.secondary {
-                                    background: rgba(255,255,255,0.8);
-                                    color: #2c3e50;
-                                    border: 1px solid rgba(255,255,255,0.5);
+                                .btn-secondary {
+                                    background: white;
+                                    color: #667eea;
+                                    border: 2px solid #667eea;
                                 }
-                                .btn-accion:hover {
+                                .btn:hover {
                                     transform: translateY(-2px);
-                                    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+                                    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
                                 }
                                 @media print {
                                     body { background: white; }
-                                    .modal-stats-client-content { box-shadow: none; }
+                                    .container { box-shadow: none; }
                                     .acciones { display: none; }
                                 }
                             </style>
                         </head>
                         <body>
-                            <div class="modal-stats-client-content">
-                                <div class="modal-stats-client-header">
-                                    <h2>📊 Estadísticas de ${cliente.nombreCompleto || `Cliente ${cliente.numeroCliente}`}</h2>
-                                    <div style="color: #7f8c8d; font-size: 0.9rem;">Generado el ${fecha}</div>
+                            <div class="container">
+                                <div class="header">
+                                    <h1>📊 Informe de Cliente</h1>
+                                    <div class="fecha">Fecha del informe: ${fecha}</div>
                                 </div>
                                 
-                                <div class="client-stats-grid">
-                                    <div class="client-stat-card">
-                                        <div class="client-stat-value" style="color: #3498db;">${formatearMoneda(stats.invertido)}</div>
-                                        <div class="client-stat-label">Capital Invertido</div>
-                                    </div>
-                                    <div class="client-stat-card">
-                                        <div class="client-stat-value" style="color: #2ecc71;">${formatearMoneda(stats.saldoActual)}</div>
-                                        <div class="client-stat-label">Saldo Actual</div>
-                                    </div>
-                                    <div class="client-stat-card">
-                                        <div class="client-stat-value ${stats.beneficioTotal >= 0 ? 'positive' : 'negative'}">${formatearMoneda(stats.beneficioTotal)}</div>
-                                        <div class="client-stat-label">Beneficio Total</div>
-                                    </div>
-                                    <div class="client-stat-card">
-                                        <div class="client-stat-value ${stats.rentabilidadTotal >= 0 ? 'positive' : 'negative'}">${formatearPorcentaje(stats.rentabilidadTotal)}</div>
-                                        <div class="client-stat-label">Rentabilidad Total</div>
+                                <div class="datos-cliente">
+                                    <h2>👤 Datos del Cliente</h2>
+                                    <div class="info-grid">
+                                        <div class="info-item">
+                                            <div class="label">Nombre y Apellidos</div>
+                                            <div class="valor">${nombreCompleto}</div>
+                                        </div>
+                                        <div class="info-item">
+                                            <div class="label">Número de Cliente</div>
+                                            <div class="valor">${cliente.numeroCliente}</div>
+                                        </div>
                                     </div>
                                 </div>
                                 
-                                <div class="client-chart-container">
-                                    <h3>📊 Rentabilidad Mensual</h3>
-                                    <div class="chart-controls-premium">
-                                        <div class="control-group">
-                                            <label>Tipo de gráfico:</label>
-                                            <select id="tipoGraficoCliente_${chartId}">
-                                                <option value="bar" selected>Barras</option>
-                                                <option value="line">Línea</option>
-                                                <option value="radar">Radar</option>
-                                                <option value="doughnut">Dona</option>
-                                            </select>
+                                <div class="section">
+                                    <h2>💰 Resumen Financiero</h2>
+                                    <div class="info-grid">
+                                        <div class="info-item">
+                                            <div class="label">Saldo Actual</div>
+                                            <div class="valor">${formatearMoneda(stats.saldoActual)}</div>
                                         </div>
-                                        <div class="control-group">
-                                            <label>Vista:</label>
-                                            <select id="vistaCliente_${chartId}">
-                                                <option value="mensual">Mensual</option>
-                                                <option value="acumulado">Acumulado</option>
-                                            </select>
+                                        <div class="info-item">
+                                            <div class="label">Beneficios</div>
+                                            <div class="valor ${stats.beneficioTotal >= 0 ? 'positivo' : 'negativo'}">${formatearMoneda(stats.beneficioTotal)}</div>
                                         </div>
-                                    </div>
-                                    <div class="client-chart-wrapper">
-                                        <canvas id="chartClienteRentabilidad_${chartId}"></canvas>
+                                        <div class="info-item">
+                                            <div class="label">Capital Invertido</div>
+                                            <div class="valor">${formatearMoneda(stats.invertido)}</div>
+                                        </div>
+                                        <div class="info-item">
+                                            <div class="label">Rentabilidad Total</div>
+                                            <div class="valor ${stats.rentabilidadTotal >= 0 ? 'positivo' : 'negativo'}">${formatearPorcentaje(stats.rentabilidadTotal)}</div>
+                                        </div>
                                     </div>
                                 </div>
                                 
-                                <div class="client-chart-container">
-                                    <h3>📈 Evolución del Patrimonio</h3>
-                                    <div class="chart-controls-premium">
-                                        <div class="control-group">
-                                            <label>Tipo de gráfico:</label>
-                                            <select id="tipoGraficoEvolucion_${chartId}">
-                                                <option value="line" selected>Línea</option>
-                                                <option value="bar">Barras</option>
-                                                <option value="area">Área</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="client-chart-wrapper">
-                                        <canvas id="chartClienteEvolucion_${chartId}"></canvas>
+                                <div class="section">
+                                    <h2>📈 Incrementos Detallados</h2>
+                                    ${incrementosDetallados.length > 0 ? `
+                                        <table class="movimientos-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Fecha</th>
+                                                    <th>Importe</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${incrementosDetallados.map(inc => `
+                                                    <tr>
+                                                        <td>${formatearFecha(inc.fecha)}</td>
+                                                        <td class="valor positivo">${formatearMoneda(inc.valor)}</td>
+                                                    </tr>
+                                                `).join('')}
+                                                <tr style="font-weight: bold; background: #f8f9fa;">
+                                                    <td>TOTAL INCREMENTOS</td>
+                                                    <td class="valor positivo">${formatearMoneda(stats.incrementosTotal)}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    ` : '<p style="color: #7f8c8d; font-style: italic;">No hay incrementos registrados</p>'}
+                                </div>
+                                
+                                <div class="section">
+                                    <h2>📉 Decrementos Detallados</h2>
+                                    ${decrementosDetallados.length > 0 ? `
+                                        <table class="movimientos-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Fecha</th>
+                                                    <th>Importe</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${decrementosDetallados.map(dec => `
+                                                    <tr>
+                                                        <td>${formatearFecha(dec.fecha)}</td>
+                                                        <td class="valor negativo">${formatearMoneda(dec.valor)}</td>
+                                                    </tr>
+                                                `).join('')}
+                                                <tr style="font-weight: bold; background: #f8f9fa;">
+                                                    <td>TOTAL DECREMENTOS</td>
+                                                    <td class="valor negativo">${formatearMoneda(stats.decrementosTotal)}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    ` : '<p style="color: #7f8c8d; font-style: italic;">No hay decrementos registrados</p>'}
+                                </div>
+                                
+                                <div class="section">
+                                    <h2>📊 Rentabilidad Mensual</h2>
+                                    <div class="chart-container">
+                                        <canvas id="rentabilidadChart"></canvas>
                                     </div>
                                 </div>
                                 
                                 <div class="acciones">
-                                    <button class="btn-accion primary" onclick="window.print()">
-                                        <i class="fas fa-print"></i> Imprimir Informe
+                                    <button class="btn btn-primary" onclick="window.print()">
+                                        🖨️ Imprimir Informe
                                     </button>
-                                    <button class="btn-accion secondary" onclick="window.close()">
-                                        <i class="fas fa-times"></i> Cerrar
+                                    <button class="btn btn-secondary" onclick="window.close()">
+                                        ❌ Cerrar
                                     </button>
                                 </div>
                             </div>
                             
                             <script>
-                                // Datos del cliente
-                                const datosCliente_${chartId} = ${JSON.stringify(datosDiarios)};
-                                
-                                // Función para renderizar gráficos
-                                function renderizarGraficosInforme() {
-                                    renderizarGraficoRentabilidadCliente(datosCliente_${chartId}, ${chartId});
-                                    renderizarGraficoEvolucionCliente(datosCliente_${chartId}, ${chartId});
+                                // Gráfico de rentabilidad mensual
+                                const ctx = document.getElementById('rentabilidadChart').getContext('2d');
+                                new Chart(ctx, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: ${JSON.stringify(rentabilidadMensual.map(r => r.mes))},
+                                        datasets: [{
+                                            label: 'Rentabilidad Mensual (%)',
+                                            data: ${JSON.stringify(rentabilidadMensual.map(r => r.valor))},
+                                            backgroundColor: ${JSON.stringify(rentabilidadMensual.map(r => r.valor >= 0 ? 'rgba(39, 174, 96, 0.6)' : 'rgba(231, 76, 60, 0.6)'))},
+                                            borderColor: ${JSON.stringify(rentabilidadMensual.map(r => r.valor >= 0 ? 'rgba(39, 174, 96, 1)' : 'rgba(231, 76, 60, 1)'))},
+                                            borderWidth: 2
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: {
+                                            legend: {
+                                                display: false
+                                            }
+                                        },
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true,
+                                                ticks: {
+                                                    callback: function(value) {
+                                                        return value + '%';
+                                                    }
+                                                }
+                                    }
                                 }
-                                
-                                // Renderizar al cargar
-                                window.addEventListener('load', renderizarGraficosInforme);
-                                
-                                // Event listeners para los selects
-                                document.getElementById('tipoGraficoCliente_${chartId}').addEventListener('change', () => renderizarGraficoRentabilidadCliente(datosCliente_${chartId}, ${chartId}));
-                                document.getElementById('vistaCliente_${chartId}').addEventListener('change', () => renderizarGraficoRentabilidadCliente(datosCliente_${chartId}, ${chartId}));
-                                document.getElementById('tipoGraficoEvolucion_${chartId}').addEventListener('change', () => renderizarGraficoEvolucionCliente(datosCliente_${chartId}, ${chartId}));
-                                
-                                ${this.obtenerFuncionesGraficos(chartId)}
+                            });
                             </script>
                         </body>
                         </html>
                     `;
+                }
+                
+                formatearMes(mes) {
+                    const meses = {
+                        '2024-01': 'Ene 2024', '2024-02': 'Feb 2024', '2024-03': 'Mar 2024',
+                        '2024-04': 'Abr 2024', '2024-05': 'May 2024', '2024-06': 'Jun 2024',
+                        '2024-07': 'Jul 2024', '2024-08': 'Ago 2024', '2024-09': 'Sep 2024',
+                        '2024-10': 'Oct 2024', '2024-11': 'Nov 2024', '2024-12': 'Dic 2024',
+                        '2025-01': 'Ene 2025', '2025-02': 'Feb 2025', '2025-03': 'Mar 2025',
+                        '2025-04': 'Abr 2025', '2025-05': 'May 2025', '2025-06': 'Jun 2025',
+                        '2025-07': 'Jul 2025', '2025-08': 'Ago 2025', '2025-09': 'Sep 2025',
+                        '2025-10': 'Oct 2025', '2025-11': 'Nov 2025', '2025-12': 'Dic 2025',
+                        '2026-01': 'Ene 2026', '2026-02': 'Feb 2026', '2026-03': 'Mar 2026',
+                        '2026-04': 'Abr 2026', '2026-05': 'May 2026', '2026-06': 'Jun 2026',
+                        '2026-07': 'Jul 2026', '2026-08': 'Ago 2026', '2026-09': 'Sep 2026',
+                        '2026-10': 'Oct 2026', '2026-11': 'Nov 2026', '2026-12': 'Dic 2026'
+                    };
+                    return meses[mes] || mes;
                 }
                 
                 calcularEstadisticasCliente(datosDiarios) {
