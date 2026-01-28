@@ -273,10 +273,10 @@ class ReportsManager {
             return null;
         }
 
-        // Crear canvas temporal
+        // 🔥 TAMAÑO OPTIMIZADO PARA PDF (más ancho y menos alto)
         const canvas = document.createElement('canvas');
-        canvas.width = 800;
-        canvas.height = 400;
+        canvas.width = 1000;  // Más ancho para mejor legibilidad
+        canvas.height = 350;  // Menos alto para evitar cortes
         canvas.style.backgroundColor = 'white';
         
         const ctx = canvas.getContext('2d');
@@ -345,10 +345,10 @@ class ReportsManager {
             return null;
         }
 
-        // Crear canvas temporal
+        // 🔥 TAMAÑO OPTIMIZADO PARA PDF (más ancho y menos alto)
         const canvas = document.createElement('canvas');
-        canvas.width = 800;
-        canvas.height = 400;
+        canvas.width = 1000;  // Más ancho para mejor legibilidad
+        canvas.height = 350;  // Menos alto para evitar cortes
         canvas.style.backgroundColor = 'white';
         
         const ctx = canvas.getContext('2d');
@@ -790,33 +790,46 @@ class ReportsManager {
         return contenedor;
     }
 
-    // 🔄 Convertir HTML a PDF
-    async convertirHTMLaPDF(contenedor) {
+    // 📄 Convertir HTML a PDF
+    async convertirHTMLaPDF(contenedorTemporal, formato = 'normal') {
         try {
-            // Capturar HTML como imagen
-            const canvas = await html2canvas(contenedor, {
+            console.log('📄 Convirtiendo HTML a PDF (formato:', formato, ')...');
+
+            // 🔥 CONFIGURACIÓN ESPECIAL PARA PDF LARGO
+            if (formato === 'largo') {
+                return this.generarPDFLargo(contenedorTemporal);
+            }
+
+            // Configuración normal (con saltos de página)
+            const canvas = await html2canvas(contenedorTemporal, {
                 scale: 2,
                 useCORS: true,
                 allowTaint: true,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                windowWidth: 1200,
+                windowHeight: 1600
             });
 
-            // Crear PDF
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
+            // Crear PDF normal
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
 
-            // Añadir imagen al PDF
             const imgData = canvas.toDataURL('image/png');
             const imgWidth = 210; // Ancho A4 en mm
             const pageHeight = 297; // Altura A4 en mm
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
             let heightLeft = imgHeight;
+
             let position = 0;
 
-            // Añadir imagen (puede ocupar varias páginas)
+            // Añadir primera página
             pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
             heightLeft -= pageHeight;
 
+            // Añadir páginas adicionales si es necesario
             while (heightLeft >= 0) {
                 position = heightLeft - imgHeight;
                 pdf.addPage();
@@ -824,12 +837,50 @@ class ReportsManager {
                 heightLeft -= pageHeight;
             }
 
-            // Retornar blob del PDF
-            return new Blob([pdf.output('blob')], { type: 'application/pdf' });
+            console.log('✅ PDF normal generado correctamente');
+            return pdf.output('blob');
 
         } catch (error) {
             console.error('❌ Error convirtiendo HTML a PDF:', error);
-            throw new Error('Error al generar el PDF');
+            throw error;
+        }
+    }
+
+    // 📄 Generar PDF largo sin saltos de página
+    async generarPDFLargo(contenedorTemporal) {
+        try {
+            console.log('📄 Generando PDF largo sin saltos...');
+
+            // 🔥 CONFIGURACIÓN PARA PDF LARGO
+            const canvas = await html2canvas(contenedorTemporal, {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                windowWidth: 1400,  // Más ancho
+                windowHeight: 3000  // Más alto para capturar todo
+            });
+
+            // Crear PDF con formato personalizado (más alto)
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: [210, 1000] // A4 ancho pero 1000mm de alto
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const imgWidth = 210; // Ancho A4 en mm
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+            // Añadir imagen completa en una sola página
+            pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+
+            console.log('✅ PDF largo generado correctamente');
+            return pdf.output('blob');
+
+        } catch (error) {
+            console.error('❌ Error generando PDF largo:', error);
+            throw error;
         }
     }
 
@@ -848,6 +899,12 @@ class ReportsManager {
                     <div class="pdf-preview-actions">
                         <button class="pdf-preview-btn" onclick="reportsManager.descargarPDF('${pdfUrl}', '${cliente.nombre}')">
                             <i class="fas fa-download"></i> Descargar
+                        </button>
+                        <button class="pdf-preview-btn" onclick="reportsManager.compartirPorEmail('${pdfUrl}', '${cliente.nombre}')">
+                            <i class="fas fa-envelope"></i> Email
+                        </button>
+                        <button class="pdf-preview-btn secondary" onclick="reportsManager.generarPDFLargoDesdePreview('${cliente.nombre}')">
+                            <i class="fas fa-file-alt"></i> PDF Largo
                         </button>
                         <button class="pdf-preview-btn secondary" onclick="reportsManager.imprimirPDF('${pdfUrl}')">
                             <i class="fas fa-print"></i> Imprimir
@@ -901,6 +958,104 @@ class ReportsManager {
             windowPrint.onload = function() {
                 windowPrint.print();
             };
+        }
+    }
+
+    // 📧 Compartir por email
+    async compartirPorEmail(pdfUrl, nombreCliente) {
+        try {
+            // Convertir el blob a base64 para el email
+            const response = await fetch(pdfUrl);
+            const blob = await response.blob();
+            const base64 = await this.blobToBase64(blob);
+            
+            // Crear el asunto y cuerpo del email
+            const asunto = encodeURIComponent(`Informe de Cliente - ${nombreCliente}`);
+            const cuerpo = encodeURIComponent(`
+Estimado/a,
+
+Adjunto el informe del cliente ${nombreCliente} generado el ${new Date().toLocaleDateString('es-ES')}.
+
+El informe incluye:
+- Estadísticas principales
+- Evolución mensual detallada
+- Incrementos y decrementos
+- Gráficos visuales de rendimiento
+
+Atentamente,
+InvertCursor Sistema de Gestión
+            `.trim());
+            
+            // Abrir cliente de email con el PDF adjunto
+            const mailtoLink = `mailto:?subject=${asunto}&body=${cuerpo}`;
+            window.open(mailtoLink);
+            
+            // También descargar el PDF automáticamente
+            this.descargarPDF(pdfUrl, nombreCliente);
+            
+            mostrarNotificacion('Abriendo cliente de email y descargando PDF...', 'info');
+            
+        } catch (error) {
+            console.error('❌ Error al compartir por email:', error);
+            mostrarNotificacion('Error al preparar el email', 'error');
+        }
+    }
+
+    // 🔄 Convertir blob a base64
+    blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    // 📄 Generar PDF largo desde preview
+    async generarPDFLargoDesdePreview(nombreCliente) {
+        try {
+            mostrarNotificacion('Generando PDF largo sin saltos...', 'info');
+            
+            // Cerrar previsualización actual
+            this.cerrarPrevisualizacion();
+            
+            // Obtener cliente seleccionado
+            const dropdown = document.getElementById('reportClientSelect');
+            if (!dropdown.value) {
+                mostrarNotificacion('Selecciona un cliente primero', 'warning');
+                return;
+            }
+            
+            const [hojaNombre, clienteId] = dropdown.value.split('|');
+            const clienteIndex = parseInt(clienteId);
+            const cliente = this.clientesDisponibles.find(c => 
+                c.hoja === hojaNombre && c.id === clienteIndex
+            );
+            
+            if (!cliente) {
+                throw new Error('Cliente no encontrado');
+            }
+            
+            // Recopilar datos y generar gráficos
+            const datosCliente = this.recopilarDatosCliente(cliente);
+            const graficosImagenes = await this.generarGraficosParaPDF(datosCliente);
+            const htmlInforme = this.generarHTMLInforme(datosCliente, graficosImagenes);
+            const contenedorTemporal = this.crearContenedorTemporal(htmlInforme);
+            
+            // Generar PDF largo
+            const pdfBlob = await this.convertirHTMLaPDF(contenedorTemporal, 'largo');
+            
+            // Limpiar contenedor
+            document.body.removeChild(contenedorTemporal);
+            
+            // Mostrar previsualización del PDF largo
+            this.mostrarPrevisualizacionPDF(pdfBlob, cliente);
+            
+            mostrarNotificacion('PDF largo generado correctamente', 'success');
+            
+        } catch (error) {
+            console.error('❌ Error generando PDF largo:', error);
+            mostrarNotificacion('Error al generar PDF largo: ' + error.message, 'error');
         }
     }
 
