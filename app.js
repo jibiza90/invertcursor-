@@ -9894,26 +9894,33 @@ function mostrarVistaReports() {
     console.log('🔍 Verificando reportsManager:', typeof reportsManager, !!reportsManager);
     console.log('🔍 Verificando datosEditados:', typeof datosEditados, !!datosEditados);
     
-    if (typeof reportsManager !== 'undefined' && reportsManager) {
-        console.log('✅ reportsManager disponible, recargando clientes...');
-        setTimeout(() => {
-            reportsManager.recargarClientes();
-        }, 100);
-    } else {
-        console.warn('⚠️ reportsManager no está disponible');
-        console.warn('⚠️ Intentando inicializar reportsManager...');
-        
-        // Intentar inicializar si no existe
-        if (typeof ReportsManager !== 'undefined') {
-            console.log('🔧 Creando nueva instancia de ReportsManager...');
-            window.reportsManager = new ReportsManager();
+    // 🔥 ESPERAR A QUE reportsManager ESTÉ DISPONIBLE
+    const esperarReportsManager = () => {
+        if (typeof window.reportsManager !== 'undefined' && window.reportsManager) {
+            console.log('✅ reportsManager disponible, recargando clientes...');
             setTimeout(() => {
                 window.reportsManager.recargarClientes();
-            }, 200);
+            }, 100);
         } else {
-            console.error('❌ ReportsManager class no está definida');
+            console.warn('⚠️ reportsManager no está disponible, esperando...');
+            
+            // Intentar inicializar si no existe
+            if (typeof ReportsManager !== 'undefined') {
+                console.log('🔧 Creando nueva instancia de ReportsManager...');
+                window.reportsManager = new ReportsManager();
+                setTimeout(() => {
+                    window.reportsManager.recargarClientes();
+                }, 200);
+            } else {
+                console.error('❌ ReportsManager class no está definida');
+                // Reintentar después de un tiempo
+                setTimeout(esperarReportsManager, 500);
+            }
         }
-    }
+    };
+    
+    // Iniciar la espera
+    esperarReportsManager();
 }
 
 async function mostrarEstadisticas() {
