@@ -10031,35 +10031,11 @@ function mostrarVistaReports() {
                         // Generar HTML del informe
                         const htmlInforme = this.generarHTMLInforme(cliente);
                         
-                        // Mostrar en nueva ventana
-                        const nuevaVentana = window.open('', '_blank');
-                        nuevaVentana.document.write(`
-                            <!DOCTYPE html>
-                            <html>
-                            <head>
-                                <title>Informe - ${cliente.nombre}</title>
-                                <style>
-                                    body { font-family: Arial, sans-serif; margin: 20px; }
-                                    .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; }
-                                    .cliente-info { margin: 20px 0; }
-                                    .estadisticas { margin: 20px 0; }
-                                    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                                    th { background-color: #f2f2f2; }
-                                    .acciones { text-align: center; margin: 30px 0; }
-                                    button { padding: 10px 20px; margin: 5px; cursor: pointer; }
-                                </style>
-                            </head>
-                            <body>
-                                ${htmlInforme}
-                                <div class="acciones">
-                                    <button onclick="window.print()">🖨️ Imprimir</button>
-                                    <button onclick="window.close()">❌ Cerrar</button>
-                                </div>
-                            </body>
-                            </html>
-                        `);
-                        nuevaVentana.document.close();
+                        // Crear URL para el PDF (simulado)
+                        const pdfUrl = `data:text/html;charset=utf-8,${encodeURIComponent(htmlInforme)}`;
+                        
+                        // Mostrar modal de previsualización
+                        this.mostrarPrevisualizacionPDF(htmlInforme, pdfUrl, cliente);
                         
                         mostrarNotificacion('Informe generado correctamente', 'success');
                         
@@ -10074,6 +10050,128 @@ function mostrarVistaReports() {
                             boton.innerHTML = '<i class="fas fa-file-pdf"></i> Generar Informe PDF';
                         }
                     }
+                }
+                
+                mostrarPrevisualizacionPDF(htmlInforme, pdfUrl, cliente) {
+                    // Eliminar modal existente si hay alguno
+                    const modalExistente = document.querySelector('.pdf-preview-modal');
+                    if (modalExistente) {
+                        modalExistente.remove();
+                    }
+                    
+                    // Crear modal
+                    const modal = document.createElement('div');
+                    modal.className = 'pdf-preview-modal active';
+                    modal.innerHTML = `
+                        <div class="pdf-preview-content">
+                            <div class="pdf-preview-header">
+                                <h3 class="pdf-preview-title">📄 Vista Previa del Informe</h3>
+                                <button class="pdf-preview-close" onclick="this.closest('.pdf-preview-modal').remove()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="pdf-preview-body">
+                                <div class="pdf-preview-info">
+                                    <p><strong>Cliente:</strong> ${cliente.nombre}</p>
+                                    <p><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-ES')}</p>
+                                </div>
+                                <div class="pdf-preview-actions">
+                                    <button class="pdf-preview-btn" onclick="window.reportsManager.descargarPDF('${pdfUrl}', '${cliente.nombre}')">
+                                        <i class="fas fa-download"></i> Descargar PDF
+                                    </button>
+                                    <button class="pdf-preview-btn" onclick="window.reportsManager.imprimirPDF('${htmlInforme}')">
+                                        <i class="fas fa-print"></i> Imprimir
+                                    </button>
+                                    <button class="pdf-preview-btn secondary" onclick="window.reportsManager.prepararEmail('${pdfUrl}', '${cliente.nombre}')">
+                                        <i class="fas fa-envelope"></i> Compartir por Email
+                                    </button>
+                                </div>
+                                <div class="pdf-preview-content-area">
+                                    <iframe srcdoc="${htmlInforme}" style="width: 100%; height: 500px; border: 1px solid #ddd; border-radius: 8px;"></iframe>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(modal);
+                    
+                    // Cerrar al hacer clic fuera
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            modal.remove();
+                        }
+                    });
+                }
+                
+                descargarPDF(pdfUrl, nombreCliente) {
+                    const link = document.createElement('a');
+                    link.href = pdfUrl;
+                    link.download = `informe_${nombreCliente.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    mostrarNotificacion('PDF descargado correctamente', 'success');
+                }
+                
+                imprimirPDF(htmlInforme) {
+                    const nuevaVentana = window.open('', '_blank');
+                    nuevaVentana.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>Informe - ${new Date().toLocaleDateString('es-ES')}</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; margin: 20px; }
+                                .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; }
+                                .cliente-info { margin: 20px 0; }
+                                .estadisticas { margin: 20px 0; }
+                                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                                th { background-color: #f2f2f2; }
+                                @media print {
+                                    body { margin: 0; }
+                                    .no-print { display: none; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            ${htmlInforme}
+                            <script>
+                                window.onload = function() {
+                                    window.print();
+                                    window.close();
+                                }
+                            </script>
+                        </body>
+                        </html>
+                    `);
+                    nuevaVentana.document.close();
+                    
+                    mostrarNotificacion('Ventana de impresión abierta', 'success');
+                }
+                
+                prepararEmail(pdfUrl, nombreCliente) {
+                    const asunto = encodeURIComponent(`Informe de Cliente - ${nombreCliente}`);
+                    const cuerpo = encodeURIComponent(`
+Estimado/a,
+
+Te adjunto el informe de tu cliente generado el ${new Date().toLocaleDateString('es-ES')}.
+
+El informe incluye:
+• Estadísticas principales
+• Información del cliente
+• Datos relevantes
+
+Si tienes alguna duda, no dudes en contactarnos.
+
+Atentamente,
+InvertCursor Sistema de Gestión
+                    `.trim());
+                    
+                    window.open(`mailto:?subject=${asunto}&body=${cuerpo}`);
+                    
+                    mostrarNotificacion('Cliente de email abierto con el informe preparado', 'success');
                 }
                 
                 generarHTMLInforme(cliente) {
