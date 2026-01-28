@@ -1377,8 +1377,33 @@ let reportsManager;
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('📄 DOM listo, inicializando ReportsManager...');
     reportsManager = new ReportsManager();
+    window.reportsManager = reportsManager;
 });
+
+// 🔥 También inicializar inmediatamente si el DOM ya está cargado
+if (document.readyState === 'loading') {
+    // El DOM todavía está cargando, esperar al evento
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('📄 DOM listo, inicializando ReportsManager...');
+        reportsManager = new ReportsManager();
+        window.reportsManager = reportsManager;
+    });
+} else {
+    // El DOM ya está cargado, inicializar ahora
+    console.log('📄 DOM ya cargado, inicializando ReportsManager inmediatamente...');
+    reportsManager = new ReportsManager();
+    window.reportsManager = reportsManager;
+}
 
 // Hacer disponible globalmente para los botones del modal
 window.reportsManager = reportsManager;
+
+// 🔥 Verificación periódica para asegurar que esté disponible
+setInterval(() => {
+    if (!window.reportsManager && typeof ReportsManager !== 'undefined') {
+        console.log('🔧 Creando reportsManager perdido...');
+        window.reportsManager = new ReportsManager();
+    }
+}, 2000);
