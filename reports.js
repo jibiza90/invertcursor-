@@ -60,28 +60,31 @@ class ReportsManager {
                 const hoja = hojas[nombreHoja];
                 console.log(`🔍 Analizando hoja: ${nombreHoja}`);
                 
-                if (hoja.clientes && typeof hoja.clientes === 'object') {
-                    const clientesHoja = Object.keys(hoja.clientes);
-                    console.log(`👥 Clientes en ${nombreHoja}:`, clientesHoja.length);
+                // 🔥 CORRECCIÓN: Los clientes son un array, no un objeto
+                if (hoja.clientes && Array.isArray(hoja.clientes)) {
+                    console.log(`👥 Clientes en ${nombreHoja}:`, hoja.clientes.length);
                     
-                    clientesHoja.forEach(clienteId => {
-                        const cliente = hoja.clientes[clienteId];
+                    hoja.clientes.forEach((cliente, index) => {
                         if (cliente && typeof cliente === 'object') {
-                            const nombreCliente = cliente.nombre || `Cliente ${clienteId}`;
-                            console.log(`✅ Cliente encontrado: ${nombreCliente} (${clienteId})`);
+                            // 🔥 CORRECCIÓN: Usar numero_cliente en lugar de nombre
+                            const numeroCliente = cliente.numero_cliente || (index + 1);
+                            const nombreCliente = `Cliente ${numeroCliente}`;
+                            
+                            console.log(`✅ Cliente encontrado: ${nombreCliente} (índice: ${index}, número: ${numeroCliente})`);
                             
                             this.clientesDisponibles.push({
-                                id: clienteId,
+                                id: index, // Usar el índice del array
                                 nombre: nombreCliente,
+                                numeroCliente: numeroCliente,
                                 hoja: nombreHoja,
                                 datos: cliente
                             });
                         } else {
-                            console.warn(`⚠️ Cliente inválido: ${clienteId}`);
+                            console.warn(`⚠️ Cliente inválido en índice ${index}`);
                         }
                     });
                 } else {
-                    console.warn(`⚠️ La hoja ${nombreHoja} no tiene clientes válidos`);
+                    console.warn(`⚠️ La hoja ${nombreHoja} no tiene clientes válidos (tipo: ${typeof hoja.clientes})`);
                 }
             });
 
@@ -91,7 +94,7 @@ class ReportsManager {
                 console.warn('⚠️ No se encontraron clientes');
                 mostrarNotificacion('No se encontraron clientes para generar informes', 'warning');
             } else {
-                console.log('✅ Clientes cargados correctamente:', this.clientesDisponibles.map(c => c.nombre));
+                console.log('✅ Clientes cargados correctamente:', this.clientesDisponibles.map(c => `${c.nombre} (${c.hoja})`));
             }
             
             this.actualizarDropdownClientes();
@@ -126,9 +129,16 @@ class ReportsManager {
         } else {
             console.log(`✅ Añadiendo ${this.clientesDisponibles.length} clientes al dropdown`);
             
+            // 🔥 CORRECCIÓN: Ordenar por hoja y luego por número de cliente
+            this.clientesDisponibles.sort((a, b) => {
+                if (a.hoja !== b.hoja) return a.hoja.localeCompare(b.hoja);
+                return a.numeroCliente - b.numeroCliente;
+            });
+            
             // Añadir clientes disponibles
             this.clientesDisponibles.forEach(cliente => {
                 const option = document.createElement('option');
+                // 🔥 CORRECCIÓN: Formato correcto del value
                 option.value = `${cliente.hoja}|${cliente.id}`;
                 option.textContent = `${cliente.nombre} (${cliente.hoja})`;
                 dropdown.appendChild(option);
@@ -170,15 +180,16 @@ class ReportsManager {
 
             // Extraer información del cliente seleccionado
             const [hojaNombre, clienteId] = dropdown.value.split('|');
+            const clienteIndex = parseInt(clienteId);
             const cliente = this.clientesDisponibles.find(c => 
-                c.hoja === hojaNombre && c.id === clienteId
+                c.hoja === hojaNombre && c.id === clienteIndex
             );
 
             if (!cliente) {
                 throw new Error('Cliente no encontrado');
             }
 
-            console.log('📄 Generando informe para:', cliente.nombre);
+            console.log('📄 Generando informe para:', cliente.nombre, '(índice:', clienteIndex, ')');
 
             // 🔄 PASO 1: Recopilar datos del cliente
             const datosCliente = this.recopilarDatosCliente(cliente);
@@ -219,7 +230,21 @@ class ReportsManager {
     // 📊 Recopilar datos completos del cliente
     recopilarDatosCliente(cliente) {
         const hoja = datosEditados.hojas[cliente.hoja];
+        
+        // 🔥 CORRECCIÓN: Acceder al cliente por índice del array
         const datosCliente = hoja.clientes[cliente.id];
+        
+        if (!datosCliente) {
+            throw new Error(`Datos del cliente no encontrados en índice ${cliente.id} de la hoja ${cliente.hoja}`);
+        }
+
+        console.log('🔍 Datos del cliente:', {
+            hoja: cliente.hoja,
+            indice: cliente.id,
+            numeroCliente: cliente.numeroCliente,
+            tieneDatos: !!datosCliente,
+            tieneDatosDiarios: !!(datosCliente.datos_diarios && datosCliente.datos_diarios.length > 0)
+        });
 
         // Calcular estadísticas
         const estadisticas = this.calcularEstadisticasCliente(datosCliente);
@@ -230,6 +255,7 @@ class ReportsManager {
         return {
             info: {
                 nombre: cliente.nombre,
+                numeroCliente: cliente.numeroCliente,
                 id: cliente.id,
                 hoja: cliente.hoja,
                 fechaGeneracion: new Date().toLocaleDateString('es-ES')
@@ -246,30 +272,44 @@ class ReportsManager {
         let retiradasTotal = 0;
         let saldoActual = 0;
 
-        // Calcular totales
-        Object.keys(datosCliente).forEach(mes => {
-            if (mes.startsWith('2025') || mes.startsWith('2026')) {
-                const datosMes = datosCliente[mes];
-                if (datosMes && datosMes.valor) {
-                    const valor = parseFloat(datosMes.valor) || 0;
-                    saldoActual = Math.max(saldoActual, valor);
+        console.log('🧮 Calculando estadísticas del cliente...');
 
-                    // Analizar detalles para inversiones y retiradas
-                    if (datosMes.detalles && Array.isArray(datosMes.detalles)) {
-                        datosMes.detalles.forEach(detalle => {
-                            const incremento = parseFloat(detalle.incremento) || 0;
-                            const decremento = parseFloat(detalle.decremento) || 0;
-                            
-                            if (incremento > 0) inversionTotal += incremento;
-                            if (decremento > 0) retiradasTotal += decremento;
-                        });
-                    }
+        // 🔥 CORRECCIÓN: Usar datos_diarios array en lugar de objeto por meses
+        const datosDiarios = datosCliente.datos_diarios || [];
+        console.log(`📊 Procesando ${datosDiarios.length} registros diarios...`);
+
+        datosDiarios.forEach(datoDiario => {
+            if (datoDiario && typeof datoDiario === 'object') {
+                // Calcular saldo actual (último saldo_diario o imp_final válido)
+                const saldoDiario = parseFloat(datoDiario.saldo_diario) || 0;
+                const impFinal = parseFloat(datoDiario.imp_final) || 0;
+                
+                if (saldoDiario > 0) {
+                    saldoActual = Math.max(saldoActual, saldoDiario);
                 }
+                if (impFinal > 0) {
+                    saldoActual = Math.max(saldoActual, impFinal);
+                }
+
+                // Calcular inversiones y retiradas
+                const incremento = parseFloat(datoDiario.incremento) || 0;
+                const decremento = parseFloat(datoDiario.decremento) || 0;
+                
+                if (incremento > 0) inversionTotal += incremento;
+                if (decremento > 0) retiradasTotal += decremento;
             }
         });
 
         const beneficioTotal = saldoActual - inversionTotal + retiradasTotal;
         const rentabilidad = inversionTotal > 0 ? (beneficioTotal / inversionTotal) * 100 : 0;
+
+        console.log('📈 Estadísticas calculadas:', {
+            inversionTotal,
+            retiradasTotal,
+            saldoActual,
+            beneficioTotal,
+            rentabilidad
+        });
 
         return {
             inversionTotal,
@@ -283,60 +323,113 @@ class ReportsManager {
     // 📅 Obtener datos mensuales
     obtenerDatosMensuales(datosCliente) {
         const datosMensuales = [];
+        const datosDiarios = datosCliente.datos_diarios || [];
 
-        Object.keys(datosCliente).forEach(mes => {
-            if (mes.startsWith('2025') || mes.startsWith('2026')) {
-                const datosMes = datosCliente[mes];
-                if (datosMes && datosMes.valor) {
-                    const valor = parseFloat(datosMes.valor) || 0;
-                    const beneficio = parseFloat(datosMes.beneficio) || 0;
-                    const rentabilidad = parseFloat(datosMes.rentabilidad) || 0;
+        console.log('📅 Procesando datos mensuales...');
 
-                    datosMensuales.push({
-                        mes,
-                        valor,
-                        beneficio,
-                        rentabilidad,
-                        nombreMes: this.formatearNombreMes(mes)
-                    });
+        // 🔥 CORRECCIÓN: Agrupar datos diarios por mes
+        const datosPorMes = {};
+
+        datosDiarios.forEach(datoDiario => {
+            if (datoDiario && datoDiario.fecha && typeof datoDiario === 'object') {
+                // Extraer mes de la fecha (formato YYYY-MM-DD)
+                const fecha = datoDiario.fecha;
+                if (fecha && typeof fecha === 'string') {
+                    const mes = fecha.substring(0, 7); // YYYY-MM
+                    
+                    if (!datosPorMes[mes]) {
+                        datosPorMes[mes] = {
+                            valores: [],
+                            beneficios: [],
+                            rentabilidades: []
+                        };
+                    }
+
+                    // Acumular valores del mes
+                    const saldoDiario = parseFloat(datoDiario.saldo_diario) || 0;
+                    const impFinal = parseFloat(datoDiario.imp_final) || 0;
+                    const valor = Math.max(saldoDiario, impFinal);
+                    
+                    if (valor > 0) {
+                        datosPorMes[mes].valores.push(valor);
+                    }
+
+                    // Calcular beneficio (diferencia con valor anterior)
+                    if (datosPorMes[mes].valores.length > 1) {
+                        const valorActual = datosPorMes[mes].valores[datosPorMes[mes].valores.length - 1];
+                        const valorAnterior = datosPorMes[mes].valores[datosPorMes[mes].valores.length - 2];
+                        const beneficio = valorActual - valorAnterior;
+                        datosPorMes[mes].beneficios.push(beneficio);
+                    }
                 }
             }
         });
 
+        // Convertir a array de datos mensuales
+        Object.keys(datosPorMes).forEach(mes => {
+            const datosMes = datosPorMes[mes];
+            const valores = datosMes.valores;
+            
+            if (valores.length > 0) {
+                const valorFinal = valores[valores.length - 1];
+                const valorInicial = valores[0];
+                const beneficio = valorFinal - valorInicial;
+                const rentabilidad = valorInicial > 0 ? (beneficio / valorInicial) * 100 : 0;
+
+                datosMensuales.push({
+                    mes,
+                    valor: valorFinal,
+                    beneficio,
+                    rentabilidad,
+                    nombreMes: this.formatearNombreMes(mes)
+                });
+            }
+        });
+
         // Ordenar por mes
-        return datosMensuales.sort((a, b) => a.mes.localeCompare(b.mes));
+        datosMensuales.sort((a, b) => a.mes.localeCompare(b.mes));
+
+        console.log(`📊 Se encontraron ${datosMensuales.length} meses con datos:`, datosMensuales.map(m => m.nombreMes));
+
+        return datosMensuales;
     }
 
     // 📋 Obtener operaciones del cliente
     obtenerOperacionesCliente(datosCliente) {
         const operaciones = [];
+        const datosDiarios = datosCliente.datos_diarios || [];
 
-        Object.keys(datosCliente).forEach(mes => {
-            if (mes.startsWith('2025') || mes.startsWith('2026')) {
-                const datosMes = datosCliente[mes];
-                if (datosMes.detalles && Array.isArray(datosMes.detalles)) {
-                    datosMes.detalles.forEach(detalle => {
-                        const fecha = detalle.fecha || mes;
-                        const incremento = parseFloat(detalle.incremento) || 0;
-                        const decremento = parseFloat(detalle.decremento) || 0;
-                        const concepto = detalle.concepto || '';
+        console.log('📋 Procesando operaciones del cliente...');
 
-                        if (incremento > 0 || decremento > 0) {
-                            operaciones.push({
-                                fecha,
-                                concepto,
-                                incremento,
-                                decremento,
-                                tipo: incremento > 0 ? 'inversion' : 'retirada'
-                            });
-                        }
+        // 🔥 CORRECCIÓN: Extraer operaciones directamente de datos_diarios
+        datosDiarios.forEach(datoDiario => {
+            if (datoDiario && typeof datoDiario === 'object' && datoDiario.fecha) {
+                const fecha = datoDiario.fecha;
+                const incremento = parseFloat(datoDiario.incremento) || 0;
+                const decremento = parseFloat(datoDiario.decremento) || 0;
+                const concepto = datoDiario.concepto || (incremento > 0 ? 'Inversión' : decremento > 0 ? 'Retirada' : '');
+
+                if (incremento > 0 || decremento > 0) {
+                    operaciones.push({
+                        fecha,
+                        concepto,
+                        incremento,
+                        decremento,
+                        tipo: incremento > 0 ? 'inversion' : 'retirada'
                     });
                 }
             }
         });
 
         // Ordenar por fecha
-        return operaciones.sort((a, b) => a.fecha.localeCompare(b.fecha));
+        operaciones.sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+        console.log(`💰 Se encontraron ${operaciones.length} operaciones:`);
+        operaciones.forEach(op => {
+            console.log(`  ${op.fecha}: ${op.tipo} ${op.incremento > 0 ? '+' + op.incremento : '-' + op.decremento}`);
+        });
+
+        return operaciones;
     }
 
     // 🎨 Generar HTML del informe
