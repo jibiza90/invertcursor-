@@ -291,16 +291,18 @@ class AnalyticsAdvanced {
                 }
                 
                 .stat-card {
-                    background: rgba(26, 26, 46, 0.8);
-                    border-radius: 12px;
+                    background: #ffffff;
+                    border-radius: 8px;
                     padding: 1.5rem;
-                    border: 1px solid rgba(0, 212, 255, 0.2);
+                    border: 1px solid #dee2e6;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
                 }
                 
                 .stat-card h4 {
-                    color: #00d4ff;
+                    color: #212529;
                     margin: 0 0 1rem 0;
                     font-size: 1.1rem;
+                    font-weight: 600;
                 }
                 
                 .metrics {
@@ -315,35 +317,38 @@ class AnalyticsAdvanced {
                     align-items: center;
                 }
                 
-                .metric .label {
-                    color: rgba(255, 255, 255, 0.7);
+                .label {
+                    color: #6c757d;
                     font-size: 0.9rem;
                 }
                 
-                .metric .value {
+                .value {
                     font-weight: 600;
-                    font-size: 0.95rem;
+                    font-size: 1rem;
+                    color: #495057;
                 }
                 
                 .positive {
-                    color: #00ff88;
+                    color: #28a745;
                 }
                 
                 .negative {
-                    color: #ff6b6b;
+                    color: #dc3545;
                 }
                 
                 .clients-ranking {
-                    background: rgba(26, 26, 46, 0.8);
-                    border-radius: 12px;
+                    background: #ffffff;
+                    border-radius: 8px;
                     padding: 1.5rem;
-                    border: 1px solid rgba(0, 212, 255, 0.2);
+                    border: 1px solid #dee2e6;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
                 }
                 
                 .clients-ranking h4 {
-                    color: #00ff88;
+                    color: #212529;
                     margin: 0 0 1rem 0;
                     font-size: 1.1rem;
+                    font-weight: 600;
                 }
                 
                 .client-rank-item {
@@ -351,7 +356,7 @@ class AnalyticsAdvanced {
                     align-items: center;
                     gap: 1rem;
                     padding: 0.5rem 0;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                    border-bottom: 1px solid #e9ecef;
                 }
                 
                 .client-rank-item:last-child {
@@ -359,8 +364,8 @@ class AnalyticsAdvanced {
                 }
                 
                 .rank {
-                    background: rgba(0, 212, 255, 0.2);
-                    color: #00d4ff;
+                    background: #e9ecef;
+                    color: #495057;
                     padding: 0.2rem 0.5rem;
                     border-radius: 4px;
                     font-size: 0.8rem;
@@ -371,7 +376,7 @@ class AnalyticsAdvanced {
                 
                 .name {
                     flex: 1;
-                    color: rgba(255, 255, 255, 0.8);
+                    color: #495057;
                 }
                 
                 .rentability {
@@ -381,10 +386,11 @@ class AnalyticsAdvanced {
                 }
                 
                 .comparison-chart-container {
-                    background: rgba(26, 26, 46, 0.8);
-                    border-radius: 12px;
+                    background: #ffffff;
+                    border-radius: 8px;
                     padding: 1.5rem;
-                    border: 1px solid rgba(0, 212, 255, 0.2);
+                    border: 1px solid #dee2e6;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
                     height: 400px;
                     position: relative;
                 }
@@ -448,10 +454,10 @@ class AnalyticsAdvanced {
                     y: {
                         beginAtZero: true,
                         grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
+                            color: '#e9ecef'
                         },
                         ticks: {
-                            color: 'rgba(255, 255, 255, 0.7)',
+                            color: '#495057',
                             callback: (value) => value + '%'
                         }
                     },
@@ -460,7 +466,7 @@ class AnalyticsAdvanced {
                             display: false
                         },
                         ticks: {
-                            color: 'rgba(255, 255, 255, 0.7)'
+                            color: '#495057'
                         }
                     }
                 }
@@ -543,75 +549,80 @@ class AnalyticsAdvanced {
                 }
                 
                 .metric-card {
-                    background: rgba(26, 26, 46, 0.8);
-                    border-radius: 12px;
+                    background: #ffffff;
+                    border-radius: 8px;
                     padding: 1.5rem;
-                    border: 1px solid rgba(0, 212, 255, 0.2);
+                    border: 1px solid #dee2e6;
                     text-align: center;
-                    transition: transform 0.3s ease, box-shadow 0.3s ease;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
                 }
                 
                 .metric-card:hover {
-                    transform: translateY(-5px);
-                    box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
                 }
                 
                 .metric-card h4 {
-                    color: #00d4ff;
+                    color: #212529;
                     margin: 0 0 1rem 0;
                     font-size: 1rem;
+                    font-weight: 600;
                 }
                 
                 .metric-value {
                     font-size: 2rem;
                     font-weight: 700;
-                    color: #00ff88;
+                    color: #0066cc;
                     display: block;
                 }
                 
                 .metric-benchmark {
                     font-size: 0.8rem;
-                    color: rgba(255, 255, 255, 0.5);
+                    color: #6c757d;
                     margin-top: 0.5rem;
                 }
                 
                 .metrics-details {
-                    background: rgba(26, 26, 46, 0.8);
-                    border-radius: 12px;
+                    background: #ffffff;
+                    border-radius: 8px;
                     padding: 1.5rem;
-                    border: 1px solid rgba(0, 212, 255, 0.2);
+                    border: 1px solid #dee2e6;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
                 }
                 
                 .metrics-details h4 {
-                    color: #00ff88;
+                    color: #212529;
                     margin: 0 0 1rem 0;
+                    font-weight: 600;
                 }
                 
                 .metrics-table table {
                     width: 100%;
                     border-collapse: collapse;
+                    background: #ffffff;
                 }
                 
                 .metrics-table th {
-                    background: rgba(0, 212, 255, 0.1);
-                    color: #00d4ff;
+                    background: #f8f9fa;
+                    color: #212529;
                     padding: 0.8rem;
                     text-align: left;
                     font-weight: 600;
+                    border-bottom: 2px solid #dee2e6;
                 }
                 
                 .metrics-table td {
                     padding: 0.8rem;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                    color: rgba(255, 255, 255, 0.8);
+                    border-bottom: 1px solid #e9ecef;
+                    color: #495057;
                 }
                 
                 .positive {
-                    color: #00ff88 !important;
+                    color: #28a745 !important;
                 }
                 
                 .negative {
-                    color: #ff6b6b !important;
+                    color: #dc3545 !important;
                 }
             </style>
         `;
@@ -619,10 +630,10 @@ class AnalyticsAdvanced {
 
     renderMetricCard(title, value, benchmark, type) {
         const colors = {
-            sharpe: '#00d4ff',
-            volatility: '#ffd700',
-            drawdown: '#ff6b6b',
-            success: '#00ff88'
+            sharpe: '#0066cc',
+            volatility: '#ffc107',
+            drawdown: '#dc3545',
+            success: '#28a745'
         };
         
         return `
@@ -716,7 +727,7 @@ class AnalyticsAdvanced {
                             <option value="montecarlo">Monte Carlo</option>
                         </select>
                     </div>
-                    <button class="btn-primary" onclick="analyticsAdvanced.runProjection()">Ejecutar Proyección</button>
+                    <button class="btn-primary" onclick="window.analyticsAdvanced.runProjection()">Ejecutar Proyección</button>
                 </div>
                 
                 <div class="projection-results">
@@ -748,16 +759,18 @@ class AnalyticsAdvanced {
                 }
                 
                 .projection-controls {
-                    background: rgba(26, 26, 46, 0.8);
-                    border-radius: 12px;
+                    background: #ffffff;
+                    border-radius: 8px;
                     padding: 1.5rem;
-                    border: 1px solid rgba(0, 212, 255, 0.2);
+                    border: 1px solid #dee2e6;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
                     margin-bottom: 2rem;
                 }
                 
                 .projection-controls h4 {
-                    color: #00ff88;
+                    color: #212529;
                     margin: 0 0 1rem 0;
+                    font-weight: 600;
                 }
                 
                 .control-group {
@@ -768,24 +781,25 @@ class AnalyticsAdvanced {
                 
                 .control-group label {
                     display: block;
-                    color: rgba(255, 255, 255, 0.7);
+                    color: #495057;
                     margin-bottom: 0.5rem;
                     font-size: 0.9rem;
+                    font-weight: 500;
                 }
                 
                 .control-group select {
-                    background: rgba(16, 16, 32, 0.8);
-                    border: 1px solid rgba(0, 212, 255, 0.3);
-                    color: white;
+                    background: #ffffff;
+                    border: 1px solid #ced4da;
+                    color: #495057;
                     padding: 0.5rem 1rem;
                     border-radius: 6px;
                     font-size: 0.9rem;
                 }
                 
                 .btn-primary {
-                    background: linear-gradient(135deg, #00d4ff, #00ff88);
+                    background: #0066cc;
                     border: none;
-                    color: #1a1a2e;
+                    color: #ffffff;
                     padding: 0.8rem 1.5rem;
                     border-radius: 8px;
                     font-weight: 600;
@@ -798,25 +812,28 @@ class AnalyticsAdvanced {
                 }
                 
                 .projection-results {
-                    background: rgba(26, 26, 46, 0.8);
-                    border-radius: 12px;
+                    background: #ffffff;
+                    border-radius: 8px;
                     padding: 1.5rem;
-                    border: 1px solid rgba(0, 212, 255, 0.2);
+                    border: 1px solid #dee2e6;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
                     margin-bottom: 2rem;
                     height: 400px;
                     position: relative;
                 }
                 
                 .projection-summary {
-                    background: rgba(26, 26, 46, 0.8);
-                    border-radius: 12px;
+                    background: #ffffff;
+                    border-radius: 8px;
                     padding: 1.5rem;
-                    border: 1px solid rgba(0, 212, 255, 0.2);
+                    border: 1px solid #dee2e6;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
                 }
                 
                 .projection-summary h4 {
-                    color: #00d4ff;
+                    color: #212529;
                     margin: 0 0 1rem 0;
+                    font-weight: 600;
                 }
                 
                 .summary-grid {
@@ -830,18 +847,23 @@ class AnalyticsAdvanced {
                     justify-content: space-between;
                     align-items: center;
                     padding: 0.8rem;
-                    background: rgba(16, 16, 32, 0.6);
+                    background: #f8f9fa;
                     border-radius: 8px;
+                    border: 1px solid #e9ecef;
                 }
                 
                 .summary-item .label {
-                    color: rgba(255, 255, 255, 0.7);
+                    color: #6c757d;
                     font-size: 0.9rem;
                 }
                 
                 .summary-item .value {
                     font-weight: 600;
-                    color: #00ff88;
+                    color: #495057;
+                }
+                
+                .summary-item .value.positive {
+                    color: #28a745;
                 }
             </style>
         `;
@@ -909,7 +931,7 @@ class AnalyticsAdvanced {
                     legend: {
                         display: true,
                         labels: {
-                            color: 'rgba(255, 255, 255, 0.7)'
+                            color: '#495057'
                         }
                     },
                     tooltip: {
@@ -923,10 +945,10 @@ class AnalyticsAdvanced {
                 scales: {
                     y: {
                         grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
+                            color: '#e9ecef'
                         },
                         ticks: {
-                            color: 'rgba(255, 255, 255, 0.7)',
+                            color: '#495057',
                             callback: (value) => value + '%'
                         }
                     },
@@ -935,7 +957,7 @@ class AnalyticsAdvanced {
                             display: false
                         },
                         ticks: {
-                            color: 'rgba(255, 255, 255, 0.7)'
+                            color: '#495057'
                         }
                     }
                 }
