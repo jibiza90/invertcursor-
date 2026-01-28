@@ -900,7 +900,7 @@ class ReportsManager {
                         <button class="pdf-preview-btn" onclick="reportsManager.descargarPDF('${pdfUrl}', '${cliente.nombre}')">
                             <i class="fas fa-download"></i> Descargar
                         </button>
-                        <button class="pdf-preview-btn" onclick="reportsManager.compartirPorEmail('${pdfUrl}', '${cliente.nombre}')">
+                        <button class="pdf-preview-btn" onclick="reportsManager.prepararEmail('${pdfUrl}', '${cliente.nombre}')">
                             <i class="fas fa-envelope"></i> Email
                         </button>
                         <button class="pdf-preview-btn secondary" onclick="reportsManager.generarPDFLargoDesdePreview('${cliente.nombre}')">
@@ -961,8 +961,8 @@ class ReportsManager {
         }
     }
 
-    // 📧 Compartir por email
-    async compartirPorEmail(pdfUrl, nombreCliente) {
+    // 📧 Preparar email (abrir cliente de email del usuario)
+    async prepararEmail(pdfUrl, nombreCliente) {
         try {
             // Convertir el blob a base64 para el email
             const response = await fetch(pdfUrl);
@@ -974,7 +974,7 @@ class ReportsManager {
             const cuerpo = encodeURIComponent(`
 Estimado/a,
 
-Adjunto el informe del cliente ${nombreCliente} generado el ${new Date().toLocaleDateString('es-ES')}.
+Te adjunto el informe del cliente ${nombreCliente} generado el ${new Date().toLocaleDateString('es-ES')}.
 
 El informe incluye:
 - Estadísticas principales
@@ -982,30 +982,40 @@ El informe incluye:
 - Incrementos y decrementos
 - Gráficos visuales de rendimiento
 
+Por favor, adjunta el PDF que se ha descargado automáticamente a este email.
+
 Atentamente,
 InvertCursor Sistema de Gestión
             `.trim());
             
-            // Abrir cliente de email con el PDF adjunto
+            // Abrir cliente de email del usuario
             const mailtoLink = `mailto:?subject=${asunto}&body=${cuerpo}`;
             window.open(mailtoLink);
             
-            // También descargar el PDF automáticamente
-            this.descargarPDF(pdfUrl, nombreCliente);
+            // Descargar el PDF para que el usuario lo adjunte manualmente
+            setTimeout(() => {
+                this.descargarPDF(pdfUrl, nombreCliente);
+            }, 1000);
             
-            mostrarNotificacion('Abriendo cliente de email y descargando PDF...', 'info');
+            // Mostrar instrucciones claras
+            this.mostrarInstruccionesEmail();
             
         } catch (error) {
-            console.error('❌ Error al compartir por email:', error);
+            console.error('❌ Error al preparar el email:', error);
             mostrarNotificacion('Error al preparar el email', 'error');
         }
     }
 
-    // 🔄 Convertir blob a base64
-    blobToBase64(blob) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
+    // 📋 Mostrar instrucciones para el email
+    mostrarInstruccionesEmail() {
+        const modal = document.createElement('div');
+        modal.className = 'pdf-preview-modal active';
+        modal.innerHTML = `
+            <div class="pdf-preview-content" style="max-width: 500px;">
+                <div class="pdf-preview-header">
+                    <h3 class="pdf-preview-title">📧 Instrucciones para Email</h3>
+                    <button class="pdf-preview-close" onclick="this.closest('.pdf-preview-modal').remove()">
+                        <i class="fas fa-times"></i>
             reader.onerror = reject;
             reader.readAsDataURL(blob);
         });
