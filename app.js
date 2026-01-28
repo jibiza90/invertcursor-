@@ -10018,21 +10018,26 @@ function mostrarVistaReports() {
                         
                         const [hojaNombre, clienteId] = dropdown.value.split('|');
                         const clienteIndex = parseInt(clienteId);
-                        const cliente = this.clientesDisponibles.find(c => 
-                            c.hoja === hojaNombre && c.id === clienteIndex
-                        );
                         
-                        if (!cliente) {
-                            throw new Error('Cliente no encontrado');
+                        // Obtener cliente REAL desde datosEditados
+                        const hoja = datosEditados?.hojas?.[hojaNombre];
+                        if (!hoja || !hoja.clientes || !hoja.clientes[clienteIndex]) {
+                            throw new Error('Cliente no encontrado en datos');
                         }
                         
-                        console.log('📄 Generando informe para:', cliente.nombre);
+                        const clienteReal = hoja.clientes[clienteIndex];
+                        
+                        console.log('📄 Generando informe para cliente real:', clienteIndex);
+                        console.log('📄 Datos del cliente:', {
+                            tieneDatos: !!clienteReal.datos,
+                            tieneDatosDiarios: clienteReal.datos ? clienteReal.datos.datos_diarios?.length || 0 : 0
+                        });
                         
                         // Generar HTML del informe
-                        const htmlInforme = this.generarHTMLInforme(cliente);
+                        const htmlInforme = this.generarHTMLInforme(clienteReal);
                         
                         // Mostrar modal grande con el informe
-                        this.mostrarModalInforme(htmlInforme, cliente);
+                        this.mostrarModalInforme(htmlInforme, clienteReal);
                         
                         mostrarNotificacion('Informe generado correctamente', 'success');
                         
@@ -10227,13 +10232,19 @@ InvertCursor Sistema de Gestión
                     const datosCliente = cliente.datos || {};
                     const nombre = datosCliente['NOMBRE']?.valor || '';
                     const apellidos = datosCliente['APELLIDOS']?.valor || '';
-                    const nombreCompleto = nombre || apellidos ? `${nombre} ${apellidos}`.trim() : `Cliente ${cliente.numeroCliente}`;
+                    const nombreCompleto = nombre || apellidos ? `${nombre} ${apellidos}`.trim() : `Cliente ${cliente.numero_cliente || 0}`;
                     
-                    // Obtener hoja actual
+                    // Obtener hoja actual (la misma que se está usando)
                     const hoja = datosEditados?.hojas?.[hojaActual];
                     if (!hoja) {
                         return `<p style="color: red;">No hay hoja activa</p>`;
                     }
+                    
+                    console.log('🔍 DEBUG generarHTMLInforme:', {
+                        hojaActual,
+                        clienteIndex: cliente.numero_cliente,
+                        tieneDatosDiarios: datosCliente.datos_diarios?.length || 0
+                    });
                     
                     // USAR EXACTAMENTE EL MISMO SISTEMA QUE ESTADÍSTICAS DE CLIENTES
                     try {
