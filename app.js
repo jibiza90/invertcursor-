@@ -10036,6 +10036,9 @@ function mostrarVistaReports() {
                         // Generar HTML del informe
                         const htmlInforme = this.generarHTMLInforme(clienteReal);
                         
+                        console.log('📄 HTML generado length:', htmlInforme.length);
+                        console.log('📄 HTML preview:', htmlInforme.substring(0, 500));
+                        
                         // Mostrar modal grande con el informe
                         this.mostrarModalInforme(htmlInforme, clienteReal);
                         
@@ -10133,8 +10136,28 @@ function mostrarVistaReports() {
                     // Cargar el HTML en el iframe
                     iframe.onload = () => {
                         console.log('✅ Informe cargado en modal');
+                        
+                        // Verificar si el iframe tiene contenido
+                        try {
+                            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                            console.log('📄 iframe document readyState:', iframeDoc.readyState);
+                            console.log('📄 iframe body HTML length:', iframeDoc.body ? iframeDoc.body.innerHTML.length : 0);
+                            
+                            // Verificar si hay errores en el iframe
+                            const errors = iframeDoc.querySelectorAll('.error, .error-message');
+                            if (errors.length > 0) {
+                                console.error('❌ Errores en el iframe:', errors);
+                            }
+                        } catch (e) {
+                            console.error('❌ Error accediendo al iframe:', e);
+                        }
                     };
                     
+                    iframe.onerror = (error) => {
+                        console.error('❌ Error cargando iframe:', error);
+                    };
+                    
+                    console.log('📄 Cargando HTML en iframe...');
                     iframe.srcdoc = htmlInforme;
                     
                     // Cerrar al hacer clic fuera
@@ -10575,6 +10598,23 @@ InvertCursor Sistema de Gestión
                                 </div>
                                 
                                 <script>
+                                    // Funciones de formato necesarias
+                                    function formatearMoneda(valor) {
+                                        if (valor === null || valor === undefined) return '0,00 €';
+                                        const num = parseFloat(valor);
+                                        return new Intl.NumberFormat('es-ES', {
+                                            style: 'currency',
+                                            currency: 'EUR'
+                                        }).format(num);
+                                    }
+                                    
+                                    function formatearMesCorto(mes) {
+                                        if (!mes) return '';
+                                        const [year, month] = mes.split('-');
+                                        const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                                        return meses[parseInt(month) - 1] + ' ' + year;
+                                    }
+                                    
                                     // Datos del cliente para gráficos (ordenados cronológicamente)
                                     const datosCliente = ${JSON.stringify(datosOrdenados)};
                                     
