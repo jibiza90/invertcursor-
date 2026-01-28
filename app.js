@@ -9988,8 +9988,8 @@ function mostrarVistaReports() {
                         boton.disabled = false;
                         
                         // Asignar evento click
-                        boton.onclick = () => {
-                            this.generarInformePDF();
+                        boton.onclick = async () => {
+                            await this.generarInformePDF();
                         };
                         
                         console.log('✅ Botón generar informe configurado');
@@ -10000,7 +10000,7 @@ function mostrarVistaReports() {
                     this.cargarClientesDisponibles();
                 }
                 
-                generarInformePDF() {
+                async generarInformePDF() {
                     try {
                         console.log('📄 Generando informe PDF...');
                         
@@ -10034,7 +10034,7 @@ function mostrarVistaReports() {
                         });
                         
                         // Generar HTML del informe
-                        const htmlInforme = this.generarHTMLInforme(clienteReal);
+                        const htmlInforme = await this.generarHTMLInforme(clienteReal);
                         
                         console.log('📄 HTML generado length:', htmlInforme.length);
                         console.log('📄 HTML preview:', htmlInforme.substring(0, 500));
