@@ -10232,7 +10232,7 @@ InvertCursor Sistema de Gestión
                     // Obtener datos diarios
                     const datosDiarios = datosCliente.datos_diarios || [];
                     
-                    // Calcular estadísticas
+                    // Calcular estadísticas con lógica financiera correcta
                     let stats = { 
                         invertido: 0, 
                         saldoActual: 0, 
@@ -10247,8 +10247,14 @@ InvertCursor Sistema de Gestión
                     const decrementosDetallados = [];
                     
                     if (datosDiarios.length > 0) {
-                        const ultimoDia = datosDiarios[0];
+                        // Ordenar datos por fecha (más reciente primero)
+                        const datosOrdenados = datosDiarios.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+                        const ultimoDia = datosOrdenados[0];
+                        
+                        // Saldo actual: último saldo disponible
                         stats.saldoActual = ultimoDia.saldo || 0;
+                        
+                        // Beneficio total: último beneficio_acumulado disponible
                         stats.beneficioTotal = ultimoDia.beneficio_acumulado || 0;
                         
                         // Sumar todos los incrementos y decrementos
@@ -10269,31 +10275,40 @@ InvertCursor Sistema de Gestión
                             }
                         });
                         
-                        // Calcular capital invertido (saldo - beneficios + decrementos - incrementos)
-                        stats.invertido = stats.saldoActual - stats.beneficioTotal + stats.decrementosTotal - stats.incrementosTotal;
+                        // Capital invertido: suma de todos los incrementos (aportaciones)
+                        stats.invertido = stats.incrementosTotal;
+                        
+                        // Si no hay suficientes datos, usar capital_inicial del cliente si existe
+                        if (stats.invertido === 0 && datosCliente.CAPITAL_INICIAL && datosCliente.CAPITAL_INICIAL.valor) {
+                            stats.invertido = datosCliente.CAPITAL_INICIAL.valor;
+                        }
+                        
+                        // Rentabilidad total: beneficio / capital invertido
                         stats.rentabilidadTotal = stats.invertido > 0 ? (stats.beneficioTotal / stats.invertido) : 0;
                     }
                     
-                    // Preparar datos para gráficos
+                    // Preparar datos para gráficos de rentabilidad mensual
                     const rentabilidadMensual = [];
-                    const meses = {};
+                    const datosPorMes = {};
                     
+                    // Agrupar rentabilidad por mes
                     datosDiarios.forEach(dia => {
                         if (dia.beneficio_diario_pct !== null && dia.beneficio_diario_pct !== undefined) {
                             const mes = dia.fecha.substring(0, 7);
-                            if (!meses[mes]) {
-                                meses[mes] = [];
+                            if (!datosPorMes[mes]) {
+                                datosPorMes[mes] = [];
                             }
-                            meses[mes].push(dia.beneficio_diario_pct);
+                            datosPorMes[mes].push(dia.beneficio_diario_pct);
                         }
                     });
                     
-                    Object.keys(meses).sort().forEach(mes => {
-                        const rentabilidades = meses[mes];
+                    // Calcular promedio mensual y ordenar
+                    Object.keys(datosPorMes).sort().forEach(mes => {
+                        const rentabilidades = datosPorMes[mes];
                         const promedio = rentabilidades.reduce((a, b) => a + b, 0) / rentabilidades.length;
                         rentabilidadMensual.push({
                             mes: this.formatearMes(mes),
-                            valor: promedio * 100
+                            valor: promedio * 100 // Convertir a porcentaje
                         });
                     });
                     
@@ -10463,6 +10478,18 @@ InvertCursor Sistema de Gestión
                                             <div class="label">Número de Cliente</div>
                                             <div class="valor">${cliente.numeroCliente}</div>
                                         </div>
+                                        ${datosCliente['EMAIL']?.valor ? `
+                                        <div class="info-item">
+                                            <div class="label">Email</div>
+                                            <div class="valor">${datosCliente['EMAIL'].valor}</div>
+                                        </div>
+                                        ` : ''}
+                                        ${datosCliente['TELEFONO']?.valor ? `
+                                        <div class="info-item">
+                                            <div class="label">Teléfono</div>
+                                            <div class="valor">${datosCliente['TELEFONO'].valor}</div>
+                                        </div>
+                                        ` : ''}
                                     </div>
                                 </div>
                                 
@@ -10539,6 +10566,35 @@ InvertCursor Sistema de Gestión
                                         </table>
                                     ` : '<p style="color: #7f8c8d; font-style: italic;">No hay decrementos registrados</p>'}
                                 </div>
+                                
+                                ${datosDiarios.length > 0 ? `
+                                <div class="section">
+                                    <h2>📈 Evolución Mensual</h2>
+                                    <table class="movimientos-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Fecha</th>
+                                                <th>Saldo</th>
+                                                <th>Beneficio Acumulado</th>
+                                                <th>Rentabilidad</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${datosDiarios.slice(0, 10).map(dia => {
+                                                const rentabilidad = dia.invertido > 0 ? ((dia.beneficio_acumulado || 0) / dia.invertido) * 100 : 0;
+                                                return `
+                                                <tr>
+                                                    <td>${formatearFecha(dia.fecha)}</td>
+                                                    <td>${formatearMoneda(dia.saldo || 0)}</td>
+                                                    <td class="${(dia.beneficio_acumulado || 0) >= 0 ? 'positivo' : 'negativo'}">${formatearMoneda(dia.beneficio_acumulado || 0)}</td>
+                                                    <td class="${rentabilidad >= 0 ? 'positivo' : 'negativo'}">${formatearPorcentaje(rentabilidad / 100)}</td>
+                                                </tr>
+                                                `;
+                                            }).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                ` : ''}
                                 
                                 <div class="section">
                                     <h2>📊 Rentabilidad Mensual</h2>
