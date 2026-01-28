@@ -9982,15 +9982,126 @@ function mostrarVistaReports() {
                         });
                     }
                     
-                    // Habilitar botón de generar
+                    // Habilitar botón de generar y asignar evento
                     const boton = document.getElementById('generateReportBtn');
                     if (boton) {
                         boton.disabled = false;
+                        
+                        // Asignar evento click
+                        boton.onclick = () => {
+                            this.generarInformePDF();
+                        };
+                        
+                        console.log('✅ Botón generar informe configurado');
                     }
                 }
                 
                 recargarClientes() {
                     this.cargarClientesDisponibles();
+                }
+                
+                generarInformePDF() {
+                    try {
+                        console.log('📄 Generando informe PDF...');
+                        
+                        const dropdown = document.getElementById('reportClientSelect');
+                        const boton = document.getElementById('generateReportBtn');
+                        
+                        if (!dropdown.value) {
+                            mostrarNotificacion('Por favor, selecciona un cliente', 'warning');
+                            return;
+                        }
+                        
+                        // Mostrar loading
+                        boton.disabled = true;
+                        boton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando...';
+                        
+                        const [hojaNombre, clienteId] = dropdown.value.split('|');
+                        const clienteIndex = parseInt(clienteId);
+                        const cliente = this.clientesDisponibles.find(c => 
+                            c.hoja === hojaNombre && c.id === clienteIndex
+                        );
+                        
+                        if (!cliente) {
+                            throw new Error('Cliente no encontrado');
+                        }
+                        
+                        console.log('📄 Generando informe para:', cliente.nombre);
+                        
+                        // Generar HTML del informe
+                        const htmlInforme = this.generarHTMLInforme(cliente);
+                        
+                        // Mostrar en nueva ventana
+                        const nuevaVentana = window.open('', '_blank');
+                        nuevaVentana.document.write(`
+                            <!DOCTYPE html>
+                            <html>
+                            <head>
+                                <title>Informe - ${cliente.nombre}</title>
+                                <style>
+                                    body { font-family: Arial, sans-serif; margin: 20px; }
+                                    .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; }
+                                    .cliente-info { margin: 20px 0; }
+                                    .estadisticas { margin: 20px 0; }
+                                    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                                    th { background-color: #f2f2f2; }
+                                    .acciones { text-align: center; margin: 30px 0; }
+                                    button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+                                </style>
+                            </head>
+                            <body>
+                                ${htmlInforme}
+                                <div class="acciones">
+                                    <button onclick="window.print()">🖨️ Imprimir</button>
+                                    <button onclick="window.close()">❌ Cerrar</button>
+                                </div>
+                            </body>
+                            </html>
+                        `);
+                        nuevaVentana.document.close();
+                        
+                        mostrarNotificacion('Informe generado correctamente', 'success');
+                        
+                    } catch (error) {
+                        console.error('❌ Error generando informe:', error);
+                        mostrarNotificacion('Error al generar informe: ' + error.message, 'error');
+                    } finally {
+                        // Restaurar botón
+                        const boton = document.getElementById('generateReportBtn');
+                        if (boton) {
+                            boton.disabled = false;
+                            boton.innerHTML = '<i class="fas fa-file-pdf"></i> Generar Informe PDF';
+                        }
+                    }
+                }
+                
+                generarHTMLInforme(cliente) {
+                    const fecha = new Date().toLocaleDateString('es-ES');
+                    
+                    return `
+                        <div class="header">
+                            <h1>📄 Informe de Cliente</h1>
+                            <p>Generado el ${fecha}</p>
+                        </div>
+                        
+                        <div class="cliente-info">
+                            <h2>📋 Información del Cliente</h2>
+                            <p><strong>Nombre:</strong> ${cliente.nombreCompleto || `Cliente ${cliente.numeroCliente}`}</p>
+                            <p><strong>Número de Cliente:</strong> ${cliente.numeroCliente}</p>
+                            ${cliente.email ? `<p><strong>Email:</strong> ${cliente.email}</p>` : ''}
+                        </div>
+                        
+                        <div class="estadisticas">
+                            <h2>📊 Estadísticas Generales</h2>
+                            <p>Este es un informe básico del cliente con la información disponible.</p>
+                            <p>Para obtener estadísticas detalladas, consulta la sección de Estadísticas de Clientes.</p>
+                        </div>
+                        
+                        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666;">
+                            <p>Informe generado automáticamente por InvertCursor</p>
+                        </div>
+                    `;
                 }
             };
         }
