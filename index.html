@@ -47,6 +47,9 @@
             <button class="tab-button" data-tab="reporting">
                 📋 Informes
             </button>
+            <button class="tab-button" data-tab="visualization">
+                🎨 Visualizaciones
+            </button>
             <button class="tab-button" data-tab="export">
                 📤 Exportar Datos
             </button>
@@ -135,7 +138,17 @@
                 </div>
             </div>
 
-            <!-- PESTAÑA 4: EXPORTAR DATOS -->
+            <!-- PESTAÑA 4: VISUALIZACIONES -->
+            <div id="tab-visualization" class="tab-content">
+                <div id="visualization-content">
+                    <div class="loading-state">
+                        <div class="loading-spinner"></div>
+                        <p>Cargando visualizaciones...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PESTAÑA 5: EXPORTAR DATOS -->
             <div id="tab-export" class="tab-content">
                 <div id="export-content">
                     <div class="loading-state">
@@ -145,7 +158,7 @@
                 </div>
             </div>
 
-            <!-- PESTAÑA 5: CONFIGURACIÓN -->
+            <!-- PESTAÑA 6: CONFIGURACIÓN -->
             <div id="tab-settings" class="tab-content">
                 <div id="settings-content">
                     <div class="loading-state">
@@ -537,6 +550,7 @@
     <script src="tabs-core.js"></script>
     <script src="analytics-advanced.js"></script>
     <script src="reporting-util.js"></script>
+    <script src="visualizations-3d.js"></script>
     <script src="export-data.js"></script>
     <script src="configuracion.js"></script>
     
