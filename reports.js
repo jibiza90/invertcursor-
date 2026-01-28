@@ -43,66 +43,71 @@ class ReportsManager {
         try {
             console.log('🔍 Iniciando carga de clientes para informes...');
             
-            // Verificar que datosEditados exista
             if (typeof datosEditados === 'undefined' || !datosEditados) {
-                console.error('❌ datosEditados no está definido');
-                mostrarNotificacion('Error: datos no cargados', 'error');
+                console.warn('⚠️ datosEditados no está disponible');
+                mostrarNotificacion('Los datos están cargando, espera un momento...', 'warning');
                 return;
             }
-
-            // Obtener todas las hojas
-            const hojas = datosEditados.hojas || {};
-            console.log('📊 Hojas disponibles:', Object.keys(hojas));
+            
+            if (!datosEditados.hojas) {
+                console.warn('⚠️ No hay hojas en datosEditados');
+                mostrarNotificacion('No hay datos de clientes disponibles', 'warning');
+                return;
+            }
             
             this.clientesDisponibles = [];
-
-            Object.keys(hojas).forEach(nombreHoja => {
-                const hoja = hojas[nombreHoja];
-                console.log(`🔍 Analizando hoja: ${nombreHoja}`);
+            const hojasDisponibles = Object.keys(datosEditados.hojas);
+            
+            console.log('📊 Hojas disponibles:', hojasDisponibles);
+            
+            hojasDisponibles.forEach(nombreHoja => {
+                const hoja = datosEditados.hojas[nombreHoja];
                 
-                // 🔥 CORRECCIÓN: Los clientes son un array, no un objeto
-                if (hoja.clientes && Array.isArray(hoja.clientes)) {
-                    console.log(`👥 Clientes en ${nombreHoja}:`, hoja.clientes.length);
-                    
-                    hoja.clientes.forEach((cliente, index) => {
-                        if (cliente && typeof cliente === 'object') {
-                            // 🔥 EXTRAER NOMBRE Y APELLIDOS REALES
-                            const datosCliente = cliente.datos || {};
-                            const nombre = datosCliente['NOMBRE']?.valor || '';
-                            const apellidos = datosCliente['APELLIDOS']?.valor || '';
-                            const nombreCompleto = (nombre || apellidos) ? `${nombre} ${apellidos}`.trim() : '';
-                            
-                            const numeroCliente = cliente.numero_cliente || (index + 1);
-                            const nombreParaMostrar = nombreCompleto ? `Cliente ${numeroCliente} - ${nombreCompleto}` : `Cliente ${numeroCliente}`;
-                            
-                            console.log(`✅ Cliente encontrado: ${nombreParaMostrar} (índice: ${index}, número: ${numeroCliente})`);
-                            
-                            this.clientesDisponibles.push({
-                                id: index, // Usar el índice del array
-                                nombre: nombreParaMostrar,
-                                numeroCliente: numeroCliente,
-                                nombreCompleto: nombreCompleto,
-                                nombreSolo: nombre,
-                                apellidos: apellidos,
-                                hoja: nombreHoja,
-                                datos: cliente
-                            });
-                        } else {
-                            console.warn(`⚠️ Cliente inválido en índice ${index}`);
-                        }
-                    });
-                } else {
-                    console.warn(`⚠️ La hoja ${nombreHoja} no tiene clientes válidos (tipo: ${typeof hoja.clientes})`);
+                if (!hoja.clientes) {
+                    console.warn(`⚠️ La hoja "${nombreHoja}" no tiene clientes`);
+                    return;
                 }
+                
+                console.log(`📋 Procesando hoja "${nombreHoja}" con ${hoja.clientes.length} clientes`);
+                
+                // 🔥 CORRECCIÓN: hoja.clientes es un ARRAY, no un objeto
+                hoja.clientes.forEach((cliente, index) => {
+                    if (cliente && typeof cliente === 'object') {
+                        // 🔥 EXTRAER NOMBRE, APELLIDOS Y EMAIL REALES
+                        const datosCliente = cliente.datos || {};
+                        const nombre = datosCliente['NOMBRE']?.valor || '';
+                        const apellidos = datosCliente['APELLIDOS']?.valor || '';
+                        const email = datosCliente['EMAIL']?.valor || '';
+                        const nombreCompleto = (nombre || apellidos) ? `${nombre} ${apellidos}`.trim() : '';
+                        
+                        const numeroCliente = cliente.numero_cliente || (index + 1);
+                        const nombreParaMostrar = nombreCompleto ? `Cliente ${numeroCliente} - ${nombreCompleto}` : `Cliente ${numeroCliente}`;
+                        
+                        console.log(`✅ Cliente encontrado: ${nombreParaMostrar} (índice: ${index}, número: ${numeroCliente}, email: ${email || 'sin email'})`);
+                        
+                        this.clientesDisponibles.push({
+                            id: index, // Usar el índice del array
+                            nombre: nombreParaMostrar,
+                            numeroCliente: numeroCliente,
+                            nombreCompleto: nombreCompleto,
+                            nombreSolo: nombre,
+                            apellidos: apellidos,
+                            email: email, // 🔥 AÑADIR EMAIL
+                            hoja: nombreHoja,
+                            datos: cliente
+                        });
+                    } else {
+                        console.warn(`⚠️ Cliente inválido en índice ${index}`);
+                    }
+                });
             });
-
-            console.log(`👥 Total de clientes disponibles para informes: ${this.clientesDisponibles.length}`);
+            
+            console.log(`📊 Total clientes cargados: ${this.clientesDisponibles.length}`);
             
             if (this.clientesDisponibles.length === 0) {
-                console.warn('⚠️ No se encontraron clientes');
-                mostrarNotificacion('No se encontraron clientes para generar informes', 'warning');
+                mostrarNotificacion('No se encontraron clientes en los datos', 'warning');
             } else {
-                console.log('✅ Clientes cargados correctamente:', this.clientesDisponibles.map(c => `${c.nombre} (${c.hoja})`));
+                mostrarNotificacion(`Se cargaron ${this.clientesDisponibles.length} clientes`, 'success');
             }
             
             this.actualizarDropdownClientes();
@@ -889,6 +894,9 @@ class ReportsManager {
         // Crear URL para el blob
         const pdfUrl = URL.createObjectURL(pdfBlob);
 
+        // Determinar si el cliente tiene email
+        const tieneEmail = cliente.email && cliente.email.trim() !== '';
+
         // Crear modal de previsualización
         const modal = document.createElement('div');
         modal.className = 'pdf-preview-modal active';
@@ -900,9 +908,15 @@ class ReportsManager {
                         <button class="pdf-preview-btn" onclick="reportsManager.descargarPDF('${pdfUrl}', '${cliente.nombre}')">
                             <i class="fas fa-download"></i> Descargar
                         </button>
-                        <button class="pdf-preview-btn" onclick="reportsManager.prepararEmail('${pdfUrl}', '${cliente.nombre}')">
-                            <i class="fas fa-envelope"></i> Email
-                        </button>
+                        ${tieneEmail ? `
+                            <button class="pdf-preview-btn" onclick="reportsManager.enviarEmailAutomatico('${pdfUrl}', '${cliente.nombre}', '${cliente.email}')">
+                                <i class="fas fa-paper-plane"></i> Enviar a Cliente
+                            </button>
+                        ` : `
+                            <button class="pdf-preview-btn secondary" onclick="reportsManager.prepararEmail('${pdfUrl}', '${cliente.nombre}')" title="El cliente no tiene email registrado">
+                                <i class="fas fa-envelope"></i> Email Manual
+                            </button>
+                        `}
                         <button class="pdf-preview-btn secondary" onclick="reportsManager.generarPDFLargoDesdePreview('${cliente.nombre}')">
                             <i class="fas fa-file-alt"></i> PDF Largo
                         </button>
@@ -961,46 +975,123 @@ class ReportsManager {
         }
     }
 
-    // 📧 Preparar email (optimizado para Gmail)
-    async prepararEmail(pdfUrl, nombreCliente) {
+    // 📧 Enviar email automático al cliente con confirmación
+    async enviarEmailAutomatico(pdfUrl, nombreCliente, emailCliente) {
         try {
-            console.log('📧 Preparando email para Gmail...');
+            console.log('📧 Preparando email automático para:', emailCliente);
+            
+            if (!emailCliente) {
+                mostrarNotificacion('Este cliente no tiene email registrado', 'warning');
+                return;
+            }
             
             // Crear el asunto y cuerpo del email
             const asunto = encodeURIComponent(`Informe de Cliente - ${nombreCliente}`);
             const cuerpo = encodeURIComponent(`
-Estimado/a,
+Estimado/a ${nombreCliente},
 
-Te adjunto el informe del cliente ${nombreCliente} generado el ${new Date().toLocaleDateString('es-ES')}.
+Te adjunto tu informe de inversión generado el ${new Date().toLocaleDateString('es-ES')}.
 
 El informe incluye:
-• Estadísticas principales de inversión
+• Estadísticas principales de tu inversión
 • Evolución mensual detallada
-• Incrementos y decrementos
+• Análisis de incrementos y decrementos
 • Gráficos visuales de rendimiento
 
-El PDF se ha descargado automáticamente en tu carpeta de Descargas con el nombre:
-informe_${nombreCliente.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf
-
-Por favor, adjunta ese archivo PDF a este email antes de enviarlo.
+Si tienes alguna duda, no dudes en contactarnos.
 
 Atentamente,
 InvertCursor Sistema de Gestión
             `.trim());
             
-            // 🔥 ABRIR GMAIL DIRECTAMENTE
-            const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&su=${asunto}&body=${cuerpo}`;
-            window.open(gmailLink, '_blank');
-            
-            // Descargar el PDF inmediatamente
-            this.descargarPDF(pdfUrl, nombreCliente);
-            
-            // Mostrar instrucciones específicas para Gmail
-            this.mostrarInstruccionesGmail(nombreCliente);
+            // 🔥 MOSTRAR CONFIRMACIÓN ANTES DE ENVIAR
+            this.mostrarConfirmacionEmail(nombreCliente, emailCliente, asunto, cuerpo, pdfUrl);
             
         } catch (error) {
-            console.error('❌ Error al preparar email:', error);
-            mostrarNotificacion('Error al preparar el email', 'error');
+            console.error('❌ Error preparando email automático:', error);
+            mostrarNotificacion('Error al preparar email', 'error');
+        }
+    }
+
+    // 📋 Mostrar confirmación de envío de email
+    mostrarConfirmacionEmail(nombreCliente, emailCliente, asunto, cuerpo, pdfUrl) {
+        const modal = document.createElement('div');
+        modal.className = 'pdf-preview-modal active';
+        modal.innerHTML = `
+            <div class="pdf-preview-content" style="max-width: 600px;">
+                <div class="pdf-preview-header">
+                    <h3 class="pdf-preview-title">📧 Confirmar Envío de Email</h3>
+                    <button class="pdf-preview-close" onclick="this.closest('.pdf-preview-modal').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="pdf-preview-body" style="padding: 20px;">
+                    <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #4caf50;">
+                        <h4 style="color: #2e7d32; margin: 0 0 10px 0;">📧 Detalles del Email</h4>
+                        <p style="color: #2e7d32; margin: 5px 0;"><strong>Para:</strong> ${emailCliente}</p>
+                        <p style="color: #2e7d32; margin: 5px 0;"><strong>Cliente:</strong> ${nombreCliente}</p>
+                        <p style="color: #2e7d32; margin: 5px 0;"><strong>Asunto:</strong> Informe de Cliente - ${nombreCliente}</p>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="color: #2d3748; margin: 0 0 10px 0;">📝 Mensaje del Email:</h4>
+                        <div style="background: white; padding: 15px; border-radius: 5px; border: 1px solid #e2e8f0; max-height: 200px; overflow-y: auto;">
+                            <p style="color: #4a5568; margin: 0; white-space: pre-line; font-size: 14px; line-height: 1.5;">Estimado/a ${nombreCliente},
+
+Te adjunto tu informe de inversión generado el ${new Date().toLocaleDateString('es-ES')}.
+
+El informe incluye:
+• Estadísticas principales de tu inversión
+• Evolución mensual detallada
+• Análisis de incrementos y decrementos
+• Gráficos visuales de rendimiento
+
+Si tienes alguna duda, no dudes en contactarnos.
+
+Atentamente,
+InvertCursor Sistema de Gestión</p>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin-bottom: 20px;">
+                        <p style="color: #856404; margin: 0; font-weight: bold;">⚠️ Importante:</p>
+                        <p style="color: #856404; margin: 5px 0 0 0;">El PDF se adjuntará automáticamente. Podrás modificar el mensaje antes de enviar si lo deseas.</p>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button class="pdf-preview-btn secondary" onclick="this.closest('.pdf-preview-modal').remove()">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button class="pdf-preview-btn" onclick="reportsManager.confirmarEnvioEmail('${emailCliente}', '${asunto}', '${encodeURIComponent(cuerpo)}', '${pdfUrl}', '${nombreCliente}')">
+                            <i class="fas fa-paper-plane"></i> Abrir Gmail para Enviar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+
+    // ✅ Confirmar y abrir Gmail para enviar
+    confirmarEnvioEmail(emailCliente, asunto, cuerpo, pdfUrl, nombreCliente) {
+        try {
+            // Cerrar modal de confirmación
+            document.querySelector('.pdf-preview-modal').remove();
+            
+            // Abrir Gmail con el email del cliente
+            const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=${emailCliente}&su=${asunto}&body=${cuerpo}`;
+            window.open(gmailLink, '_blank');
+            
+            // Descargar el PDF para adjuntar
+            this.descargarPDF(pdfUrl, nombreCliente);
+            
+            // Mostrar notificación
+            mostrarNotificacion('Gmail abierto con el email listo para enviar', 'success');
+            
+        } catch (error) {
+            console.error('❌ Error confirmando envío:', error);
+            mostrarNotificacion('Error al abrir Gmail', 'error');
         }
     }
 
