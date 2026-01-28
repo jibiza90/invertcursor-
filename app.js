@@ -9890,18 +9890,122 @@ function mostrarVistaReports() {
     
     console.log('📄 Vista de informes activada');
     
-    // 🔥 RECARGAR CLIENTES PARA INFORMES (Simplificado)
+    // 🔥 RECARGAR CLIENTES PARA INFORMES (Con fallback)
     console.log('🔍 Verificando reportsManager:', typeof window.reportsManager, !!window.reportsManager);
     console.log('🔍 Verificando datosEditados:', typeof datosEditados, !!datosEditados);
     
-    // Si reportsManager está disponible, recargar clientes
-    if (typeof window.reportsManager !== 'undefined' && window.reportsManager) {
+    // Si reportsManager no existe, crearlo aquí mismo
+    if (typeof window.reportsManager === 'undefined' || !window.reportsManager) {
+        console.warn('⚠️ reportsManager no existe, creándolo ahora...');
+        
+        // Definir ReportsManager básico si no existe
+        if (typeof ReportsManager === 'undefined') {
+            console.log('🔧 ReportsManager class no definida, usando implementación básica...');
+            
+            // Implementación básica de ReportsManager
+            window.ReportsManager = class {
+                constructor() {
+                    this.clientesDisponibles = [];
+                    this.informesGenerados = [];
+                    this.inicializado = false;
+                    this.init();
+                }
+                
+                init() {
+                    console.log('📄 Inicializando ReportsManager básico...');
+                    this.cargarClientesDisponibles();
+                    this.inicializado = true;
+                }
+                
+                cargarClientesDisponibles() {
+                    try {
+                        console.log('🔍 Cargando clientes con ReportsManager básico...');
+                        
+                        if (typeof datosEditados === 'undefined' || !datosEditados || !datosEditados.hojas) {
+                            console.warn('⚠️ datosEditados no disponible');
+                            return;
+                        }
+                        
+                        this.clientesDisponibles = [];
+                        const hojasDisponibles = Object.keys(datosEditados.hojas);
+                        
+                        hojasDisponibles.forEach(nombreHoja => {
+                            const hoja = datosEditados.hojas[nombreHoja];
+                            if (hoja.clientes) {
+                                hoja.clientes.forEach((cliente, index) => {
+                                    if (cliente && typeof cliente === 'object') {
+                                        const datosCliente = cliente.datos || {};
+                                        const nombre = datosCliente['NOMBRE']?.valor || '';
+                                        const apellidos = datosCliente['APELLIDOS']?.valor || '';
+                                        const email = datosCliente['EMAIL']?.valor || '';
+                                        const nombreCompleto = (nombre || apellidos) ? `${nombre} ${apellidos}`.trim() : '';
+                                        
+                                        const numeroCliente = cliente.numero_cliente || (index + 1);
+                                        const nombreParaMostrar = nombreCompleto ? `Cliente ${numeroCliente} - ${nombreCompleto}` : `Cliente ${numeroCliente}`;
+                                        
+                                        this.clientesDisponibles.push({
+                                            id: index,
+                                            nombre: nombreParaMostrar,
+                                            numeroCliente: numeroCliente,
+                                            nombreCompleto: nombreCompleto,
+                                            email: email,
+                                            hoja: nombreHoja,
+                                            datos: cliente
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                        
+                        console.log(`✅ Se cargaron ${this.clientesDisponibles.length} clientes`);
+                        this.actualizarDropdownClientes();
+                        
+                    } catch (error) {
+                        console.error('❌ Error cargando clientes:', error);
+                    }
+                }
+                
+                actualizarDropdownClientes() {
+                    const dropdown = document.getElementById('reportClientSelect');
+                    if (!dropdown) return;
+                    
+                    dropdown.innerHTML = '<option value="">Selecciona un cliente...</option>';
+                    
+                    if (this.clientesDisponibles.length === 0) {
+                        dropdown.innerHTML = '<option value="" disabled>No hay clientes disponibles</option>';
+                    } else {
+                        this.clientesDisponibles.forEach(cliente => {
+                            const option = document.createElement('option');
+                            option.value = `${cliente.hoja}|${cliente.id}`;
+                            option.textContent = cliente.nombre;
+                            dropdown.appendChild(option);
+                        });
+                    }
+                    
+                    // Habilitar botón de generar
+                    const boton = document.getElementById('generateReportBtn');
+                    if (boton) {
+                        boton.disabled = false;
+                    }
+                }
+                
+                recargarClientes() {
+                    this.cargarClientesDisponibles();
+                }
+            };
+        }
+        
+        // Crear instancia
+        window.reportsManager = new window.ReportsManager();
+        console.log('✅ reportsManager creado manualmente');
+    }
+    
+    // Ahora recargar clientes
+    if (window.reportsManager) {
         console.log('✅ reportsManager disponible, recargando clientes...');
         setTimeout(() => {
             window.reportsManager.recargarClientes();
         }, 100);
-    } else {
-        console.warn('⚠️ reportsManager no está disponible. Por favor, recarga la página.');
     }
 }
 
