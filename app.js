@@ -10177,128 +10177,442 @@ InvertCursor Sistema de Gestión
                 generarHTMLInforme(cliente) {
                     const fecha = new Date().toLocaleDateString('es-ES');
                     
-                    // Obtener datos reales del cliente
+                    // Obtener datos reales del cliente como en mostrarEstadisticasCliente
                     const datosCliente = cliente.datos || {};
                     const datosDiarios = datosCliente.datos_diarios || [];
                     
-                    // Calcular estadísticas reales
-                    const stats = this.calcularEstadisticasReales(datosDiarios);
+                    // Calcular estadísticas exactamente como en las estadísticas de clientes
+                    const stats = this.calcularEstadisticasCliente(datosDiarios);
                     
-                    // Obtener datos mensuales
-                    const datosMensuales = this.obtenerDatosMensuales(datosDiarios);
-                    
-                    // Obtener operaciones
-                    const operaciones = this.obtenerOperacionesCliente(datosDiarios);
+                    // Generar ID único para los gráficos
+                    const chartId = Date.now();
                     
                     return `
-                        <div class="header">
-                            <h1>📄 Informe de Cliente</h1>
-                            <p>Generado el ${fecha}</p>
-                        </div>
-                        
-                        <div class="cliente-info">
-                            <h2>📋 Información del Cliente</h2>
-                            <p><strong>Nombre:</strong> ${cliente.nombreCompleto || `Cliente ${cliente.numeroCliente}`}</p>
-                            ${cliente.email ? `<p><strong>Email:</strong> ${cliente.email}</p>` : ''}
-                        </div>
-                        
-                        <div class="estadisticas">
-                            <h2>📊 Estadísticas Principales</h2>
-                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
-                                <div style="text-align: center; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
-                                    <div style="font-size: 18px; font-weight: bold; color: #2c3e50;">${formatearMoneda(stats.invertido)}</div>
-                                    <div style="color: #7f8c8d;">Capital Invertido</div>
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>Informe de Cliente - ${cliente.nombreCompleto || `Cliente ${cliente.numeroCliente}`}</title>
+                            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                            <style>
+                                body { 
+                                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+                                    margin: 0; 
+                                    padding: 20px; 
+                                    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 50%, #d4dbe6 100%);
+                                }
+                                .modal-stats-client-content {
+                                    background: rgba(255, 255, 255, 0.72);
+                                    backdrop-filter: blur(20px) saturate(180%);
+                                    -webkit-backdrop-filter: blur(20px) saturate(180%);
+                                    border-radius: 20px;
+                                    border: 1px solid rgba(255, 255, 255, 0.5);
+                                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+                                    max-width: 1200px;
+                                    margin: 0 auto;
+                                    overflow: hidden;
+                                }
+                                .modal-stats-client-header {
+                                    background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.1));
+                                    padding: 2rem;
+                                    border-bottom: 1px solid rgba(255,255,255,0.5);
+                                    display: flex;
+                                    justify-content: space-between;
+                                    align-items: center;
+                                }
+                                .modal-stats-client-header h2 {
+                                    margin: 0;
+                                    color: #2c3e50;
+                                    font-size: 1.8rem;
+                                    font-weight: 700;
+                                }
+                                .client-stats-grid {
+                                    display: grid;
+                                    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                                    gap: 1.5rem;
+                                    padding: 2rem;
+                                }
+                                .client-stat-card {
+                                    background: var(--crystal-white, #ffffff);
+                                    border: 1px solid var(--border-light, #e5e5e5);
+                                    border-radius: 16px;
+                                    padding: 1.5rem;
+                                    text-align: center;
+                                    transition: all 0.3s ease;
+                                }
+                                .client-stat-card:hover {
+                                    transform: translateY(-2px);
+                                    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+                                }
+                                .client-stat-value {
+                                    font-size: 2rem;
+                                    font-weight: 700;
+                                    margin-bottom: 0.5rem;
+                                }
+                                .client-stat-label {
+                                    color: var(--text-secondary, #7f8c8d);
+                                    font-size: 0.9rem;
+                                    text-transform: uppercase;
+                                    letter-spacing: 0.05em;
+                                }
+                                .client-chart-container {
+                                    background: var(--crystal-white, #ffffff);
+                                    border: 1px solid var(--border-light, #e5e5e5);
+                                    border-radius: 16px;
+                                    padding: 2rem;
+                                    margin: 1.5rem;
+                                }
+                                .client-chart-container h3 {
+                                    margin: 0 0 1.5rem 0;
+                                    color: #2c3e50;
+                                    font-size: 1.3rem;
+                                    font-weight: 600;
+                                }
+                                .chart-controls-premium {
+                                    display: flex;
+                                    gap: 1rem;
+                                    margin-bottom: 1.5rem;
+                                    flex-wrap: wrap;
+                                }
+                                .control-group {
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 0.5rem;
+                                }
+                                .control-group label {
+                                    font-size: 0.9rem;
+                                    color: #7f8c8d;
+                                    font-weight: 500;
+                                }
+                                .control-group select {
+                                    padding: 0.5rem 1rem;
+                                    border: 1px solid #e5e5e5;
+                                    border-radius: 8px;
+                                    background: white;
+                                    font-size: 0.9rem;
+                                }
+                                .client-chart-wrapper {
+                                    position: relative;
+                                    height: 400px;
+                                    width: 100%;
+                                }
+                                .positive { color: #27ae60; }
+                                .negative { color: #e74c3c; }
+                                @media print {
+                                    body { background: white; }
+                                    .modal-stats-client-content { box-shadow: none; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="modal-stats-client-content">
+                                <div class="modal-stats-client-header">
+                                    <h2>📊 Estadísticas de ${cliente.nombreCompleto || `Cliente ${cliente.numeroCliente}`}</h2>
+                                    <div style="color: #7f8c8d; font-size: 0.9rem;">Generado el ${fecha}</div>
                                 </div>
-                                <div style="text-align: center; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
-                                    <div style="font-size: 18px; font-weight: bold; color: #2c3e50;">${formatearMoneda(stats.saldoActual)}</div>
-                                    <div style="color: #7f8c8d;">Saldo Actual</div>
-                                </div>
-                                <div style="text-align: center; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
-                                    <div style="font-size: 18px; font-weight: bold; color: ${stats.beneficioTotal >= 0 ? '#27ae60' : '#e74c3c'};">${formatearMoneda(stats.beneficioTotal)}</div>
-                                    <div style="color: #7f8c8d;">Beneficio Total</div>
-                                </div>
-                                <div style="text-align: center; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
-                                    <div style="font-size: 18px; font-weight: bold; color: ${stats.rentabilidadTotal >= 0 ? '#27ae60' : '#e74c3c'};">${formatearPorcentaje(stats.rentabilidadTotal)}</div>
-                                    <div style="color: #7f8c8d;">Rentabilidad Total</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="estadisticas">
-                            <h2>📈 Evolución Mensual</h2>
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Mes</th>
-                                        <th>Saldo Inicial</th>
-                                        <th>Saldo Final</th>
-                                        <th>Beneficio</th>
-                                        <th>Rentabilidad</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${datosMensuales.map(mes => `
-                                        <tr>
-                                            <td>${mes.mes}</td>
-                                            <td>${formatearMoneda(mes.saldoInicial)}</td>
-                                            <td>${formatearMoneda(mes.saldoFinal)}</td>
-                                            <td style="color: ${mes.beneficio >= 0 ? '#27ae60' : '#e74c3c'};">${formatearMoneda(mes.beneficio)}</td>
-                                            <td style="color: ${mes.rentabilidad >= 0 ? '#27ae60' : '#e74c3c'};">${formatearPorcentaje(mes.rentabilidad)}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <div class="estadisticas">
-                            <h2>💰 Detalle de Incrementos y Decrementos</h2>
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Fecha</th>
-                                        <th>Concepto</th>
-                                        <th>Incremento</th>
-                                        <th>Decremento</th>
-                                        <th>Tipo</th>
-                                        <th>Saldo</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${operaciones.map(op => `
-                                        <tr>
-                                            <td>${formatearFecha(op.fecha)}</td>
-                                            <td>${op.concepto || '-'}</td>
-                                            <td style="color: #27ae60;">${op.incremento > 0 ? formatearMoneda(op.incremento) : '-'}</td>
-                                            <td style="color: #e74c3c;">${op.decremento > 0 ? formatearMoneda(op.decremento) : '-'}</td>
-                                            <td>${op.tipo || '-'}</td>
-                                            <td style="font-weight: bold;">${formatearMoneda(op.saldo)}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <div class="estadisticas">
-                            <h2>📊 Gráficos de Rendimiento</h2>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                                <div style="border: 1px solid #ddd; padding: 20px; text-align: center;">
-                                    <h3>📈 Rentabilidad Mensual</h3>
-                                    <div style="height: 150px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
-                                        <p style="color: #7f8c8d;">[Gráfico de Rentabilidad Mensual]</p>
+                                
+                                <div class="client-stats-grid">
+                                    <div class="client-stat-card">
+                                        <div class="client-stat-value" style="color: #3498db;">${formatearMoneda(stats.invertido)}</div>
+                                        <div class="client-stat-label">Capital Invertido</div>
+                                    </div>
+                                    <div class="client-stat-card">
+                                        <div class="client-stat-value" style="color: #2ecc71;">${formatearMoneda(stats.saldoActual)}</div>
+                                        <div class="client-stat-label">Saldo Actual</div>
+                                    </div>
+                                    <div class="client-stat-card">
+                                        <div class="client-stat-value ${stats.beneficioTotal >= 0 ? 'positive' : 'negative'}">${formatearMoneda(stats.beneficioTotal)}</div>
+                                        <div class="client-stat-label">Beneficio Total</div>
+                                    </div>
+                                    <div class="client-stat-card">
+                                        <div class="client-stat-value ${stats.rentabilidadTotal >= 0 ? 'positive' : 'negative'}">${formatearPorcentaje(stats.rentabilidadTotal)}</div>
+                                        <div class="client-stat-label">Rentabilidad Total</div>
                                     </div>
                                 </div>
-                                <div style="border: 1px solid #ddd; padding: 20px; text-align: center;">
-                                    <h3>💰 Evolución del Saldo</h3>
-                                    <div style="height: 150px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
-                                        <p style="color: #7f8c8d;">[Gráfico de Evolución del Saldo]</p>
+                                
+                                <div class="client-chart-container">
+                                    <h3>📊 Rentabilidad Mensual</h3>
+                                    <div class="chart-controls-premium">
+                                        <div class="control-group">
+                                            <label>Tipo de gráfico:</label>
+                                            <select id="tipoGraficoCliente_${chartId}">
+                                                <option value="bar" selected>Barras</option>
+                                                <option value="line">Línea</option>
+                                                <option value="radar">Radar</option>
+                                                <option value="doughnut">Dona</option>
+                                            </select>
+                                        </div>
+                                        <div class="control-group">
+                                            <label>Vista:</label>
+                                            <select id="vistaCliente_${chartId}">
+                                                <option value="mensual">Mensual</option>
+                                                <option value="acumulado">Acumulado</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="client-chart-wrapper">
+                                        <canvas id="chartClienteRentabilidad_${chartId}"></canvas>
                                     </div>
                                 </div>
+                                
+                                <div class="client-chart-container">
+                                    <h3>📈 Evolución del Patrimonio</h3>
+                                    <div class="chart-controls-premium">
+                                        <div class="control-group">
+                                            <label>Tipo de gráfico:</label>
+                                            <select id="tipoGraficoEvolucion_${chartId}">
+                                                <option value="line" selected>Línea</option>
+                                                <option value="bar">Barras</option>
+                                                <option value="area">Área</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="client-chart-wrapper">
+                                        <canvas id="chartClienteEvolucion_${chartId}"></canvas>
+                                    </div>
+                                </div>
+                                
+                                <div style="text-align: center; padding: 2rem; border-top: 1px solid #e5e5e5; color: #7f8c8d;">
+                                    <p>Informe generado automáticamente por InvertCursor</p>
+                                    <p style="font-size: 0.8rem; margin-top: 0.5rem;">Fecha de generación: ${new Date().toLocaleString('es-ES')}</p>
+                                </div>
                             </div>
-                        </div>
+                            
+                            <script>
+                                // Datos del cliente
+                                const datosCliente_${chartId} = ${JSON.stringify(datosDiarios)};
+                                
+                                // Función para renderizar gráficos
+                                function renderizarGraficosInforme() {
+                                    renderizarGraficoRentabilidadCliente(datosCliente_${chartId}, ${chartId});
+                                    renderizarGraficoEvolucionCliente(datosCliente_${chartId}, ${chartId});
+                                }
+                                
+                                // Renderizar al cargar
+                                window.addEventListener('load', renderizarGraficosInforme);
+                                
+                                // Event listeners para los selects
+                                document.getElementById('tipoGraficoCliente_${chartId}').addEventListener('change', () => renderizarGraficoRentabilidadCliente(datosCliente_${chartId}, ${chartId}));
+                                document.getElementById('vistaCliente_${chartId}').addEventListener('change', () => renderizarGraficoRentabilidadCliente(datosCliente_${chartId}, ${chartId}));
+                                document.getElementById('tipoGraficoEvolucion_${chartId}').addEventListener('change', () => renderizarGraficoEvolucionCliente(datosCliente_${chartId}, ${chartId}));
+                                
+                                ${this.obtenerFuncionesGraficos(chartId)}
+                            </script>
+                        </body>
+                        </html>
+                    `;
+                }
+                
+                calcularEstadisticasCliente(datosDiarios) {
+                    if (!datosDiarios || datosDiarios.length === 0) {
+                        return {
+                            invertido: 0,
+                            saldoActual: 0,
+                            beneficioTotal: 0,
+                            rentabilidadTotal: 0
+                        };
+                    }
+                    
+                    const ultimoDia = datosDiarios[0];
+                    const primerDia = datosDiarios[datosDiarios.length - 1];
+                    
+                    const invertido = ultimoDia.invertido || 0;
+                    const saldoActual = ultimoDia.saldo || 0;
+                    const beneficioTotal = ultimoDia.beneficio_acumulado || 0;
+                    const rentabilidadTotal = invertido > 0 ? (beneficioTotal / invertido) : 0;
+                    
+                    return {
+                        invertido,
+                        saldoActual,
+                        beneficioTotal,
+                        rentabilidadTotal
+                    };
+                }
+                
+                obtenerFuncionesGraficos(chartId) {
+                    return `
+                        function renderizarGraficoRentabilidadCliente(datosDiarios, id) {
+                            const canvas = document.getElementById('chartClienteRentabilidad_' + id);
+                            if (!canvas) return;
+                            
+                            const ctx = canvas.getContext('2d');
+                            const tipo = document.getElementById('tipoGraficoCliente_' + id).value;
+                            const vista = document.getElementById('vistaCliente_' + id).value;
+                            
+                            // Preparar datos
+                            const datos = prepararDatosRentabilidad(datosDiarios, vista);
+                            
+                            // Destruir gráfico anterior si existe
+                            if (window.chartRentabilidad_) {
+                                window.chartRentabilidad_.destroy();
+                            }
+                            
+                            // Crear nuevo gráfico
+                            window.chartRentabilidad_ = new Chart(ctx, {
+                                type: tipo,
+                                data: datos,
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            display: tipo !== 'bar' && tipo !== 'line'
+                                        }
+                                    },
+                                    scales: tipo === 'bar' || tipo === 'line' ? {
+                                        y: {
+                                            beginAtZero: true,
+                                            ticks: {
+                                                callback: function(value) {
+                                                    return value + '%';
+                                                }
+                                            }
+                                        }
+                                    } : {}
+                                }
+                            });
+                        }
                         
-                        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #7f8c8d;">
-                            <p>Informe generado automáticamente por InvertCursor</p>
-                        </div>
+                        function renderizarGraficoEvolucionCliente(datosDiarios, id) {
+                            const canvas = document.getElementById('chartClienteEvolucion_' + id);
+                            if (!canvas) return;
+                            
+                            const ctx = canvas.getContext('2d');
+                            const tipo = document.getElementById('tipoGraficoEvolucion_' + id).value;
+                            
+                            // Preparar datos
+                            const datos = prepararDatosEvolucion(datosDiarios, tipo);
+                            
+                            // Destruir gráfico anterior si existe
+                            if (window.chartEvolucion_) {
+                                window.chartEvolucion_.destroy();
+                            }
+                            
+                            // Crear nuevo gráfico
+                            window.chartEvolucion_ = new Chart(ctx, {
+                                type: tipo === 'area' ? 'line' : tipo,
+                                data: datos,
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            display: false
+                                        }
+                                    },
+                                    scales: tipo !== 'radar' && tipo !== 'doughnut' && tipo !== 'polarArea' ? {
+                                        y: {
+                                            beginAtZero: false,
+                                            ticks: {
+                                                callback: function(value) {
+                                                    return '€' + value.toLocaleString('es-ES');
+                                                }
+                                            }
+                                        }
+                                    } : {},
+                                    elements: tipo === 'area' ? {
+                                        fill: true,
+                                        tension: 0.4
+                                    } : {}
+                                }
+                            });
+                        }
+                        
+                        function prepararDatosRentabilidad(datosDiarios, vista) {
+                            if (!datosDiarios || datosDiarios.length === 0) {
+                                return { labels: [], datasets: [] };
+                            }
+                            
+                            // Agrupar por mes
+                            const meses = {};
+                            datosDiarios.forEach(dia => {
+                                const mes = dia.fecha.substring(0, 7);
+                                if (!meses[mes]) {
+                                    meses[mes] = { beneficio: 0, invertido: 0 };
+                                }
+                                meses[mes].beneficio += dia.beneficio_acumulado || 0;
+                                meses[mes].invertido = dia.invertido || 0;
+                            });
+                            
+                            const labels = Object.keys(meses).sort().reverse();
+                            const datosRentabilidad = labels.map(mes => {
+                                const datos = meses[mes];
+                                return datos.invertido > 0 ? (datos.beneficio / datos.invertido) * 100 : 0;
+                            });
+                            
+                            if (vista === 'acumulado') {
+                                let acumulado = 0;
+                                const datosAcumulados = datosRentabilidad.map(val => {
+                                    acumulado += val;
+                                    return acumulado;
+                                });
+                                return {
+                                    labels: labels.map(mes => formatearMesInforme(mes)),
+                                    datasets: [{
+                                        label: 'Rentabilidad Acumulada (%)',
+                                        data: datosAcumulados,
+                                        backgroundColor: 'rgba(52, 152, 219, 0.6)',
+                                        borderColor: 'rgba(52, 152, 219, 1)',
+                                        borderWidth: 2
+                                    }]
+                                };
+                            } else {
+                                return {
+                                    labels: labels.map(mes => formatearMesInforme(mes)),
+                                    datasets: [{
+                                        label: 'Rentabilidad Mensual (%)',
+                                        data: datosRentabilidad,
+                                        backgroundColor: datosRentabilidad.map(val => val >= 0 ? 'rgba(39, 174, 96, 0.6)' : 'rgba(231, 76, 60, 0.6)'),
+                                        borderColor: datosRentabilidad.map(val => val >= 0 ? 'rgba(39, 174, 96, 1)' : 'rgba(231, 76, 60, 1)'),
+                                        borderWidth: 2
+                                    }]
+                                };
+                            }
+                        }
+                        
+                        function prepararDatosEvolucion(datosDiarios, tipo) {
+                            if (!datosDiarios || datosDiarios.length === 0) {
+                                return { labels: [], datasets: [] };
+                            }
+                            
+                            // Tomar últimos 30 días para mejor visualización
+                            const datosRecientes = datosDiarios.slice(0, Math.min(30, datosDiarios.length));
+                            
+                            const labels = datosRecientes.map(dia => formatearFechaInforme(dia.fecha));
+                            const saldos = datosRecientes.map(dia => dia.saldo || 0);
+                            
+                            return {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Evolución del Patrimonio',
+                                    data: saldos,
+                                    backgroundColor: 'rgba(46, 204, 113, 0.2)',
+                                    borderColor: 'rgba(46, 204, 113, 1)',
+                                    borderWidth: 2,
+                                    fill: tipo === 'area',
+                                    tension: 0.4
+                                }]
+                            };
+                        }
+                        
+                        function formatearMesInforme(mes) {
+                            const meses = {
+                                '2024-01': 'Ene 2024', '2024-02': 'Feb 2024', '2024-03': 'Mar 2024',
+                                '2024-04': 'Abr 2024', '2024-05': 'May 2024', '2024-06': 'Jun 2024',
+                                '2024-07': 'Jul 2024', '2024-08': 'Ago 2024', '2024-09': 'Sep 2024',
+                                '2024-10': 'Oct 2024', '2024-11': 'Nov 2024', '2024-12': 'Dic 2024',
+                                '2025-01': 'Ene 2025', '2025-02': 'Feb 2025', '2025-03': 'Mar 2025',
+                                '2025-04': 'Abr 2025', '2025-05': 'May 2025', '2025-06': 'Jun 2025',
+                                '2025-07': 'Jul 2025', '2025-08': 'Ago 2025', '2025-09': 'Sep 2025',
+                                '2025-10': 'Oct 2025', '2025-11': 'Nov 2025', '2025-12': 'Dic 2025'
+                            };
+                            return meses[mes] || mes;
+                        }
+                        
+                        function formatearFechaInforme(fecha) {
+                            if (!fecha) return '';
+                            const date = new Date(fecha);
+                            return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+                        }
                     `;
                 }
                 
