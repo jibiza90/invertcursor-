@@ -10191,122 +10191,113 @@ InvertCursor Sistema de Gestión
                     const operaciones = this.obtenerOperacionesCliente(datosDiarios);
                     
                     return `
-                        <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
-                            <div style="text-align: center; border-bottom: 3px solid #2c3e50; padding-bottom: 20px; margin-bottom: 30px;">
-                                <h1 style="color: #2c3e50; margin: 0;">📄 Informe de Cliente</h1>
-                                <p style="color: #7f8c8d; margin: 5px 0;">Generado el ${fecha}</p>
+                        <div class="header">
+                            <h1>📄 Informe de Cliente</h1>
+                            <p>Generado el ${fecha}</p>
+                        </div>
+                        
+                        <div class="cliente-info">
+                            <h2>📋 Información del Cliente</h2>
+                            <p><strong>Nombre:</strong> ${cliente.nombreCompleto || `Cliente ${cliente.numeroCliente}`}</p>
+                            ${cliente.email ? `<p><strong>Email:</strong> ${cliente.email}</p>` : ''}
+                        </div>
+                        
+                        <div class="estadisticas">
+                            <h2>📊 Estadísticas Principales</h2>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+                                <div style="text-align: center; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
+                                    <div style="font-size: 18px; font-weight: bold; color: #2c3e50;">${formatearMoneda(stats.invertido)}</div>
+                                    <div style="color: #7f8c8d;">Capital Invertido</div>
+                                </div>
+                                <div style="text-align: center; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
+                                    <div style="font-size: 18px; font-weight: bold; color: #2c3e50;">${formatearMoneda(stats.saldoActual)}</div>
+                                    <div style="color: #7f8c8d;">Saldo Actual</div>
+                                </div>
+                                <div style="text-align: center; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
+                                    <div style="font-size: 18px; font-weight: bold; color: ${stats.beneficioTotal >= 0 ? '#27ae60' : '#e74c3c'};">${formatearMoneda(stats.beneficioTotal)}</div>
+                                    <div style="color: #7f8c8d;">Beneficio Total</div>
+                                </div>
+                                <div style="text-align: center; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
+                                    <div style="font-size: 18px; font-weight: bold; color: ${stats.rentabilidadTotal >= 0 ? '#27ae60' : '#e74c3c'};">${formatearPorcentaje(stats.rentabilidadTotal)}</div>
+                                    <div style="color: #7f8c8d;">Rentabilidad Total</div>
+                                </div>
                             </div>
-                            
-                            <!-- Información del Cliente (sin Hoja ni ID) -->
-                            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 30px; border-left: 4px solid #3498db;">
-                                <h2 style="color: #2c3e50; margin-top: 0;">📋 Información del Cliente</h2>
-                                <p style="margin: 8px 0;"><strong>Nombre:</strong> ${cliente.nombreCompleto || `Cliente ${cliente.numeroCliente}`}</p>
-                                ${cliente.email ? `<p style="margin: 8px 0;"><strong>Email:</strong> ${cliente.email}</p>` : ''}
-                            </div>
-                            
-                            <!-- Estadísticas Principales -->
-                            <div style="margin-bottom: 30px;">
-                                <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">📊 Estadísticas Principales</h2>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                                    <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; text-align: center;">
-                                        <div style="font-size: 24px; font-weight: bold; color: #27ae60;">${formatearMoneda(stats.invertido)}</div>
-                                        <div style="color: #27ae60;">Capital Invertido</div>
+                        </div>
+                        
+                        <div class="estadisticas">
+                            <h2>📈 Evolución Mensual</h2>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Mes</th>
+                                        <th>Saldo Inicial</th>
+                                        <th>Saldo Final</th>
+                                        <th>Beneficio</th>
+                                        <th>Rentabilidad</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${datosMensuales.map(mes => `
+                                        <tr>
+                                            <td>${mes.mes}</td>
+                                            <td>${formatearMoneda(mes.saldoInicial)}</td>
+                                            <td>${formatearMoneda(mes.saldoFinal)}</td>
+                                            <td style="color: ${mes.beneficio >= 0 ? '#27ae60' : '#e74c3c'};">${formatearMoneda(mes.beneficio)}</td>
+                                            <td style="color: ${mes.rentabilidad >= 0 ? '#27ae60' : '#e74c3c'};">${formatearPorcentaje(mes.rentabilidad)}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="estadisticas">
+                            <h2>💰 Detalle de Incrementos y Decrementos</h2>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Concepto</th>
+                                        <th>Incremento</th>
+                                        <th>Decremento</th>
+                                        <th>Tipo</th>
+                                        <th>Saldo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${operaciones.map(op => `
+                                        <tr>
+                                            <td>${formatearFecha(op.fecha)}</td>
+                                            <td>${op.concepto || '-'}</td>
+                                            <td style="color: #27ae60;">${op.incremento > 0 ? formatearMoneda(op.incremento) : '-'}</td>
+                                            <td style="color: #e74c3c;">${op.decremento > 0 ? formatearMoneda(op.decremento) : '-'}</td>
+                                            <td>${op.tipo || '-'}</td>
+                                            <td style="font-weight: bold;">${formatearMoneda(op.saldo)}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="estadisticas">
+                            <h2>📊 Gráficos de Rendimiento</h2>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div style="border: 1px solid #ddd; padding: 20px; text-align: center;">
+                                    <h3>📈 Rentabilidad Mensual</h3>
+                                    <div style="height: 150px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
+                                        <p style="color: #7f8c8d;">[Gráfico de Rentabilidad Mensual]</p>
                                     </div>
-                                    <div style="background: #e8f4f8; padding: 15px; border-radius: 8px; text-align: center;">
-                                        <div style="font-size: 24px; font-weight: bold; color: #2980b9;">${formatearMoneda(stats.saldoActual)}</div>
-                                        <div style="color: #2980b9;">Saldo Actual</div>
-                                    </div>
-                                    <div style="background: ${stats.beneficioTotal >= 0 ? '#e8f5e8' : '#fde8e8'}; padding: 15px; border-radius: 8px; text-align: center;">
-                                        <div style="font-size: 24px; font-weight: bold; color: ${stats.beneficioTotal >= 0 ? '#27ae60' : '#e74c3c'};">${formatearMoneda(stats.beneficioTotal)}</div>
-                                        <div style="color: ${stats.beneficioTotal >= 0 ? '#27ae60' : '#e74c3c'};">Beneficio Total</div>
-                                    </div>
-                                    <div style="background: ${stats.rentabilidadTotal >= 0 ? '#e8f5e8' : '#fde8e8'}; padding: 15px; border-radius: 8px; text-align: center;">
-                                        <div style="font-size: 24px; font-weight: bold; color: ${stats.rentabilidadTotal >= 0 ? '#27ae60' : '#e74c3c'};">${formatearPorcentaje(stats.rentabilidadTotal)}</div>
-                                        <div style="color: ${stats.rentabilidadTotal >= 0 ? '#27ae60' : '#e74c3c'};">Rentabilidad Total</div>
+                                </div>
+                                <div style="border: 1px solid #ddd; padding: 20px; text-align: center;">
+                                    <h3>💰 Evolución del Saldo</h3>
+                                    <div style="height: 150px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
+                                        <p style="color: #7f8c8d;">[Gráfico de Evolución del Saldo]</p>
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- Evolución Mensual -->
-                            <div style="margin-bottom: 30px;">
-                                <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">📈 Evolución Mensual</h2>
-                                <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                                    <thead>
-                                        <tr style="background: #3498db; color: white;">
-                                            <th style="padding: 12px; text-align: left;">Mes</th>
-                                            <th style="padding: 12px; text-align: right;">Saldo Inicial</th>
-                                            <th style="padding: 12px; text-align: right;">Saldo Final</th>
-                                            <th style="padding: 12px; text-align: right;">Beneficio</th>
-                                            <th style="padding: 12px; text-align: right;">Rentabilidad</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${datosMensuales.map(mes => `
-                                            <tr style="border-bottom: 1px solid #ddd;">
-                                                <td style="padding: 10px;">${mes.mes}</td>
-                                                <td style="padding: 10px; text-align: right;">${formatearMoneda(mes.saldoInicial)}</td>
-                                                <td style="padding: 10px; text-align: right;">${formatearMoneda(mes.saldoFinal)}</td>
-                                                <td style="padding: 10px; text-align: right; color: ${mes.beneficio >= 0 ? '#27ae60' : '#e74c3c'};">${formatearMoneda(mes.beneficio)}</td>
-                                                <td style="padding: 10px; text-align: right; color: ${mes.rentabilidad >= 0 ? '#27ae60' : '#e74c3c'};">${formatearPorcentaje(mes.rentabilidad)}</td>
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <!-- Detalle de Incrementos y Decrementos -->
-                            <div style="margin-bottom: 30px;">
-                                <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">💰 Detalle de Incrementos y Decrementos</h2>
-                                <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                                    <thead>
-                                        <tr style="background: #3498db; color: white;">
-                                            <th style="padding: 12px; text-align: left;">Fecha</th>
-                                            <th style="padding: 12px; text-align: left;">Concepto</th>
-                                            <th style="padding: 12px; text-align: right;">Incremento</th>
-                                            <th style="padding: 12px; text-align: right;">Decremento</th>
-                                            <th style="padding: 12px; text-align: left;">Tipo</th>
-                                            <th style="padding: 12px; text-align: right;">Saldo</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${operaciones.map(op => `
-                                            <tr style="border-bottom: 1px solid #ddd;">
-                                                <td style="padding: 10px;">${formatearFecha(op.fecha)}</td>
-                                                <td style="padding: 10px;">${op.concepto || '-'}</td>
-                                                <td style="padding: 10px; text-align: right; color: #27ae60;">${op.incremento > 0 ? formatearMoneda(op.incremento) : '-'}</td>
-                                                <td style="padding: 10px; text-align: right; color: #e74c3c;">${op.decremento > 0 ? formatearMoneda(op.decremento) : '-'}</td>
-                                                <td style="padding: 10px;">${op.tipo || '-'}</td>
-                                                <td style="padding: 10px; text-align: right; font-weight: bold;">${formatearMoneda(op.saldo)}</td>
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <!-- Gráficos (simulados como placeholders) -->
-                            <div style="margin-bottom: 30px;">
-                                <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">📊 Gráficos de Rendimiento</h2>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                                    <div style="border: 2px solid #3498db; border-radius: 10px; padding: 20px; text-align: center; background: #f8f9fa;">
-                                        <h3 style="color: #2c3e50; margin-top: 0;">📈 Rentabilidad Mensual</h3>
-                                        <div style="height: 200px; display: flex; align-items: center; justify-content: center; background: white; border-radius: 5px;">
-                                            <p style="color: #7f8c8d;">[Gráfico de Rentabilidad Mensual]</p>
-                                        </div>
-                                    </div>
-                                    <div style="border: 2px solid #3498db; border-radius: 10px; padding: 20px; text-align: center; background: #f8f9fa;">
-                                        <h3 style="color: #2c3e50; margin-top: 0;">💰 Evolución del Saldo</h3>
-                                        <div style="height: 200px; display: flex; align-items: center; justify-content: center; background: white; border-radius: 5px;">
-                                            <p style="color: #7f8c8d;">[Gráfico de Evolución del Saldo]</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Footer -->
-                            <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #7f8c8d;">
-                                <p>Informe generado automáticamente por InvertCursor</p>
-                                <p style="font-size: 12px;">Fecha de generación: ${new Date().toLocaleString('es-ES')}</p>
-                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #7f8c8d;">
+                            <p>Informe generado automáticamente por InvertCursor</p>
                         </div>
                     `;
                 }
