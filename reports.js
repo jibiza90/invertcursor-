@@ -961,13 +961,10 @@ class ReportsManager {
         }
     }
 
-    // 📧 Preparar email (abrir cliente de email del usuario)
+    // 📧 Preparar email (optimizado para Gmail)
     async prepararEmail(pdfUrl, nombreCliente) {
         try {
-            // Convertir el blob a base64 para el email
-            const response = await fetch(pdfUrl);
-            const blob = await response.blob();
-            const base64 = await this.blobToBase64(blob);
+            console.log('📧 Preparando email para Gmail...');
             
             // Crear el asunto y cuerpo del email
             const asunto = encodeURIComponent(`Informe de Cliente - ${nombreCliente}`);
@@ -977,33 +974,81 @@ Estimado/a,
 Te adjunto el informe del cliente ${nombreCliente} generado el ${new Date().toLocaleDateString('es-ES')}.
 
 El informe incluye:
-- Estadísticas principales
-- Evolución mensual detallada
-- Incrementos y decrementos
-- Gráficos visuales de rendimiento
+• Estadísticas principales de inversión
+• Evolución mensual detallada
+• Incrementos y decrementos
+• Gráficos visuales de rendimiento
 
-Por favor, adjunta el PDF que se ha descargado automáticamente a este email.
+El PDF se ha descargado automáticamente en tu carpeta de Descargas con el nombre:
+informe_${nombreCliente.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf
+
+Por favor, adjunta ese archivo PDF a este email antes de enviarlo.
 
 Atentamente,
 InvertCursor Sistema de Gestión
             `.trim());
             
-            // Abrir cliente de email del usuario
-            const mailtoLink = `mailto:?subject=${asunto}&body=${cuerpo}`;
-            window.open(mailtoLink);
+            // 🔥 ABRIR GMAIL DIRECTAMENTE
+            const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&su=${asunto}&body=${cuerpo}`;
+            window.open(gmailLink, '_blank');
             
-            // Descargar el PDF para que el usuario lo adjunte manualmente
-            setTimeout(() => {
-                this.descargarPDF(pdfUrl, nombreCliente);
-            }, 1000);
+            // Descargar el PDF inmediatamente
+            this.descargarPDF(pdfUrl, nombreCliente);
             
-            // Mostrar instrucciones claras
-            this.mostrarInstruccionesEmail();
+            // Mostrar instrucciones específicas para Gmail
+            this.mostrarInstruccionesGmail(nombreCliente);
             
         } catch (error) {
-            console.error('❌ Error al preparar el email:', error);
+            console.error('❌ Error al preparar email:', error);
             mostrarNotificacion('Error al preparar el email', 'error');
         }
+    }
+
+    // 📋 Mostrar instrucciones específicas para Gmail
+    mostrarInstruccionesGmail(nombreCliente) {
+        const modal = document.createElement('div');
+        modal.className = 'pdf-preview-modal active';
+        modal.innerHTML = `
+            <div class="pdf-preview-content" style="max-width: 550px;">
+                <div class="pdf-preview-header">
+                    <h3 class="pdf-preview-title">📧 Instrucciones para Gmail</h3>
+                    <button class="pdf-preview-close" onclick="this.closest('.pdf-preview-modal').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="pdf-preview-body" style="padding: 20px;">
+                    <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #4caf50;">
+                        <h4 style="color: #2e7d32; margin: 0 0 10px 0;">✅ ¡Gmail abierto correctamente!</h4>
+                        <p style="color: #2e7d32; margin: 0;">El asunto y cuerpo están rellenados automáticamente.</p>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="color: #2d3748; margin: 0 0 10px 0;">📋 Pasos a seguir:</h4>
+                        <ol style="color: #4a5568; margin: 0; padding-left: 20px; line-height: 1.6;">
+                            <li><strong>En Gmail:</strong> El asunto y cuerpo ya están listos</li>
+                            <li><strong>Añade destinatario:</strong> En el campo "Para"</li>
+                            <li><strong>Adjunta el PDF:</strong> Click en el ícono 📎 de clip</li>
+                            <li><strong>Busca el archivo:</strong> "informe_${nombreCliente.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf"</li>
+                            <li><strong>Envía el email:</strong> Click en "Enviar"</li>
+                        </ol>
+                    </div>
+                    
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                        <p style="color: #856404; margin: 0; font-weight: bold;">💡 Tip:</p>
+                        <p style="color: #856404; margin: 5px 0 0 0;">El PDF ya está descargado en tu carpeta Descargas. Solo necesitas adjuntarlo.</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Cerrar automáticamente después de 10 segundos
+        setTimeout(() => {
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            }
+        }, 10000);
     }
 
     // 📋 Mostrar instrucciones para el email
