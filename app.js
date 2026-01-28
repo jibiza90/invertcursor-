@@ -10220,7 +10220,7 @@ InvertCursor Sistema de Gestión
                     mostrarNotificacion('Cliente de email abierto con el informe preparado', 'success');
                 }
                 
-                generarHTMLInforme(cliente) {
+                async generarHTMLInforme(cliente) {
                     const fecha = new Date().toLocaleDateString('es-ES');
                     
                     // Obtener datos del cliente
@@ -10229,496 +10229,510 @@ InvertCursor Sistema de Gestión
                     const apellidos = datosCliente['APELLIDOS']?.valor || '';
                     const nombreCompleto = nombre || apellidos ? `${nombre} ${apellidos}`.trim() : `Cliente ${cliente.numeroCliente}`;
                     
-                    // Obtener datos diarios
-                    const datosDiarios = datosCliente.datos_diarios || [];
+                    // Obtener hoja actual
+                    const hoja = datosEditados?.hojas?.[hojaActual];
+                    if (!hoja) {
+                        return `<p style="color: red;">No hay hoja activa</p>`;
+                    }
                     
-                    // Usar el mismo sistema que las estadísticas de clientes
-                    const datosMeses = this.prepararDatosParaEstadisticas(datosDiarios);
-                    const kpis = this.calcularKPIs(datosMeses);
-                    
-                    // Extraer detalles para botones +
-                    const todosIncrementos = [];
-                    const todosDecrementos = [];
-                    const todosBeneficios = [];
-                    
-                    datosMeses.forEach(mes => {
-                        if (mes.detalles && Array.isArray(mes.detalles)) {
-                            mes.detalles.forEach(detalle => {
-                                const fecha = detalle.fecha || '';
-                                const inc = typeof detalle.incremento === 'number' ? detalle.incremento : 0;
-                                const dec = typeof detalle.decremento === 'number' ? detalle.decremento : 0;
-                                
-                                if (inc > 0) {
-                                    todosIncrementos.push({ 
-                                        fecha, 
-                                        importe: inc, 
-                                        mes: mes.mes 
-                                    });
-                                }
-                                if (dec > 0) {
-                                    todosDecrementos.push({ 
-                                        fecha, 
-                                        importe: dec, 
-                                        mes: mes.mes 
-                                    });
-                                }
-                            });
-                        }
+                    // USAR EXACTAMENTE EL MISMO SISTEMA QUE ESTADÍSTICAS DE CLIENTES
+                    try {
+                        console.log('🚀 INICIando informe 100% en tiempo real');
+                        const datosClienteMeses = await calcularEstadisticasClienteTiempoReal(cliente, hoja);
+                        console.log('📊 Datos calculados:', datosClienteMeses.length, 'meses');
                         
-                        if (mes.beneficio && Math.abs(mes.beneficio) > 0.01) {
-                            todosBeneficios.push({
-                                mes: mes.mes,
-                                nombreMes: mes.nombreMes,
-                                beneficio: mes.beneficio,
-                                rentabilidad: mes.rentabilidad || 0
-                            });
-                        }
-                    });
-                    
-                    // Color del peor mes
-                    const peorMesPositivo = kpis.peorMes && kpis.peorMes.rentabilidad >= 0;
-                    const peorMesClass = peorMesPositivo ? 'positive' : 'negative';
-                    const peorMesSigno = kpis.peorMes && kpis.peorMes.rentabilidad >= 0 ? '+' : '';
-                    const peorMesTexto = kpis.peorMes ? 
-                        `${this.formatearMesCorto(kpis.peorMes.mes)}: ${peorMesSigno}${kpis.peorMes.rentabilidad.toFixed(2)}%` : 
-                        'Sin operaciones';
-                    
-                    return `
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <title>Informe de Cliente - ${nombreCompleto}</title>
-                            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-                            <style>
-                                body { 
-                                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
-                                    margin: 0; 
-                                    padding: 20px; 
-                                    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 50%, #d4dbe6 100%);
-                                }
-                                .modal-stats-client-content {
-                                    background: rgba(255, 255, 255, 0.72);
-                                    backdrop-filter: blur(20px) saturate(180%);
-                                    -webkit-backdrop-filter: blur(20px) saturate(180%);
-                                    border-radius: 20px;
-                                    border: 1px solid rgba(255, 255, 255, 0.5);
-                                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-                                    max-width: 1200px;
-                                    margin: 0 auto;
-                                    overflow: hidden;
-                                }
-                                .modal-stats-client-header {
-                                    background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.1));
-                                    padding: 2rem;
-                                    border-bottom: 1px solid rgba(255,255,255,0.5);
-                                    display: flex;
-                                    justify-content: space-between;
-                                    align-items: center;
-                                }
-                                .modal-stats-client-header h2 {
-                                    margin: 0;
-                                    color: #2c3e50;
-                                    font-size: 1.8rem;
-                                    font-weight: 700;
-                                }
-                                .client-stats-kpis {
-                                    display: grid;
-                                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                                    gap: 1rem;
-                                    padding: 2rem;
-                                }
-                                .client-stat-card {
-                                    background: var(--crystal-white, #ffffff);
-                                    border: 1px solid var(--border-light, #e5e5e5);
-                                    border-radius: 16px;
-                                    padding: 1.5rem;
-                                    text-align: center;
-                                    transition: all 0.3s ease;
-                                }
-                                .client-stat-card:hover {
-                                    transform: translateY(-2px);
-                                    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-                                }
-                                .client-stat-card .label {
-                                    font-size: 0.9rem;
-                                    color: var(--text-secondary, #7f8c8d);
-                                    margin-bottom: 0.5rem;
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                    gap: 0.5rem;
-                                }
-                                .client-stat-card .value {
-                                    font-size: 1.5rem;
-                                    font-weight: 700;
-                                }
-                                .btn-detalle-stats {
-                                    background: rgba(59, 130, 246, 0.1);
-                                    border: 1px solid rgba(59, 130, 246, 0.3);
-                                    border-radius: 50%;
-                                    width: 20px;
-                                    height: 20px;
-                                    font-size: 12px;
-                                    cursor: pointer;
-                                    transition: all 0.3s ease;
-                                }
-                                .btn-detalle-stats:hover {
-                                    background: rgba(59, 130, 246, 0.2);
-                                }
-                                .client-chart-container {
-                                    background: var(--crystal-white, #ffffff);
-                                    border: 1px solid var(--border-light, #e5e5e5);
-                                    border-radius: 16px;
-                                    padding: 2rem;
-                                    margin: 1.5rem;
-                                }
-                                .client-chart-container h3 {
-                                    margin: 0 0 1.5rem 0;
-                                    color: #2c3e50;
-                                    font-size: 1.3rem;
-                                    font-weight: 600;
-                                }
-                                .chart-controls-premium {
-                                    display: flex;
-                                    gap: 1rem;
-                                    margin-bottom: 1.5rem;
-                                    flex-wrap: wrap;
-                                }
-                                .control-group {
-                                    display: flex;
-                                    align-items: center;
-                                    gap: 0.5rem;
-                                }
-                                .control-group label {
-                                    font-size: 0.9rem;
-                                    color: #7f8c8d;
-                                    font-weight: 500;
-                                }
-                                .control-group select {
-                                    padding: 0.5rem 1rem;
-                                    border: 1px solid #e5e5e5;
-                                    border-radius: 8px;
-                                    background: white;
-                                    font-size: 0.9rem;
-                                }
-                                .client-chart-wrapper {
-                                    position: relative;
-                                    height: 400px;
-                                    width: 100%;
-                                }
-                                .positive { color: #27ae60; }
-                                .negative { color: #e74c3c; }
-                                .acciones {
-                                    text-align: center;
-                                    padding: 2rem;
-                                    border-top: 1px solid rgba(255,255,255,0.5);
-                                    background: rgba(255,255,255,0.3);
-                                    display: flex;
-                                    gap: 1rem;
-                                    justify-content: center;
-                                    flex-wrap: wrap;
-                                }
-                                .btn-accion {
-                                    padding: 0.75rem 1.5rem;
-                                    border: none;
-                                    border-radius: 10px;
-                                    font-weight: 600;
-                                    cursor: pointer;
-                                    transition: all 0.3s ease;
-                                    font-size: 0.9rem;
-                                }
-                                .btn-accion.primary {
-                                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                                    color: white;
-                                }
-                                .btn-accion.secondary {
-                                    background: rgba(255,255,255,0.8);
-                                    color: #2c3e50;
-                                    border: 1px solid rgba(255,255,255,0.5);
-                                }
-                                .btn-accion:hover {
-                                    transform: translateY(-2px);
-                                    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-                                }
-                                @media print {
-                                    body { background: white; }
-                                    .modal-stats-client-content { box-shadow: none; }
-                                    .acciones { display: none; }
-                                }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="modal-stats-client-content">
-                                <div class="modal-stats-client-header">
-                                    <h2>📊 Estadísticas de ${nombreCompleto}</h2>
-                                    <div style="color: #7f8c8d; font-size: 0.9rem;">Generado el ${fecha}</div>
-                                </div>
-                                
-                                <div class="client-stats-kpis">
-                                    <div class="client-stat-card">
-                                        <div class="label">Inversión</div>
-                                        <div class="value positive">+${formatearMoneda(kpis.inversion)}</div>
-                                    </div>
-                                    <div class="client-stat-card">
-                                        <div class="label">Saldo Actual</div>
-                                        <div class="value">${formatearMoneda(kpis.saldoActual)}</div>
-                                    </div>
-                                    <div class="client-stat-card">
-                                        <div class="label">Retiradas</div>
-                                        <div class="value ${kpis.decrementos > 0 ? 'negative' : ''}">${kpis.decrementos > 0 ? '-' : ''}${formatearMoneda(kpis.decrementos)}</div>
-                                    </div>
-                                    <div class="client-stat-card">
-                                        <div class="label">Beneficio Total €</div>
-                                        <div class="value ${kpis.beneficioEuro >= 0 ? 'positive' : 'negative'}">${kpis.beneficioEuro >= 0 ? '+' : ''}${formatearMoneda(kpis.beneficioEuro)}</div>
-                                    </div>
-                                    <div class="client-stat-card">
-                                        <div class="label">Rentabilidad Total</div>
-                                        <div class="value ${kpis.rentabilidadTotal >= 0 ? 'positive' : 'negative'}">${kpis.rentabilidadTotal >= 0 ? '+' : ''}${kpis.rentabilidadTotal.toFixed(2)}%</div>
-                                    </div>
-                                </div>
-                                
-                                <div class="client-stats-kpis" style="margin-top: 1rem;">
-                                    <div class="client-stat-card">
-                                        <div class="label">Mejor Mes</div>
-                                        <div class="value positive">${kpis.mejorMes ? this.formatearMesCorto(kpis.mejorMes.mes) + ': +' + kpis.mejorMes.rentabilidad.toFixed(2) + '%' : 'Sin operaciones'}</div>
-                                    </div>
-                                    <div class="client-stat-card">
-                                        <div class="label">Peor Mes</div>
-                                        <div class="value ${peorMesClass}">${peorMesTexto}</div>
-                                    </div>
-                                    <div class="client-stat-card">
-                                        <div class="label">Promedio Mensual</div>
-                                        <div class="value ${kpis.promedioMensual >= 0 ? 'positive' : 'negative'}">${kpis.promedioMensual >= 0 ? '+' : ''}${kpis.promedioMensual.toFixed(2)}%</div>
-                                    </div>
-                                    <div class="client-stat-card">
-                                        <div class="label">Meses Operados</div>
-                                        <div class="value">${kpis.mesesOperados}</div>
-                                    </div>
-                                </div>
-                                
-                                <div class="client-chart-container">
-                                    <h3>📊 Rentabilidad Mensual</h3>
-                                    <div class="chart-controls-premium">
-                                        <div class="control-group">
-                                            <label>Tipo de gráfico:</label>
-                                            <select id="tipoGraficoCliente">
-                                                <option value="bar" selected>Barras</option>
-                                                <option value="line">Línea</option>
-                                                <option value="radar">Radar</option>
-                                                <option value="doughnut">Dona</option>
-                                                <option value="polarArea">Polar</option>
-                                                <option value="pie">Pastel</option>
-                                                <option value="scatter">Dispersión</option>
-                                                <option value="bubble">Burbujas</option>
-                                            </select>
-                                        </div>
-                                        <div class="control-group">
-                                            <label>Vista:</label>
-                                            <select id="vistaCliente">
-                                                <option value="mensual">Mensual</option>
-                                                <option value="acumulado">Acumulado</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="client-chart-wrapper">
-                                        <canvas id="chartClienteRentabilidad"></canvas>
-                                    </div>
-                                </div>
-                                
-                                <div class="client-chart-container">
-                                    <h3>📈 Evolución del Patrimonio</h3>
-                                    <div class="chart-controls-premium">
-                                        <div class="control-group">
-                                            <label>Tipo de gráfico:</label>
-                                            <select id="tipoGraficoEvolucion">
-                                                <option value="line" selected>Línea</option>
-                                                <option value="bar">Barras</option>
-                                                <option value="area">Área</option>
-                                                <option value="stepped">Escalonado</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="client-chart-wrapper">
-                                        <canvas id="chartClienteEvolucion"></canvas>
-                                    </div>
-                                </div>
-                                
-                                <div class="acciones">
-                                    <button class="btn-accion primary" onclick="window.print()">
-                                        🖨️ Imprimir Informe
-                                    </button>
-                                    <button class="btn-accion secondary" onclick="window.close()">
-                                        ❌ Cerrar
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <script>
-                                // Datos del cliente para gráficos
-                                const datosCliente = ${JSON.stringify(datosMeses)};
-                                
-                                // Funciones para renderizar gráficos
-                                function renderizarGraficoRentabilidadCliente(datos) {
-                                    const canvas = document.getElementById('chartClienteRentabilidad');
-                                    if (!canvas) return;
+                        const kpisTotales = calcularKPIsTiempoReal(datosClienteMeses);
+                        
+                        // Extraer detalles para botones +
+                        const todosIncrementos = [];
+                        const todosDecrementos = [];
+                        const todosBeneficios = [];
+                        
+                        datosClienteMeses.forEach(mes => {
+                            if (mes.detalles && Array.isArray(mes.detalles)) {
+                                mes.detalles.forEach(detalle => {
+                                    const fecha = detalle.fecha || '';
+                                    const inc = typeof detalle.incremento === 'number' ? detalle.incremento : 0;
+                                    const dec = typeof detalle.decremento === 'number' ? detalle.decremento : 0;
                                     
-                                    const ctx = canvas.getContext('2d');
-                                    const tipo = document.getElementById('tipoGraficoCliente').value;
-                                    const vista = document.getElementById('vistaCliente').value;
-                                    
-                                    // Preparar datos
-                                    const datosGrafico = prepararDatosRentabilidad(datos, vista);
-                                    
-                                    // Destruir gráfico anterior si existe
-                                    if (window.chartRentabilidad) {
-                                        window.chartRentabilidad.destroy();
-                                    }
-                                    
-                                    // Crear nuevo gráfico
-                                    window.chartRentabilidad = new Chart(ctx, {
-                                        type: tipo,
-                                        data: datosGrafico,
-                                        options: {
-                                            responsive: true,
-                                            maintainAspectRatio: false,
-                                            plugins: {
-                                                legend: {
-                                                    display: tipo !== 'bar' && tipo !== 'line'
-                                                }
-                                            },
-                                            scales: tipo === 'bar' || tipo === 'line' ? {
-                                                y: {
-                                                    beginAtZero: true,
-                                                    ticks: {
-                                                        callback: function(value) {
-                                                            return value + '%';
-                                                        }
-                                                    }
-                                                }
-                                            } : {}
-                                        }
-                                    });
-                                }
-                                
-                                function renderizarGraficoEvolucionCliente(datos) {
-                                    const canvas = document.getElementById('chartClienteEvolucion');
-                                    if (!canvas) return;
-                                    
-                                    const ctx = canvas.getContext('2d');
-                                    const tipo = document.getElementById('tipoGraficoEvolucion').value;
-                                    
-                                    // Preparar datos
-                                    const datosGrafico = prepararDatosEvolucion(datos, tipo);
-                                    
-                                    // Destruir gráfico anterior si existe
-                                    if (window.chartEvolucion) {
-                                        window.chartEvolucion.destroy();
-                                    }
-                                    
-                                    // Crear nuevo gráfico
-                                    window.chartEvolucion = new Chart(ctx, {
-                                        type: tipo === 'area' ? 'line' : tipo,
-                                        data: datosGrafico,
-                                        options: {
-                                            responsive: true,
-                                            maintainAspectRatio: false,
-                                            plugins: {
-                                                legend: {
-                                                    display: false
-                                                }
-                                            },
-                                            scales: tipo !== 'radar' && tipo !== 'doughnut' && tipo !== 'polarArea' ? {
-                                                y: {
-                                                    beginAtZero: false,
-                                                    ticks: {
-                                                        callback: function(value) {
-                                                            return '€' + value.toLocaleString('es-ES');
-                                                        }
-                                                    }
-                                                }
-                                            } : {},
-                                            elements: tipo === 'area' ? {
-                                                fill: true,
-                                                tension: 0.4
-                                            } : {}
-                                        }
-                                    });
-                                }
-                                
-                                function prepararDatosRentabilidad(datos, vista) {
-                                    if (!datos || datos.length === 0) {
-                                        return { labels: [], datasets: [] };
-                                    }
-                                    
-                                    const labels = datos.map(d => d.nombreMes);
-                                    const datosRentabilidad = datos.map(d => (d.rentabilidad || 0) * 100);
-                                    
-                                    if (vista === 'acumulado') {
-                                        let acumulado = 0;
-                                        const datosAcumulados = datosRentabilidad.map(val => {
-                                            acumulado += val;
-                                            return acumulado;
+                                    if (inc > 0) {
+                                        todosIncrementos.push({ 
+                                            fecha, 
+                                            importe: inc, 
+                                            mes: mes.mes 
                                         });
-                                        return {
-                                            labels: labels,
-                                            datasets: [{
-                                                label: 'Rentabilidad Acumulada (%)',
-                                                data: datosAcumulados,
-                                                backgroundColor: 'rgba(52, 152, 219, 0.6)',
-                                                borderColor: 'rgba(52, 152, 219, 1)',
-                                                borderWidth: 2
-                                            }]
-                                        };
-                                    } else {
-                                        return {
-                                            labels: labels,
-                                            datasets: [{
-                                                label: 'Rentabilidad Mensual (%)',
-                                                data: datosRentabilidad,
-                                                backgroundColor: datosRentabilidad.map(val => val >= 0 ? 'rgba(39, 174, 96, 0.6)' : 'rgba(231, 76, 60, 0.6)'),
-                                                borderColor: datosRentabilidad.map(val => val >= 0 ? 'rgba(39, 174, 96, 1)' : 'rgba(231, 76, 60, 1)'),
-                                                borderWidth: 2
-                                            }]
-                                        };
                                     }
-                                }
-                                
-                                function prepararDatosEvolucion(datos, tipo) {
-                                    if (!datos || datos.length === 0) {
-                                        return { labels: [], datasets: [] };
+                                    if (dec > 0) {
+                                        todosDecrementos.push({ 
+                                            fecha, 
+                                            importe: dec, 
+                                            mes: mes.mes 
+                                        });
                                     }
-                                    
-                                    const labels = datos.map(d => d.nombreMes);
-                                    const saldos = datos.map(d => d.saldo || 0);
-                                    
-                                    return {
-                                        labels: labels,
-                                        datasets: [{
-                                            label: 'Evolución del Patrimonio',
-                                            data: saldos,
-                                            backgroundColor: 'rgba(46, 204, 113, 0.2)',
-                                            borderColor: 'rgba(46, 204, 113, 1)',
-                                            borderWidth: 2,
-                                            fill: tipo === 'area',
-                                            tension: 0.4
-                                        }]
-                                    };
-                                }
-                                
-                                // Event listeners para los selects
-                                document.getElementById('tipoGraficoCliente').addEventListener('change', () => renderizarGraficoRentabilidadCliente(datosCliente));
-                                document.getElementById('vistaCliente').addEventListener('change', () => renderizarGraficoRentabilidadCliente(datosCliente));
-                                document.getElementById('tipoGraficoEvolucion').addEventListener('change', () => renderizarGraficoEvolucionCliente(datosCliente));
-                                
-                                // Renderizar gráficos al cargar
-                                window.addEventListener('load', () => {
-                                    renderizarGraficoRentabilidadCliente(datosCliente);
-                                    renderizarGraficoEvolucionCliente(datosCliente);
                                 });
-                            </script>
-                        </body>
-                        </html>
-                    `;
+                            }
+                            
+                            if (mes.beneficio && Math.abs(mes.beneficio) > 0.01) {
+                                todosBeneficios.push({
+                                    mes: mes.mes,
+                                    nombreMes: mes.nombreMes,
+                                    beneficio: mes.beneficio,
+                                    rentabilidad: mes.rentabilidad || 0
+                                });
+                            }
+                        });
+                        
+                        // Color del peor mes
+                        const peorMesPositivo = kpisTotales.peorMes && kpisTotales.peorMes.rentabilidad >= 0;
+                        const peorMesClass = peorMesPositivo ? 'positive' : 'negative';
+                        const peorMesSigno = kpisTotales.peorMes && kpisTotales.peorMes.rentabilidad >= 0 ? '+' : '';
+                        const peorMesTexto = kpisTotales.peorMes ? 
+                            `${formatearMesCorto(kpisTotales.peorMes.mes)}: ${peorMesSigno}${kpisTotales.peorMes.rentabilidad.toFixed(2)}%` : 
+                            'Sin operaciones';
+                        
+                        // Ordenar meses cronológicamente (más antiguo primero)
+                        const datosOrdenados = [...datosClienteMeses].sort((a, b) => a.mes.localeCompare(b.mes));
+                        
+                        return `
+                            <!DOCTYPE html>
+                            <html>
+                            <head>
+                                <title>Informe de Cliente - ${nombreCompleto}</title>
+                                <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                                <style>
+                                    body { 
+                                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+                                        margin: 0; 
+                                        padding: 20px; 
+                                        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 50%, #d4dbe6 100%);
+                                    }
+                                    .modal-stats-client-content {
+                                        background: rgba(255, 255, 255, 0.72);
+                                        backdrop-filter: blur(20px) saturate(180%);
+                                        -webkit-backdrop-filter: blur(20px) saturate(180%);
+                                        border-radius: 20px;
+                                        border: 1px solid rgba(255, 255, 255, 0.5);
+                                        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+                                        max-width: 1200px;
+                                        margin: 0 auto;
+                                        overflow: hidden;
+                                    }
+                                    .modal-stats-client-header {
+                                        background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.1));
+                                        padding: 2rem;
+                                        border-bottom: 1px solid rgba(255,255,255,0.5);
+                                        display: flex;
+                                        justify-content: space-between;
+                                        align-items: center;
+                                    }
+                                    .modal-stats-client-header h2 {
+                                        margin: 0;
+                                        color: #2c3e50;
+                                        font-size: 1.8rem;
+                                        font-weight: 700;
+                                    }
+                                    .client-stats-kpis {
+                                        display: grid;
+                                        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                                        gap: 1rem;
+                                        padding: 2rem;
+                                    }
+                                    .client-stat-card {
+                                        background: var(--crystal-white, #ffffff);
+                                        border: 1px solid var(--border-light, #e5e5e5);
+                                        border-radius: 16px;
+                                        padding: 1.5rem;
+                                        text-align: center;
+                                        transition: all 0.3s ease;
+                                    }
+                                    .client-stat-card:hover {
+                                        transform: translateY(-2px);
+                                        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+                                    }
+                                    .client-stat-card .label {
+                                        font-size: 0.9rem;
+                                        color: var(--text-secondary, #7f8c8d);
+                                        margin-bottom: 0.5rem;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        gap: 0.5rem;
+                                    }
+                                    .client-stat-card .value {
+                                        font-size: 1.5rem;
+                                        font-weight: 700;
+                                    }
+                                    .btn-detalle-stats {
+                                        background: rgba(59, 130, 246, 0.1);
+                                        border: 1px solid rgba(59, 130, 246, 0.3);
+                                        border-radius: 50%;
+                                        width: 20px;
+                                        height: 20px;
+                                        font-size: 12px;
+                                        cursor: pointer;
+                                        transition: all 0.3s ease;
+                                    }
+                                    .btn-detalle-stats:hover {
+                                        background: rgba(59, 130, 246, 0.2);
+                                    }
+                                    .client-chart-container {
+                                        background: var(--crystal-white, #ffffff);
+                                        border: 1px solid var(--border-light, #e5e5e5);
+                                        border-radius: 16px;
+                                        padding: 2rem;
+                                        margin: 1.5rem;
+                                    }
+                                    .client-chart-container h3 {
+                                        margin: 0 0 1.5rem 0;
+                                        color: #2c3e50;
+                                        font-size: 1.3rem;
+                                        font-weight: 600;
+                                    }
+                                    .chart-controls-premium {
+                                        display: flex;
+                                        gap: 1rem;
+                                        margin-bottom: 1.5rem;
+                                        flex-wrap: wrap;
+                                    }
+                                    .control-group {
+                                        display: flex;
+                                        align-items: center;
+                                        gap: 0.5rem;
+                                    }
+                                    .control-group label {
+                                        font-size: 0.9rem;
+                                        color: #7f8c8d;
+                                        font-weight: 500;
+                                    }
+                                    .control-group select {
+                                        padding: 0.5rem 1rem;
+                                        border: 1px solid #e5e5e5;
+                                        border-radius: 8px;
+                                        background: white;
+                                        font-size: 0.9rem;
+                                    }
+                                    .client-chart-wrapper {
+                                        position: relative;
+                                        height: 400px;
+                                        width: 100%;
+                                    }
+                                    .positive { color: #27ae60; }
+                                    .negative { color: #e74c3c; }
+                                    .acciones {
+                                        text-align: center;
+                                        padding: 2rem;
+                                        border-top: 1px solid rgba(255,255,255,0.5);
+                                        background: rgba(255,255,255,0.3);
+                                        display: flex;
+                                        gap: 1rem;
+                                        justify-content: center;
+                                        flex-wrap: wrap;
+                                    }
+                                    .btn-accion {
+                                        padding: 0.75rem 1.5rem;
+                                        border: none;
+                                        border-radius: 10px;
+                                        font-weight: 600;
+                                        cursor: pointer;
+                                        transition: all 0.3s ease;
+                                        font-size: 0.9rem;
+                                    }
+                                    .btn-accion.primary {
+                                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                        color: white;
+                                    }
+                                    .btn-accion.secondary {
+                                        background: rgba(255,255,255,0.8);
+                                        color: #2c3e50;
+                                        border: 1px solid rgba(255,255,255,0.5);
+                                    }
+                                    .btn-accion:hover {
+                                        transform: translateY(-2px);
+                                        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+                                    }
+                                    @media print {
+                                        body { background: white; }
+                                        .modal-stats-client-content { box-shadow: none; }
+                                        .acciones { display: none; }
+                                    }
+                                </style>
+                            </head>
+                            <body>
+                                <div class="modal-stats-client-content">
+                                    <div class="modal-stats-client-header">
+                                        <h2>📊 Estadísticas de ${nombreCompleto}</h2>
+                                        <div style="color: #7f8c8d; font-size: 0.9rem;">Generado el ${fecha}</div>
+                                    </div>
+                                    
+                                    <div class="client-stats-kpis">
+                                        <div class="client-stat-card">
+                                            <div class="label">Inversión <button class="btn-detalle-stats" onclick="mostrarDetalleIncrementos()" title="Ver detalle">+</button></div>
+                                            <div class="value positive">+${formatearMoneda(kpisTotales.inversion)}</div>
+                                        </div>
+                                        <div class="client-stat-card">
+                                            <div class="label">Saldo Actual</div>
+                                            <div class="value">${formatearMoneda(kpisTotales.saldoActual)}</div>
+                                        </div>
+                                        <div class="client-stat-card">
+                                            <div class="label">Retiradas <button class="btn-detalle-stats" onclick="mostrarDetalleDecrementos()" title="Ver detalle">+</button></div>
+                                            <div class="value ${kpisTotales.decrementos > 0 ? 'negative' : ''}">${kpisTotales.decrementos > 0 ? '-' : ''}${formatearMoneda(kpisTotales.decrementos)}</div>
+                                        </div>
+                                        <div class="client-stat-card">
+                                            <div class="label">Beneficio Total € <button class="btn-detalle-stats" onclick="mostrarDetalleBeneficios()" title="Ver detalle">+</button></div>
+                                            <div class="value ${kpisTotales.beneficioEuro >= 0 ? 'positive' : 'negative'}">${kpisTotales.beneficioEuro >= 0 ? '+' : ''}${formatearMoneda(kpisTotales.beneficioEuro)}</div>
+                                        </div>
+                                        <div class="client-stat-card">
+                                            <div class="label">Rentabilidad Total</div>
+                                            <div class="value ${kpisTotales.rentabilidadTotal >= 0 ? 'positive' : 'negative'}">${kpisTotales.rentabilidadTotal >= 0 ? '+' : ''}${kpisTotales.rentabilidadTotal.toFixed(2)}%</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="client-stats-kpis" style="margin-top: 1rem;">
+                                        <div class="client-stat-card">
+                                            <div class="label">Mejor Mes</div>
+                                            <div class="value positive">${kpisTotales.mejorMes ? formatearMesCorto(kpisTotales.mejorMes.mes) + ': +' + kpisTotales.mejorMes.rentabilidad.toFixed(2) + '%' : 'Sin operaciones'}</div>
+                                        </div>
+                                        <div class="client-stat-card">
+                                            <div class="label">Peor Mes</div>
+                                            <div class="value ${peorMesClass}">${peorMesTexto}</div>
+                                        </div>
+                                        <div class="client-stat-card">
+                                            <div class="label">Promedio Mensual</div>
+                                            <div class="value ${kpisTotales.promedioMensual >= 0 ? 'positive' : 'negative'}">${kpisTotales.promedioMensual >= 0 ? '+' : ''}${kpisTotales.promedioMensual.toFixed(2)}%</div>
+                                        </div>
+                                        <div class="client-stat-card">
+                                            <div class="label">Meses Operados</div>
+                                            <div class="value">${kpisTotales.mesesOperados}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="client-chart-container">
+                                        <h3>📊 Rentabilidad Mensual</h3>
+                                        <div class="chart-controls-premium">
+                                            <div class="control-group">
+                                                <label>Tipo de gráfico:</label>
+                                                <select id="tipoGraficoCliente">
+                                                    <option value="bar" selected>Barras</option>
+                                                    <option value="line">Línea</option>
+                                                    <option value="radar">Radar</option>
+                                                    <option value="doughnut">Dona</option>
+                                                    <option value="polarArea">Polar</option>
+                                                    <option value="pie">Pastel</option>
+                                                    <option value="scatter">Dispersión</option>
+                                                    <option value="bubble">Burbujas</option>
+                                                </select>
+                                            </div>
+                                            <div class="control-group">
+                                                <label>Vista:</label>
+                                                <select id="vistaCliente">
+                                                    <option value="mensual">Mensual</option>
+                                                    <option value="acumulado">Acumulado</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="client-chart-wrapper">
+                                            <canvas id="chartClienteRentabilidad"></canvas>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="client-chart-container">
+                                        <h3>📈 Evolución del Patrimonio</h3>
+                                        <div class="chart-controls-premium">
+                                            <div class="control-group">
+                                                <label>Tipo de gráfico:</label>
+                                                <select id="tipoGraficoEvolucion">
+                                                    <option value="line" selected>Línea</option>
+                                                    <option value="bar">Barras</option>
+                                                    <option value="area">Área</option>
+                                                    <option value="stepped">Escalonado</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="client-chart-wrapper">
+                                            <canvas id="chartClienteEvolucion"></canvas>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="acciones">
+                                        <button class="btn-accion primary" onclick="window.print()">
+                                            🖨️ Imprimir Informe
+                                        </button>
+                                        <button class="btn-accion secondary" onclick="window.close()">
+                                            ❌ Cerrar
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <script>
+                                    // Datos del cliente para gráficos (ordenados cronológicamente)
+                                    const datosCliente = ${JSON.stringify(datosOrdenados)};
+                                    
+                                    // Funciones para renderizar gráficos
+                                    function renderizarGraficoRentabilidadCliente(datos) {
+                                        const canvas = document.getElementById('chartClienteRentabilidad');
+                                        if (!canvas) return;
+                                        
+                                        const ctx = canvas.getContext('2d');
+                                        const tipo = document.getElementById('tipoGraficoCliente').value;
+                                        const vista = document.getElementById('vistaCliente').value;
+                                        
+                                        // Preparar datos
+                                        const datosGrafico = prepararDatosRentabilidad(datos, vista);
+                                        
+                                        // Destruir gráfico anterior si existe
+                                        if (window.chartRentabilidad) {
+                                            window.chartRentabilidad.destroy();
+                                        }
+                                        
+                                        // Crear nuevo gráfico
+                                        window.chartRentabilidad = new Chart(ctx, {
+                                            type: tipo,
+                                            data: datosGrafico,
+                                            options: {
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: {
+                                                    legend: {
+                                                        display: tipo !== 'bar' && tipo !== 'line'
+                                                    }
+                                                },
+                                                scales: tipo === 'bar' || tipo === 'line' ? {
+                                                    y: {
+                                                        beginAtZero: true,
+                                                        ticks: {
+                                                            callback: function(value) {
+                                                                return value + '%';
+                                                            }
+                                                        }
+                                                    }
+                                                } : {}
+                                            }
+                                        });
+                                    }
+                                    
+                                    function renderizarGraficoEvolucionCliente(datos) {
+                                        const canvas = document.getElementById('chartClienteEvolucion');
+                                        if (!canvas) return;
+                                        
+                                        const ctx = canvas.getContext('2d');
+                                        const tipo = document.getElementById('tipoGraficoEvolucion').value;
+                                        
+                                        // Preparar datos
+                                        const datosGrafico = prepararDatosEvolucion(datos, tipo);
+                                        
+                                        // Destruir gráfico anterior si existe
+                                        if (window.chartEvolucion) {
+                                            window.chartEvolucion.destroy();
+                                        }
+                                        
+                                        // Crear nuevo gráfico
+                                        window.chartEvolucion = new Chart(ctx, {
+                                            type: tipo === 'area' ? 'line' : tipo,
+                                            data: datosGrafico,
+                                            options: {
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: {
+                                                    legend: {
+                                                        display: false
+                                                    }
+                                                },
+                                                scales: tipo !== 'radar' && tipo !== 'doughnut' && tipo !== 'polarArea' ? {
+                                                    y: {
+                                                        beginAtZero: false,
+                                                        ticks: {
+                                                            callback: function(value) {
+                                                                return '€' + value.toLocaleString('es-ES');
+                                                            }
+                                                        }
+                                                    }
+                                                } : {},
+                                                elements: tipo === 'area' ? {
+                                                    fill: true,
+                                                    tension: 0.4
+                                                } : {}
+                                            }
+                                        });
+                                    }
+                                    
+                                    function prepararDatosRentabilidad(datos, vista) {
+                                        if (!datos || datos.length === 0) {
+                                            return { labels: [], datasets: [] };
+                                        }
+                                        
+                                        const labels = datos.map(d => d.nombreMes);
+                                        const datosRentabilidad = datos.map(d => d.rentabilidad || 0);
+                                        
+                                        if (vista === 'acumulado') {
+                                            let acumulado = 0;
+                                            const datosAcumulados = datosRentabilidad.map(val => {
+                                                acumulado += val;
+                                                return acumulado;
+                                            });
+                                            return {
+                                                labels: labels,
+                                                datasets: [{
+                                                    label: 'Rentabilidad Acumulada (%)',
+                                                    data: datosAcumulados,
+                                                    backgroundColor: 'rgba(52, 152, 219, 0.6)',
+                                                    borderColor: 'rgba(52, 152, 219, 1)',
+                                                    borderWidth: 2
+                                                }]
+                                            };
+                                        } else {
+                                            return {
+                                                labels: labels,
+                                                datasets: [{
+                                                    label: 'Rentabilidad Mensual (%)',
+                                                    data: datosRentabilidad,
+                                                    backgroundColor: datosRentabilidad.map(val => val >= 0 ? 'rgba(39, 174, 96, 0.6)' : 'rgba(231, 76, 60, 0.6)'),
+                                                    borderColor: datosRentabilidad.map(val => val >= 0 ? 'rgba(39, 174, 96, 1)' : 'rgba(231, 76, 60, 1)'),
+                                                    borderWidth: 2
+                                                }]
+                                            };
+                                        }
+                                    }
+                                    
+                                    function prepararDatosEvolucion(datos, tipo) {
+                                        if (!datos || datos.length === 0) {
+                                            return { labels: [], datasets: [] };
+                                        }
+                                        
+                                        const labels = datos.map(d => d.nombreMes);
+                                        const saldos = datos.map(d => d.saldoFinal || 0);
+                                        
+                                        return {
+                                            labels: labels,
+                                            datasets: [{
+                                                label: 'Evolución del Patrimonio',
+                                                data: saldos,
+                                                backgroundColor: 'rgba(46, 204, 113, 0.2)',
+                                                borderColor: 'rgba(46, 204, 113, 1)',
+                                                borderWidth: 2,
+                                                fill: tipo === 'area',
+                                                tension: 0.4
+                                            }]
+                                        };
+                                    }
+                                    
+                                    // Event listeners para los selects
+                                    document.getElementById('tipoGraficoCliente').addEventListener('change', () => renderizarGraficoRentabilidadCliente(datosCliente));
+                                    document.getElementById('vistaCliente').addEventListener('change', () => renderizarGraficoRentabilidadCliente(datosCliente));
+                                    document.getElementById('tipoGraficoEvolucion').addEventListener('change', () => renderizarGraficoEvolucionCliente(datosCliente));
+                                    
+                                    // Renderizar gráficos al cargar
+                                    window.addEventListener('load', () => {
+                                        renderizarGraficoRentabilidadCliente(datosCliente);
+                                        renderizarGraficoEvolucionCliente(datosCliente);
+                                    });
+                                </script>
+                            </body>
+                            </html>
+                        `;
+                    } catch (error) {
+                        console.error('Error generando informe:', error);
+                        return `<p style="color: red;">Error: ${error.message}</p>`;
+                    }
                 }
                 
                 prepararDatosParaEstadisticas(datosDiarios) {
