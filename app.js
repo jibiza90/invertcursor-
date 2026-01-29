@@ -10628,9 +10628,6 @@ async function mostrarEstadisticasCliente() {
         const datosCompletosCliente = { kpisTotales, datosClienteMeses };
         window._datosCliente = datosCompletosCliente; // Guardar para acceso global
         window._datosEstadisticasCliente = datosCompletosCliente; // Guardar para comparación con informe
-        
-        const statsHTML = generarHTMLStatsCliente(datosCompletosCliente, nombreCompleto);
-        document.getElementById('clientStatsContent').innerHTML = statsHTML;
     } catch (error) {
         console.error('Error en estadísticas tiempo real:', error);
         document.getElementById('clientStatsContent').innerHTML = `
