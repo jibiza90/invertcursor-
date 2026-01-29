@@ -14325,34 +14325,50 @@ class ReportsManager {
         // Calcular estadísticas
         const estadisticas = await this.calcularEstadisticasCliente(cliente);
         
-        // Extraer detalles de incrementos/decrementos
+        // Extraer detalles de incrementos/decrementos de los datos diarios del cliente
         const detallesMovimientos = [];
         
-        if (estadisticas.meses && estadisticas.meses.length > 0) {
-            estadisticas.meses.forEach(mes => {
-                if (mes.detalles && Array.isArray(mes.detalles)) {
-                    mes.detalles.forEach(detalle => {
-                        // Buscar incrementos y decrementos correctamente
-                        if (detalle.capitalInvertido && detalle.capitalInvertido > 0) {
-                            detallesMovimientos.push({
-                                fecha: detalle.fecha || '',
-                                importe: detalle.capitalInvertido,
-                                tipo: 'Ingreso',
-                                mes: mes.nombreMes
-                            });
-                        }
-                        if (detalle.capitalRetirado && detalle.capitalRetirado > 0) {
-                            detallesMovimientos.push({
-                                fecha: detalle.fecha || '',
-                                importe: detalle.capitalRetirado,
-                                tipo: 'Retirada',
-                                mes: mes.nombreMes
-                            });
-                        }
-                    });
+        // Acceder a los datos diarios del cliente directamente
+        const datosDiarios = cliente.datos_diarios || [];
+        
+        datosDiarios.forEach(fila => {
+            const inc = typeof fila.incremento === 'number' ? fila.incremento : 0;
+            const dec = typeof fila.decremento === 'number' ? fila.decremento : 0;
+            
+            // Extraer mes de la fecha
+            let nombreMes = 'Sin mes';
+            if (fila.fecha && fila.fecha !== 'FECHA') {
+                const fecha = new Date(fila.fecha);
+                if (!isNaN(fecha.getTime())) {
+                    nombreMes = fecha.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
                 }
-            });
-        }
+            }
+            
+            // Si hay incremento, añadir movimiento
+            if (inc > 0) {
+                detallesMovimientos.push({
+                    fecha: fila.fecha || '',
+                    importe: inc,
+                    tipo: 'Ingreso',
+                    mes: nombreMes
+                });
+            }
+            
+            // Si hay decremento, añadir movimiento
+            if (dec > 0) {
+                detallesMovimientos.push({
+                    fecha: fila.fecha || '',
+                    importe: dec,
+                    tipo: 'Retirada',
+                    mes: nombreMes
+                });
+            }
+        });
+        
+        console.log('📊 Movimientos encontrados:', detallesMovimientos.length);
+        detallesMovimientos.forEach(mov => {
+            console.log(`   ${mov.fecha}: ${mov.tipo} - ${this.formatearMoneda(mov.importe)}`);
+        });
         
         return `
             <!DOCTYPE html>
@@ -15110,13 +15126,18 @@ Saludos cordiales</textarea>
             // Abrir Gmail en nueva ventana
             window.open(gmailUrl, '_blank');
             
-            // Mostrar instrucciones para adjuntar el archivo
-            this.mostrarNotificacion(`✅ Gmail abierto. Por favor, adjunta el PDF descargado automáticamente.`, 'info');
+            // Mostrar instrucciones claras para adjuntar el archivo
+            this.mostrarNotificacion(`📧 Gmail abierto. El PDF se descargará automáticamente en 1 segundo.`, 'info');
             
             // Descargar el PDF automáticamente para que el usuario lo tenga listo
             setTimeout(() => {
                 pdf.save(`informe_${cliente.nombre.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
-                this.mostrarNotificacion(`📄 PDF descargado. Ahora puedes adjuntarlo en Gmail.`, 'success');
+                this.mostrarNotificacion(`📄 PDF descargado. En Gmail, haz clic en el clip 📎 para adjuntarlo.`, 'success');
+                
+                // Mostrar instrucciones adicionales
+                setTimeout(() => {
+                    this.mostrarNotificacion(`💡 Instrucciones: En Gmail → clic en el clip 📎 → selecciona el PDF descargado → enviar.`, 'info');
+                }, 2000);
             }, 1000);
             
         } catch (error) {
