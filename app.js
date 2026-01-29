@@ -14416,13 +14416,14 @@ class ReportsManager {
                     }
                     
                     .section {
-                        margin-bottom: 30px;
+                        margin-bottom: 40px;
+                        page-break-inside: avoid;
                     }
                     
                     .section-header {
                         display: flex;
                         align-items: center;
-                        margin-bottom: 15px;
+                        margin-bottom: 20px;
                         padding-left: 10px;
                         position: relative;
                     }
@@ -14439,8 +14440,8 @@ class ReportsManager {
                     }
                     
                     .section-title {
-                        font-size: 16px;
-                        font-weight: 600;
+                        font-size: 18px;
+                        font-weight: 700;
                         color: #1a1a1a;
                         margin-left: 10px;
                     }
@@ -14452,17 +14453,18 @@ class ReportsManager {
                         border-radius: 8px;
                         overflow: hidden;
                         border: 2px solid #e5e7eb;
+                        margin-bottom: 20px;
                     }
                     
                     .data-table td {
-                        padding: 12px;
+                        padding: 15px 12px;
                         border: 1px solid #e5e7eb;
-                        font-size: 11px;
+                        font-size: 12px;
                         font-weight: 500;
                     }
                     
                     .data-table td:first-child {
-                        font-weight: 600;
+                        font-weight: 700;
                         color: #374151;
                         background: #f9fafb;
                         width: 20%;
@@ -14496,29 +14498,30 @@ class ReportsManager {
                     }
                     
                     .chart-container {
-                        margin: 20px 0;
-                        padding: 20px;
+                        margin: 30px 0;
+                        padding: 25px;
                         border: 2px solid #e5e7eb;
                         border-radius: 8px;
                         background: #f9fafb;
+                        page-break-inside: avoid;
                     }
                     
                     .chart-title {
-                        font-size: 14px;
-                        font-weight: 600;
+                        font-size: 16px;
+                        font-weight: 700;
                         color: #1a1a1a;
-                        margin-bottom: 15px;
+                        margin-bottom: 20px;
                         text-align: center;
                     }
                     
                     .footer {
                         text-align: center;
-                        margin-top: 40px;
-                        padding-top: 20px;
+                        margin-top: 50px;
+                        padding-top: 30px;
                         border-top: 2px solid #e5e7eb;
-                        font-size: 10px;
+                        font-size: 12px;
                         color: #6b7280;
-                        font-weight: 500;
+                        font-weight: 600;
                     }
                     
                     @media print {
@@ -14628,11 +14631,11 @@ class ReportsManager {
                         </div>
                         <div class="chart-container">
                             <div class="chart-title">📊 Rentabilidad Mensual</div>
-                            <canvas id="chartRentabilidadPDF" width="760" height="200"></canvas>
+                            <canvas id="chartRentabilidadPDF" width="760" height="300"></canvas>
                         </div>
                         <div class="chart-container">
                             <div class="chart-title">📈 Evolución del Patrimonio</div>
-                            <canvas id="chartEvolucionPDF" width="760" height="200"></canvas>
+                            <canvas id="chartEvolucionPDF" width="760" height="300"></canvas>
                         </div>
                     </div>
                     
@@ -14741,25 +14744,54 @@ class ReportsManager {
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
             
-            // Usar html2canvas para capturar el HTML
-            const canvas = await html2canvas(tempDiv, {
-                scale: 2,
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: '#ffffff',
-                width: 794, // 210mm en pixels a 96dpi
-                height: 1123, // 297mm en pixels a 96dpi
-                logging: false,
-                removeContainer: false,
-                scrollX: 0,
-                scrollY: 0
-            });
+            // Obtener la altura real del contenido
+            const contentHeight = tempDiv.scrollHeight;
+            console.log('📏 Altura del contenido:', contentHeight, 'px');
             
-            // Añadir la imagen al PDF
-            const imgData = canvas.toDataURL('image/png');
-            pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
+            // Configuración para html2canvas
+            const pageHeight = 1123; // 297mm en pixels a 96dpi
+            const pageWidth = 794;   // 210mm en pixels a 96dpi
+            const padding = 40;      // Padding entre páginas
             
+            let currentPage = 0;
+            let currentPosition = 0;
+            
+            // Generar páginas mientras haya contenido
+            while (currentPosition < contentHeight) {
+                // Capturar la porción actual del contenido
+                const canvas = await html2canvas(tempDiv, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    width: pageWidth,
+                    height: Math.min(pageHeight - padding, contentHeight - currentPosition),
+                    x: 0,
+                    y: currentPosition,
+                    scrollX: 0,
+                    scrollY: currentPosition,
+                    logging: false,
+                    removeContainer: false
+                });
+                
+                // Añadir la imagen al PDF (si no es la primera página, añadir nueva página)
+                if (currentPage > 0) {
+                    pdf.addPage();
+                }
+                
+                const imgData = canvas.toDataURL('image/png');
+                pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
+                
+                // Avanzar a la siguiente posición
+                currentPosition += (pageHeight - padding);
+                currentPage++;
+                
+                console.log(`📄 Página ${currentPage} generada, posición: ${currentPosition}px`);
+            }
+            
+            console.log(`✅ PDF generado con ${currentPage} página(s)`);
             return pdf;
+            
         } finally {
             document.body.removeChild(tempDiv);
         }
