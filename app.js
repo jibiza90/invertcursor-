@@ -14320,31 +14320,32 @@ class ReportsManager {
         const datosCliente = cliente.datos.datos || {};
         const nombre = datosCliente['NOMBRE']?.valor || '';
         const apellidos = datosCliente['APELLIDOS']?.valor || '';
-        const fechaAlta = datosCliente['FECHA ALTA']?.valor || '';
         const nombreCompleto = nombre || apellidos ? `${nombre} ${apellidos}`.trim() : `Cliente ${cliente.id}`;
         
         // Calcular estadísticas
         const estadisticas = await this.calcularEstadisticasCliente(cliente);
         
         // Extraer detalles de incrementos/decrementos
-        const detallesIncrementos = [];
-        const detallesDecrementos = [];
+        const detallesMovimientos = [];
         
         if (estadisticas.meses && estadisticas.meses.length > 0) {
             estadisticas.meses.forEach(mes => {
                 if (mes.detalles && Array.isArray(mes.detalles)) {
                     mes.detalles.forEach(detalle => {
-                        if (detalle.incremento && detalle.incremento > 0) {
-                            detallesIncrementos.push({
+                        // Buscar incrementos y decrementos correctamente
+                        if (detalle.capitalInvertido && detalle.capitalInvertido > 0) {
+                            detallesMovimientos.push({
                                 fecha: detalle.fecha || '',
-                                importe: detalle.incremento,
+                                importe: detalle.capitalInvertido,
+                                tipo: 'Ingreso',
                                 mes: mes.nombreMes
                             });
                         }
-                        if (detalle.decremento && detalle.decremento > 0) {
-                            detallesDecrementos.push({
+                        if (detalle.capitalRetirado && detalle.capitalRetirado > 0) {
+                            detallesMovimientos.push({
                                 fecha: detalle.fecha || '',
-                                importe: detalle.decremento,
+                                importe: detalle.capitalRetirado,
+                                tipo: 'Retirada',
                                 mes: mes.nombreMes
                             });
                         }
@@ -14371,7 +14372,7 @@ class ReportsManager {
                     
                     body {
                         background: white;
-                        color: #2F3A4A;
+                        color: #1a1a1a;
                         line-height: 1.6;
                     }
                     
@@ -14385,7 +14386,7 @@ class ReportsManager {
                         text-align: center;
                         margin-bottom: 30px;
                         padding-bottom: 20px;
-                        border-bottom: 2px solid #6FA3FF;
+                        border-bottom: 3px solid #2563eb;
                     }
                     
                     .header-icon {
@@ -14396,20 +14397,22 @@ class ReportsManager {
                         height: 60px;
                         margin-bottom: 15px;
                         border-radius: 12px;
-                        background: linear-gradient(135deg, #86EFAC 0%, #FCA5A5 25%, #93C5FD 50%, #C4B5FD 75%);
+                        background: linear-gradient(135deg, #2563eb 0%, #10b981 100%);
                         font-size: 24px;
+                        color: white;
                     }
                     
                     .header h1 {
                         font-size: 28px;
                         font-weight: 700;
-                        color: #2F3A4A;
+                        color: #1a1a1a;
                         margin-bottom: 8px;
                     }
                     
                     .subtitle {
-                        color: #6B7280;
+                        color: #6b7280;
                         font-size: 14px;
+                        font-weight: 500;
                     }
                     
                     .section {
@@ -14431,14 +14434,14 @@ class ReportsManager {
                         top: 0;
                         bottom: 0;
                         width: 4px;
-                        background: #6FA3FF;
+                        background: #2563eb;
                         border-radius: 2px;
                     }
                     
                     .section-title {
                         font-size: 16px;
                         font-weight: 600;
-                        color: #2F3A4A;
+                        color: #1a1a1a;
                         margin-left: 10px;
                     }
                     
@@ -14448,61 +14451,62 @@ class ReportsManager {
                         background: white;
                         border-radius: 8px;
                         overflow: hidden;
-                        border: 1px solid #E6EAF0;
+                        border: 2px solid #e5e7eb;
                     }
                     
                     .data-table td {
                         padding: 12px;
-                        border: 1px solid #E6EAF0;
+                        border: 1px solid #e5e7eb;
                         font-size: 11px;
+                        font-weight: 500;
                     }
                     
                     .data-table td:first-child {
-                        font-weight: 500;
-                        color: #6B7280;
-                        background: #F8FAFC;
+                        font-weight: 600;
+                        color: #374151;
+                        background: #f9fafb;
                         width: 20%;
                     }
                     
                     .data-table td:not(:first-child) {
-                        color: #374151;
+                        color: #1a1a1a;
                     }
                     
                     .metric-positive {
-                        color: #22C55E !important;
-                        font-weight: 500;
+                        color: #059669 !important;
+                        font-weight: 600 !important;
                     }
                     
                     .metric-negative {
-                        color: #EF4444 !important;
-                        font-weight: 500;
+                        color: #dc2626 !important;
+                        font-weight: 600 !important;
                     }
                     
                     .metric-blue {
-                        color: #3B82F6 !important;
-                        font-weight: 500;
+                        color: #2563eb !important;
+                        font-weight: 600 !important;
                     }
                     
                     .table-header {
-                        background: #EFF6FF !important;
-                        font-weight: 600 !important;
-                        color: #1E3A8A !important;
+                        background: #eff6ff !important;
+                        font-weight: 700 !important;
+                        color: #1e40af !important;
                         text-align: center !important;
-                        border-bottom: 2px solid #6FA3FF !important;
+                        border-bottom: 2px solid #2563eb !important;
                     }
                     
                     .chart-container {
                         margin: 20px 0;
                         padding: 20px;
-                        border: 1px solid #E6EAF0;
+                        border: 2px solid #e5e7eb;
                         border-radius: 8px;
-                        background: #F8FAFC;
+                        background: #f9fafb;
                     }
                     
                     .chart-title {
                         font-size: 14px;
                         font-weight: 600;
-                        color: #2F3A4A;
+                        color: #1a1a1a;
                         margin-bottom: 15px;
                         text-align: center;
                     }
@@ -14511,9 +14515,10 @@ class ReportsManager {
                         text-align: center;
                         margin-top: 40px;
                         padding-top: 20px;
-                        border-top: 1px solid #E6EAF0;
+                        border-top: 2px solid #e5e7eb;
                         font-size: 10px;
-                        color: #9CA3AF;
+                        color: #6b7280;
+                        font-weight: 500;
                     }
                     
                     @media print {
@@ -14531,29 +14536,19 @@ class ReportsManager {
                         <div class="subtitle">Generado el ${fecha}</div>
                     </div>
                     
-                    <!-- Datos del Cliente -->
+                    <!-- Datos del Cliente (Simplificado) -->
                     <div class="section">
                         <div class="section-header">
                             <span class="section-title">📋 Datos del Cliente</span>
                         </div>
                         <table class="data-table">
                             <tr>
-                                <td>Nombre:</td>
-                                <td>${nombreCompleto}</td>
-                                <td>ID:</td>
-                                <td>${cliente.id}</td>
+                                <td>Nombre y Apellidos:</td>
+                                <td colspan="3">${nombreCompleto}</td>
                             </tr>
                             <tr>
-                                <td>Apellidos:</td>
-                                <td>${apellidos || 'N/A'}</td>
-                                <td>Fecha Alta:</td>
-                                <td>${fechaAlta || 'N/A'}</td>
-                            </tr>
-                            <tr>
-                                <td>Hoja:</td>
-                                <td>${cliente.hoja}</td>
-                                <td>Fecha Informe:</td>
-                                <td>${fecha}</td>
+                                <td>Fecha del Informe:</td>
+                                <td colspan="3">${fecha}</td>
                             </tr>
                         </table>
                     </div>
@@ -14566,7 +14561,7 @@ class ReportsManager {
                         <table class="data-table">
                             <tr>
                                 <td>Inversión Total:</td>
-                                <td>${this.formatearMoneda(estadisticas.kpis.inversion)}</td>
+                                <td class="metric-blue">${this.formatearMoneda(estadisticas.kpis.inversion)}</td>
                                 <td>Beneficio Total:</td>
                                 <td class="${estadisticas.kpis.beneficioEuro >= 0 ? 'metric-positive' : 'metric-negative'}">${this.formatearMoneda(estadisticas.kpis.beneficioEuro)} (${estadisticas.kpis.rentabilidadTotal.toFixed(2)}%)</td>
                             </tr>
@@ -14585,7 +14580,7 @@ class ReportsManager {
                         </table>
                     </div>
                     
-                    <!-- Detalle de Incrementos y Decrementos -->
+                    <!-- Detalle de Movimientos -->
                     <div class="section">
                         <div class="section-header">
                             <span class="section-title">💳 Detalle de Movimientos</span>
@@ -14597,16 +14592,16 @@ class ReportsManager {
                                 <td>IMPORTE</td>
                                 <td>MES</td>
                             </tr>
-                            ${detallesIncrementos.concat(detallesDecrementos).sort((a, b) => new Date(a.fecha) - new Date(b.fecha)).map(mov => `
+                            ${detallesMovimientos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha)).map(mov => `
                                 <tr>
                                     <td>${mov.fecha}</td>
-                                    <td class="${mov.importe > 0 ? 'metric-positive' : 'metric-negative'}">${mov.importe > 0 ? 'Ingreso' : 'Retirada'}</td>
-                                    <td class="${mov.importe > 0 ? 'metric-positive' : 'metric-negative'}">${this.formatearMoneda(Math.abs(mov.importe))}</td>
+                                    <td class="${mov.tipo === 'Ingreso' ? 'metric-positive' : 'metric-negative'}">${mov.tipo}</td>
+                                    <td class="${mov.tipo === 'Ingreso' ? 'metric-positive' : 'metric-negative'}">${this.formatearMoneda(mov.importe)}</td>
                                     <td>${mov.mes}</td>
                                 </tr>
                             `).join('')}
-                            ${detallesIncrementos.length === 0 && detallesDecrementos.length === 0 ? 
-                                '<tr><td colspan="4" style="text-align: center; color: #9CA3AF;">No hay movimientos registrados</td></tr>' : ''}
+                            ${detallesMovimientos.length === 0 ? 
+                                '<tr><td colspan="4" style="text-align: center; color: #6b7280;">No hay movimientos registrados</td></tr>' : ''}
                         </table>
                     </div>
                     
@@ -14771,8 +14766,11 @@ class ReportsManager {
     }
     
     async renderizarGraficosPDF(container) {
+        // Usar los mismos datos que las estadísticas del cliente
         const datos = window._datosEstadisticasCliente;
         if (!datos || !datos.datosClienteMeses) return;
+        
+        const meses = datos.datosClienteMeses;
         
         // Renderizar gráfico de rentabilidad
         const canvasRentabilidad = container.querySelector('#chartRentabilidadPDF');
@@ -14780,17 +14778,17 @@ class ReportsManager {
             new Chart(canvasRentabilidad, {
                 type: 'bar',
                 data: {
-                    labels: datos.datosClienteMeses.map(m => m.nombreMes),
+                    labels: meses.map(m => m.nombreMes),
                     datasets: [{
                         label: 'Rentabilidad (%)',
-                        data: datos.datosClienteMeses.map(m => (m.rentabilidad || 0).toFixed(2)),
-                        backgroundColor: datos.datosClienteMeses.map(m => 
-                            (m.rentabilidad || 0) >= 0 ? 'rgba(34, 197, 94, 0.8)' : 'rgba(239, 68, 68, 0.8)'
+                        data: meses.map(m => (m.rentabilidad || 0).toFixed(2)),
+                        backgroundColor: meses.map(m => 
+                            (m.rentabilidad || 0) >= 0 ? '#059669' : '#dc2626'
                         ),
-                        borderColor: datos.datosClienteMeses.map(m => 
-                            (m.rentabilidad || 0) >= 0 ? 'rgba(34, 197, 94, 1)' : 'rgba(239, 68, 68, 1)'
+                        borderColor: meses.map(m => 
+                            (m.rentabilidad || 0) >= 0 ? '#047857' : '#b91c1c'
                         ),
-                        borderWidth: 1
+                        borderWidth: 2
                     }]
                 },
                 options: {
@@ -14804,9 +14802,28 @@ class ReportsManager {
                     scales: {
                         y: {
                             beginAtZero: true,
+                            grid: {
+                                color: '#e5e7eb',
+                                drawBorder: false
+                            },
                             ticks: {
+                                color: '#374151',
+                                font: {
+                                    weight: '600'
+                                },
                                 callback: function(value) {
                                     return value + '%';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#374151',
+                                font: {
+                                    weight: '500'
                                 }
                             }
                         }
@@ -14821,15 +14838,19 @@ class ReportsManager {
             new Chart(canvasEvolucion, {
                 type: 'line',
                 data: {
-                    labels: datos.datosClienteMeses.map(m => m.nombreMes),
+                    labels: meses.map(m => m.nombreMes),
                     datasets: [{
                         label: 'Saldo Final',
-                        data: datos.datosClienteMeses.map(m => m.saldoFinal || 0),
-                        borderColor: 'rgba(59, 130, 246, 1)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        borderWidth: 2,
+                        data: meses.map(m => m.saldoFinal || 0),
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 3,
                         fill: true,
-                        tension: 0.1
+                        tension: 0.1,
+                        pointBackgroundColor: '#2563eb',
+                        pointBorderColor: '#1d4ed8',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
                     }]
                 },
                 options: {
@@ -14843,12 +14864,32 @@ class ReportsManager {
                     scales: {
                         y: {
                             beginAtZero: true,
+                            grid: {
+                                color: '#e5e7eb',
+                                drawBorder: false
+                            },
                             ticks: {
+                                color: '#374151',
+                                font: {
+                                    weight: '600'
+                                },
                                 callback: function(value) {
                                     return new Intl.NumberFormat('es-ES', {
                                         style: 'currency',
-                                        currency: 'EUR'
+                                        currency: 'EUR',
+                                        minimumFractionDigits: 0
                                     }).format(value);
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#374151',
+                                font: {
+                                    weight: '500'
                                 }
                             }
                         }
@@ -14939,6 +14980,10 @@ class ReportsManager {
     }
     
     enviarPorEmail(pdf, cliente) {
+        // Extraer email del cliente
+        const datosCliente = cliente.datos.datos || {};
+        const emailCliente = datosCliente['EMAIL']?.valor || '';
+        
         // Crear modal para enviar email
         const emailModal = document.createElement('div');
         emailModal.style.cssText = `
@@ -14959,15 +15004,31 @@ class ReportsManager {
                 <h3 style="margin: 0 0 20px 0; color: #2F3A4A;">📧 Enviar Informe por Email</h3>
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px; color: #6B7280; font-size: 14px;">Email del destinatario:</label>
-                    <input type="email" id="emailDestino" placeholder="cliente@ejemplo.com" style="width: 100%; padding: 10px; border: 1px solid #E6EAF0; border-radius: 6px; font-size: 14px;">
+                    <input type="email" id="emailDestino" value="${emailCliente}" placeholder="cliente@ejemplo.com" style="width: 100%; padding: 10px; border: 1px solid #E6EAF0; border-radius: 6px; font-size: 14px;">
                 </div>
                 <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 5px; color: #6B7280; font-size: 14px;">Mensaje (opcional):</label>
-                    <textarea id="emailMensaje" placeholder="Adjunto encontrarás el informe de tu cliente..." style="width: 100%; padding: 10px; border: 1px solid #E6EAF0; border-radius: 6px; font-size: 14px; min-height: 100px; resize: vertical;"></textarea>
+                    <label style="display: block; margin-bottom: 5px; color: #6B7280; font-size: 14px;">Asunto:</label>
+                    <input type="text" id="emailAsunto" value="Informe de Cliente - ${cliente.nombre}" style="width: 100%; padding: 10px; border: 1px solid #E6EAF0; border-radius: 6px; font-size: 14px;">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; color: #6B7280; font-size: 14px;">Mensaje:</label>
+                    <textarea id="emailMensaje" placeholder="Estimado/a ${cliente.nombre}, adjunto encontrarás tu informe mensual con el detalle de tu inversión y rentabilidad." style="width: 100%; padding: 10px; border: 1px solid #E6EAF0; border-radius: 6px; font-size: 14px; min-height: 100px; resize: vertical;">Estimado/a ${cliente.nombre},
+
+Adjunto encontrarás tu informe mensual con el detalle completo de tu inversión, rentabilidad y evolución.
+
+En el informe podrás encontrar:
+• Estadísticas principales de tu inversión
+• Detalle de todos los movimientos realizados
+• Evolución mensual de tu patrimonio
+• Gráficos de rentabilidad y crecimiento
+
+Si tienes cualquier consulta, no dudes en contactarme.
+
+Saludos cordiales</textarea>
                 </div>
                 <div style="display: flex; gap: 10px; justify-content: flex-end;">
                     <button id="cancelarEmail" style="padding: 10px 20px; background: #6B7280; color: white; border: none; border-radius: 6px; cursor: pointer;">Cancelar</button>
-                    <button id="confirmarEmail" style="padding: 10px 20px; background: #22C55E; color: white; border: none; border-radius: 6px; cursor: pointer;">Enviar Email</button>
+                    <button id="confirmarEmail" style="padding: 10px 20px; background: #22C55E; color: white; border: none; border-radius: 6px; cursor: pointer;">Enviar por Gmail</button>
                 </div>
             </div>
         `;
@@ -14981,6 +15042,7 @@ class ReportsManager {
         
         document.getElementById('confirmarEmail').onclick = () => {
             const email = document.getElementById('emailDestino').value;
+            const asunto = document.getElementById('emailAsunto').value;
             const mensaje = document.getElementById('emailMensaje').value;
             
             if (!email) {
@@ -14988,8 +15050,8 @@ class ReportsManager {
                 return;
             }
             
-            // Simular envío de email (en producción se usaría un backend)
-            this.simularEnvioEmail(email, cliente, pdf, mensaje);
+            // Enviar por Gmail
+            this.enviarPorGmail(email, asunto, mensaje, pdf, cliente);
             document.body.removeChild(emailModal);
         };
         
@@ -14999,6 +15061,36 @@ class ReportsManager {
                 document.body.removeChild(emailModal);
             }
         };
+    }
+    
+    enviarPorGmail(email, asunto, mensaje, pdf, cliente) {
+        try {
+            // Convertir PDF a blob
+            const pdfBlob = pdf.output('blob');
+            
+            // Crear objeto FormData para el archivo
+            const formData = new FormData();
+            formData.append('file', pdfBlob, `informe_${cliente.nombre.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+            
+            // Crear URL de Gmail con parámetros prellenados
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(asunto)}&body=${encodeURIComponent(mensaje)}`;
+            
+            // Abrir Gmail en nueva ventana
+            window.open(gmailUrl, '_blank');
+            
+            // Mostrar instrucciones para adjuntar el archivo
+            this.mostrarNotificacion(`✅ Gmail abierto. Por favor, adjunta el PDF descargado automáticamente.`, 'info');
+            
+            // Descargar el PDF automáticamente para que el usuario lo tenga listo
+            setTimeout(() => {
+                pdf.save(`informe_${cliente.nombre.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+                this.mostrarNotificacion(`📄 PDF descargado. Ahora puedes adjuntarlo en Gmail.`, 'success');
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Error al enviar por Gmail:', error);
+            this.mostrarNotificacion('Error al preparar el envío por Gmail', 'error');
+        }
     }
     
     simularEnvioEmail(email, cliente, pdf, mensaje) {
