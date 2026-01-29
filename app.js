@@ -14380,59 +14380,49 @@ class ReportsManager {
                     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
                     
                     * {
-                        font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
                         margin: 0;
                         padding: 0;
                         box-sizing: border-box;
                     }
                     
                     body {
-                        background: white;
-                        color: #1a1a1a;
+                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                        background: #ffffff;
+                        color: #000000;
                         line-height: 1.6;
+                        font-size: 11px;
                     }
                     
                     .container {
-                        max-width: 800px;
+                        max-width: 100%;
                         margin: 0 auto;
-                        padding: 20px;
+                        padding: 25px;
+                        background: #ffffff;
                     }
                     
                     .header {
                         text-align: center;
-                        margin-bottom: 30px;
-                        padding-bottom: 20px;
-                        border-bottom: 3px solid #2563eb;
-                    }
-                    
-                    .header-icon {
-                        display: inline-flex;
-                        align-items: center;
-                        justify-content: center;
-                        width: 60px;
-                        height: 60px;
-                        margin-bottom: 15px;
-                        border-radius: 12px;
-                        background: linear-gradient(135deg, #2563eb 0%, #10b981 100%);
-                        font-size: 24px;
-                        color: white;
+                        margin-bottom: 35px;
+                        padding-bottom: 25px;
+                        border-bottom: 3px solid #1e40af;
                     }
                     
                     .header h1 {
-                        font-size: 28px;
-                        font-weight: 700;
-                        color: #1a1a1a;
+                        font-size: 24px;
+                        font-weight: 800;
+                        color: #1e40af;
                         margin-bottom: 8px;
+                        letter-spacing: -0.5px;
                     }
                     
-                    .subtitle {
-                        color: #6b7280;
+                    .header .subtitle {
                         font-size: 14px;
-                        font-weight: 500;
+                        font-weight: 600;
+                        color: #4b5563;
                     }
                     
                     .section {
-                        margin-bottom: 40px;
+                        margin-bottom: 35px;
                         page-break-inside: avoid;
                     }
                     
@@ -14440,134 +14430,149 @@ class ReportsManager {
                         display: flex;
                         align-items: center;
                         margin-bottom: 20px;
-                        padding-left: 10px;
-                        position: relative;
-                    }
-                    
-                    .section-header::before {
-                        content: '';
-                        position: absolute;
-                        left: 0;
-                        top: 0;
-                        bottom: 0;
-                        width: 4px;
-                        background: #2563eb;
-                        border-radius: 2px;
+                        padding: 12px 16px;
+                        background: linear-gradient(135deg, #1e40af 0%, #3730a3 100%);
+                        border-radius: 8px;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                     }
                     
                     .section-title {
-                        font-size: 18px;
+                        font-size: 16px;
                         font-weight: 700;
-                        color: #1a1a1a;
-                        margin-left: 10px;
+                        color: #ffffff;
+                        margin-left: 8px;
                     }
                     
                     .data-table {
                         width: 100%;
                         border-collapse: collapse;
-                        background: white;
+                        background: #ffffff;
                         border-radius: 8px;
                         overflow: hidden;
                         border: 2px solid #e5e7eb;
-                        margin-bottom: 20px;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
                     }
                     
                     .data-table td {
-                        padding: 15px 12px;
-                        border: 1px solid #e5e7eb;
-                        font-size: 12px;
+                        padding: 12px 10px;
+                        border: 1px solid #d1d5db;
+                        font-size: 11px;
                         font-weight: 500;
+                        color: #000000;
                     }
                     
                     .data-table td:first-child {
                         font-weight: 700;
-                        color: #374151;
-                        background: #f9fafb;
-                        width: 20%;
+                        color: #ffffff;
+                        background: #374151;
+                        width: 25%;
                     }
                     
-                    .data-table td:not(:first-child) {
-                        color: #1a1a1a;
+                    .data-table tr:nth-child(even) td:not(:first-child) {
+                        background: #f9fafb;
+                    }
+                    
+                    .metric-blue {
+                        color: #1e40af !important;
+                        font-weight: 700 !important;
                     }
                     
                     .metric-positive {
                         color: #059669 !important;
-                        font-weight: 600 !important;
+                        font-weight: 700 !important;
                     }
                     
                     .metric-negative {
                         color: #dc2626 !important;
-                        font-weight: 600 !important;
-                    }
-                    
-                    .metric-blue {
-                        color: #2563eb !important;
-                        font-weight: 600 !important;
+                        font-weight: 700 !important;
                     }
                     
                     .table-header {
-                        background: #eff6ff !important;
+                        background: #1e40af !important;
                         font-weight: 700 !important;
-                        color: #1e40af !important;
+                        color: #ffffff !important;
                         text-align: center !important;
-                        border-bottom: 2px solid #2563eb !important;
+                        border-bottom: 2px solid #1e40af !important;
+                    }
+                    
+                    .table-header td {
+                        color: #ffffff !important;
+                        font-weight: 700 !important;
                     }
                     
                     .chart-container {
-                        margin: 30px 0;
-                        padding: 25px;
+                        margin: 25px 0;
+                        padding: 20px;
                         border: 2px solid #e5e7eb;
                         border-radius: 8px;
-                        background: #f9fafb;
+                        background: #f8fafc;
                         page-break-inside: avoid;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
                     }
                     
                     .chart-title {
-                        font-size: 16px;
+                        font-size: 14px;
                         font-weight: 700;
-                        color: #1a1a1a;
-                        margin-bottom: 20px;
+                        color: #1e40af;
+                        margin-bottom: 15px;
                         text-align: center;
+                        background: #eff6ff;
+                        padding: 8px;
+                        border-radius: 6px;
+                        border: 1px solid #bfdbfe;
                     }
                     
                     .footer {
                         text-align: center;
-                        margin-top: 50px;
-                        padding-top: 30px;
+                        margin-top: 40px;
+                        padding-top: 25px;
                         border-top: 2px solid #e5e7eb;
-                        font-size: 12px;
+                        font-size: 10px;
                         color: #6b7280;
                         font-weight: 600;
+                        background: #f9fafb;
+                        padding: 15px;
+                        border-radius: 8px;
                     }
                     
                     @media print {
-                        body { margin: 0; }
-                        .container { margin: 0; max-width: 100%; }
+                        body { 
+                            margin: 0; 
+                            font-size: 10px;
+                        }
+                        .container { 
+                            margin: 0; 
+                            max-width: 100%; 
+                            padding: 15px;
+                        }
+                        .section {
+                            margin-bottom: 25px;
+                        }
+                        .header h1 {
+                            font-size: 20px;
+                        }
                     }
                 </style>
             </head>
             <body>
                 <div class="container">
-                    <!-- Cabecera Principal -->
+                    <!-- Cabecera -->
                     <div class="header">
-                        <div class="header-icon">📊</div>
-                        <h1>INFORME DE CLIENTE</h1>
-                        <div class="subtitle">Generado el ${fecha}</div>
+                        <h1>📊 INFORME DE CLIENTE</h1>
+                        <div class="subtitle">${nombreCompleto} - ${fecha}</div>
                     </div>
                     
-                    <!-- Datos del Cliente (Simplificado) -->
+                    <!-- Datos del Cliente -->
                     <div class="section">
                         <div class="section-header">
-                            <span class="section-title">📋 Datos del Cliente</span>
+                            <span class="section-title">👤 DATOS DEL CLIENTE</span>
                         </div>
                         <table class="data-table">
                             <tr>
-                                <td>Nombre y Apellidos:</td>
-                                <td colspan="3">${nombreCompleto}</td>
-                            </tr>
-                            <tr>
+                                <td>Nombre Completo:</td>
+                                <td>${nombreCompleto}</td>
                                 <td>Fecha del Informe:</td>
-                                <td colspan="3">${fecha}</td>
+                                <td>${fecha}</td>
                             </tr>
                         </table>
                     </div>
@@ -14575,7 +14580,7 @@ class ReportsManager {
                     <!-- Estadísticas Principales -->
                     <div class="section">
                         <div class="section-header">
-                            <span class="section-title">💰 Estadísticas Principales</span>
+                            <span class="section-title">💰 ESTADÍSTICAS PRINCIPALES</span>
                         </div>
                         <table class="data-table">
                             <tr>
@@ -14602,7 +14607,7 @@ class ReportsManager {
                     <!-- Detalle de Movimientos -->
                     <div class="section">
                         <div class="section-header">
-                            <span class="section-title">💳 Detalle de Movimientos</span>
+                            <span class="section-title">💳 DETALLE DE MOVIMIENTOS</span>
                         </div>
                         <table class="data-table">
                             <tr class="table-header">
@@ -14614,36 +14619,48 @@ class ReportsManager {
                             ${detallesMovimientos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha)).map(mov => `
                                 <tr>
                                     <td>${mov.fecha}</td>
-                                    <td class="${mov.tipo === 'Ingreso' ? 'metric-positive' : 'metric-negative'}">${mov.tipo}</td>
-                                    <td class="${mov.tipo === 'Ingreso' ? 'metric-positive' : 'metric-negative'}">${this.formatearMoneda(mov.importe)}</td>
+                                    <td class="${mov.tipo === 'Ingreso' ? 'metric-positive' : 'metric-negative'}" style="font-weight: 700;">${mov.tipo}</td>
+                                    <td class="${mov.tipo === 'Ingreso' ? 'metric-positive' : 'metric-negative'}" style="font-weight: 700;">${this.formatearMoneda(mov.importe)}</td>
                                     <td>${mov.mes}</td>
                                 </tr>
                             `).join('')}
                             ${detallesMovimientos.length === 0 ? 
-                                '<tr><td colspan="4" style="text-align: center; color: #6b7280;">No hay movimientos registrados</td></tr>' : ''}
+                                '<tr><td colspan="4" style="text-align: center; color: #6b7280; font-style: italic;">No se encontraron movimientos</td></tr>' : ''
+                            }
                         </table>
                     </div>
                     
                     <!-- Evolución Mensual -->
                     <div class="section">
                         <div class="section-header">
-                            <span class="section-title">📈 Evolución Mensual</span>
+                            <span class="section-title">📈 EVOLUCIÓN MENSUAL</span>
                         </div>
                         <table class="data-table">
                             <tr class="table-header">
                                 <td>MES</td>
-                                <td>SALDO</td>
-                                <td>BENEFICIO</td>
+                                <td>SALDO INICIAL</td>
+                                <td>INGRESOS</td>
+                                <td>RETIRADAS</td>
+                                <td>SALDO FINAL</td>
                                 <td>RENTABILIDAD</td>
                             </tr>
-                            ${this.generarFilasEvolucionMensual(estadisticas.meses)}
+                            ${estadisticas.meses.map(mes => `
+                                <tr>
+                                    <td style="font-weight: 700;">${mes.nombreMes}</td>
+                                    <td>${this.formatearMoneda(mes.saldoInicial)}</td>
+                                    <td class="metric-positive">${this.formatearMoneda(mes.incrementos)}</td>
+                                    <td class="metric-negative">${this.formatearMoneda(mes.decrementos)}</td>
+                                    <td class="metric-blue">${this.formatearMoneda(mes.saldoFinal)}</td>
+                                    <td class="${mes.rentabilidad >= 0 ? 'metric-positive' : 'metric-negative'}" style="font-weight: 700;">${mes.rentabilidad.toFixed(2)}%</td>
+                                </tr>
+                            `).join('')}
                         </table>
                     </div>
                     
                     <!-- Gráficos -->
                     <div class="section">
                         <div class="section-header">
-                            <span class="section-title">📊 Gráficos de Evolución</span>
+                            <span class="section-title">📊 GRÁFICOS DE EVOLUCIÓN</span>
                         </div>
                         <div class="chart-container">
                             <div class="chart-title">📊 Rentabilidad Mensual</div>
