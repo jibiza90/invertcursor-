@@ -14515,15 +14515,15 @@ class ReportsManager {
                         <table class="data-table">
                             <tr>
                                 <td>Inversión Total:</td>
-                                <td>${estadisticas.inversionTotal}</td>
+                                <td>${this.formatearMoneda(estadisticas.kpis.inversion)}</td>
                                 <td>Beneficio Total:</td>
-                                <td class="${estadisticas.beneficioTotalColor}">${estadisticas.beneficioTotal}</td>
+                                <td class="${estadisticas.kpis.beneficioEuro >= 0 ? 'metric-positive' : 'metric-negative'}">${this.formatearMoneda(estadisticas.kpis.beneficioEuro)} (${estadisticas.kpis.rentabilidadTotal.toFixed(2)}%)</td>
                             </tr>
                             <tr>
                                 <td>Retiradas:</td>
-                                <td class="metric-negative">${estadisticas.retiradas}</td>
+                                <td class="metric-negative">${this.formatearMoneda(estadisticas.kpis.decrementos)}</td>
                                 <td>Saldo Actual:</td>
-                                <td class="metric-blue">${estadisticas.saldoActual}</td>
+                                <td class="metric-blue">${this.formatearMoneda(estadisticas.kpis.saldoActual)}</td>
                             </tr>
                         </table>
                     </div>
@@ -14540,7 +14540,7 @@ class ReportsManager {
                                 <td>BENEFICIO</td>
                                 <td>RENTABILIDAD</td>
                             </tr>
-                            ${estadisticas.evolucionMensual}
+                            ${this.generarFilasEvolucionMensual(estadisticas.meses)}
                         </table>
                     </div>
                     
@@ -14556,87 +14556,56 @@ class ReportsManager {
     
     async calcularEstadisticasCliente(cliente) {
         try {
-            // Usar la misma función que las estadísticas del cliente
+            // Usar exactamente la misma función que las estadísticas del cliente
             const hoja = datosEditados.hojas[cliente.hoja];
-            const datosCliente = cliente.datos;
-            
-            // Calcular estadísticas básicas
-            let inversionTotal = 0;
-            let retiradas = 0;
-            let saldoActual = 0;
-            
-            // Obtener datos diarios del cliente
-            if (datosCliente.datos_diarios && datosCliente.datos_diarios.length > 0) {
-                const ultimoDia = datosCliente.datos_diarios[datosCliente.datos_diarios.length - 1];
-                saldoActual = ultimoDia.saldo || 0;
-                
-                // Calcular inversión total y retiradas
-                datosCliente.datos_diarios.forEach(dia => {
-                    if (dia.ingreso && dia.ingreso > 0) {
-                        inversionTotal += dia.ingreso;
-                    }
-                    if (dia.retiro && dia.retiro > 0) {
-                        retiradas += dia.retiro;
-                    }
-                });
-            }
-            
-            const beneficioTotal = saldoActual - inversionTotal + retiradas;
-            const rentabilidadPercent = inversionTotal > 0 ? (beneficioTotal / inversionTotal * 100) : 0;
-            
-            // Generar evolución mensual (simplificada)
-            let evolucionMensual = '';
-            if (datosCliente.datos_diarios && datosCliente.datos_diarios.length > 0) {
-                // Agrupar por mes (simplificado)
-                const meses = {};
-                datosCliente.datos_diarios.forEach(dia => {
-                    if (dia.fecha) {
-                        const mes = dia.fecha.substring(0, 7); // YYYY-MM
-                        if (!meses[mes]) {
-                            meses[mes] = { saldo: 0, beneficio: 0 };
-                        }
-                        meses[mes].saldo = dia.saldo || 0;
-                        meses[mes].beneficio = (dia.saldo || 0) - inversionTotal;
-                    }
-                });
-                
-                Object.entries(meses).forEach(([mes, datos]) => {
-                    const rentabilidad = inversionTotal > 0 ? (datos.beneficio / inversionTotal * 100) : 0;
-                    evolucionMensual += `
-                        <tr>
-                            <td>${this.formatearMes(mes)}</td>
-                            <td>${this.formatearMoneda(datos.saldo)}</td>
-                            <td class="${datos.beneficio >= 0 ? 'metric-positive' : 'metric-negative'}">${this.formatearMoneda(datos.beneficio)}</td>
-                            <td class="${rentabilidad >= 0 ? 'metric-positive' : 'metric-negative'}">${rentabilidad.toFixed(2)}%</td>
-                        </tr>
-                    `;
-                });
-            }
-            
-            if (!evolucionMensual) {
-                evolucionMensual = '<tr><td colspan="4" style="text-align: center; color: #9CA3AF;">No hay datos mensuales disponibles</td></tr>';
-            }
+            const datosClienteMeses = await calcularEstadisticasClienteTiempoReal(cliente.datos, hoja);
+            const kpisTotales = calcularKPIsTiempoReal(datosClienteMeses);
             
             return {
-                inversionTotal: this.formatearMoneda(inversionTotal),
-                beneficioTotal: this.formatearMoneda(beneficioTotal) + ` (${rentabilidadPercent.toFixed(2)}%)`,
-                beneficioTotalColor: beneficioTotal >= 0 ? 'metric-positive' : 'metric-negative',
-                retiradas: this.formatearMoneda(retiradas),
-                saldoActual: this.formatearMoneda(saldoActual),
-                evolucionMensual
+                kpis: kpisTotales,
+                meses: datosClienteMeses
             };
-            
         } catch (error) {
-            console.error('Error calculando estadísticas:', error);
+            console.error('Error en calcularEstadisticasCliente (ReportsManager):', error);
+            // Devolver datos vacíos en caso de error
             return {
-                inversionTotal: '€0,00',
-                beneficioTotal: '€0,00 (0.00%)',
-                beneficioTotalColor: 'metric-positive',
-                retiradas: '€0,00',
-                saldoActual: '€0,00',
-                evolucionMensual: '<tr><td colspan="4" style="text-align: center; color: #9CA3AF;">Error al cargar datos</td></tr>'
+                kpis: {
+                    inversion: 0,
+                    saldoActual: 0,
+                    decrementos: 0,
+                    beneficioEuro: 0,
+                    rentabilidadTotal: 0,
+                    mejorMes: null,
+                    peorMes: null,
+                    promedioMensual: 0,
+                    mesesOperados: 0
+                },
+                meses: []
             };
         }
+    }
+    
+    generarFilasEvolucionMensual(meses) {
+        if (!meses || meses.length === 0) {
+            return '<tr><td colspan="4" style="text-align: center; color: #9CA3AF;">No hay datos mensuales disponibles</td></tr>';
+        }
+        
+        return meses.map(mes => {
+            const nombreMes = this.formatearMes(mes.mes);
+            const saldo = this.formatearMoneda(mes.saldoFinal);
+            const beneficio = this.formatearMoneda(mes.beneficio);
+            const rentabilidad = mes.rentabilidad || 0;
+            const rentabilidadClass = rentabilidad >= 0 ? 'metric-positive' : 'metric-negative';
+            
+            return `
+                <tr>
+                    <td>${nombreMes}</td>
+                    <td>${saldo}</td>
+                    <td class="${rentabilidad >= 0 ? 'metric-positive' : 'metric-negative'}">${beneficio}</td>
+                    <td class="${rentabilidadClass}">${rentabilidad.toFixed(2)}%</td>
+                </tr>
+            `;
+        }).join('');
     }
     
     formatearMoneda(valor) {
@@ -14646,9 +14615,9 @@ class ReportsManager {
         }).format(valor || 0);
     }
     
-    formatearMes(mesStr) {
-        const [year, month] = mesStr.split('-');
-        const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    formatearMes(mes) {
+        const [year, month] = mes.split('-');
+        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         return `${meses[parseInt(month) - 1]} ${year}`;
     }
     
