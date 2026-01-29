@@ -2705,6 +2705,8 @@ async function mostrarVistaGeneral() {
     if (btnComision) btnComision.classList.remove('active');
     const btnEstadisticas = document.getElementById('btnVistaEstadisticas');
     if (btnEstadisticas) btnEstadisticas.classList.remove('active');
+    const btnReports = document.getElementById('btnVistaReports');
+    if (btnReports) btnReports.classList.remove('active');
     
     if (!datosEditados || !datosEditados.hojas || !datosEditados.hojas[hojaActual]) {
         return;
@@ -5861,6 +5863,8 @@ function mostrarVistaClientes() {
     if (btnComision) btnComision.classList.remove('active');
     const btnEstadisticas = document.getElementById('btnVistaEstadisticas');
     if (btnEstadisticas) btnEstadisticas.classList.remove('active');
+    const btnReports = document.getElementById('btnVistaReports');
+    if (btnReports) btnReports.classList.remove('active');
     
     if (!datosEditados || !datosEditados.hojas || !datosEditados.hojas[hojaActual]) {
         return;
@@ -9810,6 +9814,8 @@ function mostrarVistaEstadisticas() {
     if (btnComision) btnComision.classList.remove('active');
     const btnEstadisticas = document.getElementById('btnVistaEstadisticas');
     if (btnEstadisticas) btnEstadisticas.classList.add('active');
+    const btnReports = document.getElementById('btnVistaReports');
+    if (btnReports) btnReports.classList.remove('active');
     
     hojaEstadisticas = hojaActual;
     inicializarEventosEstadisticas();
@@ -14314,10 +14320,38 @@ class ReportsManager {
         const datosCliente = cliente.datos.datos || {};
         const nombre = datosCliente['NOMBRE']?.valor || '';
         const apellidos = datosCliente['APELLIDOS']?.valor || '';
+        const fechaAlta = datosCliente['FECHA ALTA']?.valor || '';
         const nombreCompleto = nombre || apellidos ? `${nombre} ${apellidos}`.trim() : `Cliente ${cliente.id}`;
         
         // Calcular estadísticas
         const estadisticas = await this.calcularEstadisticasCliente(cliente);
+        
+        // Extraer detalles de incrementos/decrementos
+        const detallesIncrementos = [];
+        const detallesDecrementos = [];
+        
+        if (estadisticas.meses && estadisticas.meses.length > 0) {
+            estadisticas.meses.forEach(mes => {
+                if (mes.detalles && Array.isArray(mes.detalles)) {
+                    mes.detalles.forEach(detalle => {
+                        if (detalle.incremento && detalle.incremento > 0) {
+                            detallesIncrementos.push({
+                                fecha: detalle.fecha || '',
+                                importe: detalle.incremento,
+                                mes: mes.nombreMes
+                            });
+                        }
+                        if (detalle.decremento && detalle.decremento > 0) {
+                            detallesDecrementos.push({
+                                fecha: detalle.fecha || '',
+                                importe: detalle.decremento,
+                                mes: mes.nombreMes
+                            });
+                        }
+                    });
+                }
+            });
+        }
         
         return `
             <!DOCTYPE html>
@@ -14367,31 +14401,26 @@ class ReportsManager {
                     }
                     
                     .header h1 {
-                        font-size: 24px;
+                        font-size: 28px;
                         font-weight: 700;
                         color: #2F3A4A;
-                        margin-bottom: 5px;
+                        margin-bottom: 8px;
                     }
                     
-                    .header .subtitle {
-                        font-size: 12px;
-                        color: #8A94A6;
-                        margin-bottom: 20px;
+                    .subtitle {
+                        color: #6B7280;
+                        font-size: 14px;
                     }
                     
                     .section {
-                        margin-bottom: 25px;
-                        padding: 20px;
-                        background: #F8FAFC;
-                        border-radius: 8px;
-                        border: 1px solid #E6EAF0;
+                        margin-bottom: 30px;
                     }
                     
                     .section-header {
                         display: flex;
                         align-items: center;
                         margin-bottom: 15px;
-                        padding-left: 15px;
+                        padding-left: 10px;
                         position: relative;
                     }
                     
@@ -14458,8 +14487,24 @@ class ReportsManager {
                         background: #EFF6FF !important;
                         font-weight: 600 !important;
                         color: #1E3A8A !important;
-                        text-align: center;
+                        text-align: center !important;
                         border-bottom: 2px solid #6FA3FF !important;
+                    }
+                    
+                    .chart-container {
+                        margin: 20px 0;
+                        padding: 20px;
+                        border: 1px solid #E6EAF0;
+                        border-radius: 8px;
+                        background: #F8FAFC;
+                    }
+                    
+                    .chart-title {
+                        font-size: 14px;
+                        font-weight: 600;
+                        color: #2F3A4A;
+                        margin-bottom: 15px;
+                        text-align: center;
                     }
                     
                     .footer {
@@ -14499,9 +14544,15 @@ class ReportsManager {
                                 <td>${cliente.id}</td>
                             </tr>
                             <tr>
+                                <td>Apellidos:</td>
+                                <td>${apellidos || 'N/A'}</td>
+                                <td>Fecha Alta:</td>
+                                <td>${fechaAlta || 'N/A'}</td>
+                            </tr>
+                            <tr>
                                 <td>Hoja:</td>
                                 <td>${cliente.hoja}</td>
-                                <td>Fecha:</td>
+                                <td>Fecha Informe:</td>
                                 <td>${fecha}</td>
                             </tr>
                         </table>
@@ -14525,6 +14576,37 @@ class ReportsManager {
                                 <td>Saldo Actual:</td>
                                 <td class="metric-blue">${this.formatearMoneda(estadisticas.kpis.saldoActual)}</td>
                             </tr>
+                            <tr>
+                                <td>Mejor Mes:</td>
+                                <td class="metric-positive">${estadisticas.kpis.mejorMes ? this.formatearMes(estadisticas.kpis.mejorMes.mes) + ': +' + estadisticas.kpis.mejorMes.rentabilidad.toFixed(2) + '%' : 'Sin operaciones'}</td>
+                                <td>Peor Mes:</td>
+                                <td class="${estadisticas.kpis.peorMes && estadisticas.kpis.peorMes.rentabilidad >= 0 ? 'metric-positive' : 'metric-negative'}">${estadisticas.kpis.peorMes ? this.formatearMes(estadisticas.kpis.peorMes.mes) + ': ' + (estadisticas.kpis.peorMes.rentabilidad >= 0 ? '+' : '') + estadisticas.kpis.peorMes.rentabilidad.toFixed(2) + '%' : 'Sin operaciones'}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <!-- Detalle de Incrementos y Decrementos -->
+                    <div class="section">
+                        <div class="section-header">
+                            <span class="section-title">💳 Detalle de Movimientos</span>
+                        </div>
+                        <table class="data-table">
+                            <tr class="table-header">
+                                <td>FECHA</td>
+                                <td>TIPO</td>
+                                <td>IMPORTE</td>
+                                <td>MES</td>
+                            </tr>
+                            ${detallesIncrementos.concat(detallesDecrementos).sort((a, b) => new Date(a.fecha) - new Date(b.fecha)).map(mov => `
+                                <tr>
+                                    <td>${mov.fecha}</td>
+                                    <td class="${mov.importe > 0 ? 'metric-positive' : 'metric-negative'}">${mov.importe > 0 ? 'Ingreso' : 'Retirada'}</td>
+                                    <td class="${mov.importe > 0 ? 'metric-positive' : 'metric-negative'}">${this.formatearMoneda(Math.abs(mov.importe))}</td>
+                                    <td>${mov.mes}</td>
+                                </tr>
+                            `).join('')}
+                            ${detallesIncrementos.length === 0 && detallesDecrementos.length === 0 ? 
+                                '<tr><td colspan="4" style="text-align: center; color: #9CA3AF;">No hay movimientos registrados</td></tr>' : ''}
                         </table>
                     </div>
                     
@@ -14542,6 +14624,21 @@ class ReportsManager {
                             </tr>
                             ${this.generarFilasEvolucionMensual(estadisticas.meses)}
                         </table>
+                    </div>
+                    
+                    <!-- Gráficos -->
+                    <div class="section">
+                        <div class="section-header">
+                            <span class="section-title">📊 Gráficos de Evolución</span>
+                        </div>
+                        <div class="chart-container">
+                            <div class="chart-title">📊 Rentabilidad Mensual</div>
+                            <canvas id="chartRentabilidadPDF" width="760" height="200"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <div class="chart-title">📈 Evolución del Patrimonio</div>
+                            <canvas id="chartEvolucionPDF" width="760" height="200"></canvas>
+                        </div>
                     </div>
                     
                     <!-- Pie de Página -->
@@ -14631,17 +14728,36 @@ class ReportsManager {
         tempDiv.innerHTML = html;
         tempDiv.style.position = 'absolute';
         tempDiv.style.left = '-9999px';
+        tempDiv.style.top = '0';
         tempDiv.style.width = '210mm'; // Ancho A4
+        tempDiv.style.background = 'white';
+        tempDiv.style.padding = '20px';
+        tempDiv.style.boxSizing = 'border-box';
         document.body.appendChild(tempDiv);
         
         try {
+            // Esperar a que las fuentes se carguen
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Renderizar gráficos si Chart está disponible
+            if (window.Chart && window._datosEstadisticasCliente) {
+                await this.renderizarGraficosPDF(tempDiv);
+                // Esperar a que los gráficos se rendericen
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
             // Usar html2canvas para capturar el HTML
             const canvas = await html2canvas(tempDiv, {
                 scale: 2,
                 useCORS: true,
                 allowTaint: true,
+                backgroundColor: '#ffffff',
                 width: 794, // 210mm en pixels a 96dpi
-                height: 1123 // 297mm en pixels a 96dpi
+                height: 1123, // 297mm en pixels a 96dpi
+                logging: false,
+                removeContainer: false,
+                scrollX: 0,
+                scrollY: 0
             });
             
             // Añadir la imagen al PDF
@@ -14651,6 +14767,94 @@ class ReportsManager {
             return pdf;
         } finally {
             document.body.removeChild(tempDiv);
+        }
+    }
+    
+    async renderizarGraficosPDF(container) {
+        const datos = window._datosEstadisticasCliente;
+        if (!datos || !datos.datosClienteMeses) return;
+        
+        // Renderizar gráfico de rentabilidad
+        const canvasRentabilidad = container.querySelector('#chartRentabilidadPDF');
+        if (canvasRentabilidad) {
+            new Chart(canvasRentabilidad, {
+                type: 'bar',
+                data: {
+                    labels: datos.datosClienteMeses.map(m => m.nombreMes),
+                    datasets: [{
+                        label: 'Rentabilidad (%)',
+                        data: datos.datosClienteMeses.map(m => (m.rentabilidad || 0).toFixed(2)),
+                        backgroundColor: datos.datosClienteMeses.map(m => 
+                            (m.rentabilidad || 0) >= 0 ? 'rgba(34, 197, 94, 0.8)' : 'rgba(239, 68, 68, 0.8)'
+                        ),
+                        borderColor: datos.datosClienteMeses.map(m => 
+                            (m.rentabilidad || 0) >= 0 ? 'rgba(34, 197, 94, 1)' : 'rgba(239, 68, 68, 1)'
+                        ),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Renderizar gráfico de evolución
+        const canvasEvolucion = container.querySelector('#chartEvolucionPDF');
+        if (canvasEvolucion) {
+            new Chart(canvasEvolucion, {
+                type: 'line',
+                data: {
+                    labels: datos.datosClienteMeses.map(m => m.nombreMes),
+                    datasets: [{
+                        label: 'Saldo Final',
+                        data: datos.datosClienteMeses.map(m => m.saldoFinal || 0),
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return new Intl.NumberFormat('es-ES', {
+                                        style: 'currency',
+                                        currency: 'EUR'
+                                    }).format(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
     }
     
