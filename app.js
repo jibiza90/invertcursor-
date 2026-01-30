@@ -55,8 +55,19 @@ let requiereRecalculoImpInicial = false;
 // Hojas anuales (sin selector de meses, todo el año en un solo JSON)
 const HOJAS_ANUALES = ['Diario Xavi'];
 
+// Años disponibles para Diario Xavi
+const ANOS_DISPONIBLES_XAVI = ['2026', '2027'];
+
 function esHojaAnual(nombreHoja) {
     return HOJAS_ANUALES.includes(nombreHoja);
+}
+
+function esDiarioXavi(nombreHoja) {
+    return nombreHoja === 'Diario Xavi';
+}
+
+function obtenerAnosDisponiblesXavi() {
+    return ANOS_DISPONIBLES_XAVI;
 }
 
 let clientesResumenAnualCache = {};
@@ -1212,9 +1223,10 @@ async function cargarMeses() {
         if (!mesActual) {
             // FORZAR Diario Xavi como hoja por defecto - NO cambiar a otras hojas
             console.log('⚠️ Sin mes para Diario Xavi, pero manteniendo Diario Xavi como hoja actual');
-            mesActual = '2026'; // Diario Xavi siempre usa 2026
+            mesActual = '2026'; // Diario Xavi usa el año por defecto
         }
         actualizarSelectorMes();
+        actualizarSelectorAnoXavi(); // Actualizar selector de años
     } catch (error) {
         console.error('Error al cargar meses:', error);
         mostrarNotificacion('Error al cargar meses disponibles', 'error');
@@ -1399,6 +1411,26 @@ function actualizarSelectorMes() {
     });
     selectorMes.value = mesActual;
     actualizarNavegacionMes();
+}
+
+// Función para actualizar selector de años de Diario Xavi
+function actualizarSelectorAnoXavi() {
+    const selectorAnoXavi = document.getElementById('selectorAnoXavi');
+    if (!selectorAnoXavi) return;
+    
+    // Mostrar solo si es Diario Xavi
+    if (esDiarioXavi(hojaActual)) {
+        selectorAnoXavi.style.display = '';
+        
+        // Establecer el año actual
+        const anoActual = mesActual || '2026';
+        selectorAnoXavi.value = anoActual;
+        
+        console.log(`📅 Selector años Xavi visible, año actual: ${anoActual}`);
+    } else {
+        selectorAnoXavi.style.display = 'none';
+        console.log('📅 Selector años Xavi oculto (no es Diario Xavi)');
+    }
 }
 
 function formatearMesLabel(mes) {
@@ -2278,6 +2310,13 @@ function inicializarEventos() {
     if (selectorMes) {
         selectorMes.addEventListener('change', cambiarMes);
     }
+    
+    // Event listener para selector de años de Diario Xavi
+    const selectorAnoXavi = document.getElementById('selectorAnoXavi');
+    if (selectorAnoXavi) {
+        selectorAnoXavi.addEventListener('change', cambiarAnoXavi);
+    }
+    
     const btnMesAnterior = document.getElementById('btnMesAnterior');
     const btnMesSiguiente = document.getElementById('btnMesSiguiente');
     if (btnMesAnterior) btnMesAnterior.addEventListener('click', cambiarMesAnterior);
@@ -2558,6 +2597,7 @@ async function cambiarHoja() {
         mesActual = mesesNuevaHoja.length > 0 ? mesesNuevaHoja[0] : null;
         
         actualizarSelectorMes();
+        actualizarSelectorAnoXavi(); // Actualizar selector de años para Diario Xavi
         await cargarDatos();
         requiereRecalculoImpInicial = true;
         await actualizarTodoElDiario({ silent: true, skipVistaRefresh: true, skipGuardar: true, reason: 'cambiarHoja' });
