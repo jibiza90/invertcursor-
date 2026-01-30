@@ -19,18 +19,33 @@ class SistemaInformes {
         console.log('✅ Sistema de Informes 2.0 listo');
     }
 
-    // Cargar datos desde las variables globales
+    // Cargar datos desde las variables globales del sistema
     async cargarDatos() {
         try {
-            this.datosEditados = window.datosEditados;
-            if (!this.datosEditados) {
-                throw new Error('No se encontraron datos editados');
+            // Verificar que las variables globales del sistema existan
+            if (!window.datosEditados) {
+                throw new Error('No se encontraron datosEditados del sistema');
             }
-            this.clientes = this.datosEditados.clientes || [];
-            console.log(`📊 Cargados ${this.clientes.length} clientes`);
+            
+            if (!window.hojaActual) {
+                throw new Error('No se encontró hojaActual del sistema');
+            }
+            
+            // Usar las mismas variables que mostrarEstadisticasCliente()
+            this.datosEditados = window.datosEditados;
+            this.hojaActual = window.hojaActual;
+            
+            const hoja = this.datosEditados.hojas[this.hojaActual];
+            if (!hoja) {
+                throw new Error(`No se encontró la hoja ${this.hojaActual}`);
+            }
+            
+            // No necesitamos cargar clientes, usaremos los del sistema directamente
+            console.log(`📊 Conectado al sistema: hoja=${this.hojaActual}, clientes=${Object.keys(hoja.clientes || {}).length}`);
+            
         } catch (error) {
-            console.error('❌ Error al cargar datos:', error);
-            this.mostrarError('No se pudieron cargar los datos de clientes');
+            console.error('❌ Error al conectar con el sistema:', error);
+            this.mostrarError('No se pudo conectar con el sistema de datos: ' + error.message);
         }
     }
 
@@ -55,22 +70,42 @@ class SistemaInformes {
         }
     }
 
-    // Llenar selector de clientes
+    // Llenar selector de clientes - USAR CLIENTES DEL SISTEMA ACTUAL
     llenarSelectorClientes() {
         const selector = document.getElementById('reportClientSelect');
         if (!selector) return;
 
         selector.innerHTML = '<option value="">Selecciona un cliente...</option>';
         
-        this.clientes.forEach((cliente, index) => {
+        // Usar los mismos clientes que el sistema actual (como mostrarEstadisticasCliente)
+        if (!window.datosEditados || !window.datosEditados.hojas || !window.hojaActual) {
+            console.warn('⚠️ No hay datos del sistema disponibles para el selector');
+            return;
+        }
+        
+        const hoja = window.datosEditados.hojas[window.hojaActual];
+        if (!hoja || !hoja.clientes) {
+            console.warn('⚠️ No hay clientes en la hoja actual');
+            return;
+        }
+        
+        // Iterar sobre los clientes como lo hace el sistema
+        Object.keys(hoja.clientes).forEach(clienteIndex => {
+            const cliente = hoja.clientes[clienteIndex];
             const nombre = this.obtenerNombreCliente(cliente);
             const option = document.createElement('option');
-            option.value = index;
+            option.value = clienteIndex;
             option.textContent = `${cliente.numero_cliente} - ${nombre}`;
             selector.appendChild(option);
         });
-
-        console.log(`📝 Selector llenado con ${this.clientes.length} clientes`);
+        
+        console.log(`📝 Selector llenado con ${Object.keys(hoja.clientes).length} clientes del sistema actual`);
+        
+        // Actualizar contador de clientes
+        const clientesCount = document.getElementById('clientesCount');
+        if (clientesCount) {
+            clientesCount.textContent = Object.keys(hoja.clientes).length;
+        }
     }
 
     // Obtener nombre formateado del cliente
@@ -108,13 +143,22 @@ class SistemaInformes {
             return;
         }
 
-        const cliente = this.clientes[clienteIndex];
-        if (!cliente) {
-            this.mostrarError('Cliente no encontrado');
+        // USAR EL CLIENTE DEL SELECTOR, NO clienteActual
+        const hoja = window.datosEditados?.hojas?.[window.hojaActual];
+        if (!hoja || !hoja.clientes || !hoja.clientes[clienteIndex]) {
+            this.mostrarError('No hay datos del cliente seleccionado');
             return;
         }
-
-        console.log(`🎯 Generando informe para cliente ${cliente.numero_cliente}`);
+        
+        // Obtener el cliente directamente del selector
+        const cliente = hoja.clientes[clienteIndex];
+        
+        console.log(`🎯 Generando informe usando cliente del selector:`, {
+            clienteIndex: clienteIndex,
+            clienteNumero: cliente.numero_cliente,
+            hojaActual: window.hojaActual,
+            datosDiarios: cliente.datos_diarios?.length || 0
+        });
         
         try {
             // Mostrar loading
@@ -381,30 +425,37 @@ class SistemaInformes {
         `;
     }
 
-    // Calcular estadísticas reales del cliente - USAR EXACTAMENTE LAS MISMAS FUNCIONES
+    // Calcular estadísticas reales del cliente - USAR CLIENTE DEL SELECTOR
     async calcularEstadisticasCliente(cliente) {
-        console.log('🔥 USANDO MISMAS FUNCIONES QUE ESTADÍSTICAS DEL CLIENTE');
+        console.log('🔥 USANDO CLIENTE DEL SELECTOR, NO clienteActual');
         
-        // Usar exactamente la misma función que las estadísticas del cliente
-        if (!window.calcularEstadisticasClienteTiempoReal) {
-            throw new Error('La función calcularEstadisticasClienteTiempoReal no está disponible');
+        // Verificar variables globales necesarias
+        if (!window.hojaActual) {
+            throw new Error('hojaActual no está definida');
         }
         
-        if (!window.calcularKPIsTiempoReal) {
-            throw new Error('La función calcularKPIsTiempoReal no está disponible');
+        if (!window.datosEditados) {
+            throw new Error('datosEditados no está definido');
         }
         
-        // Obtener hoja actual como lo hace el sistema de estadísticas
-        const hoja = this.datosEditados.hojas[this.hojaActual];
+        // Usar la hoja actual
+        const hoja = window.datosEditados.hojas[window.hojaActual];
         if (!hoja) {
-            throw new Error(`No se encontró la hoja ${this.hojaActual}`);
+            throw new Error(`No se encontró la hoja ${window.hojaActual}`);
         }
         
-        // Usar exactamente la misma función que las estadísticas del cliente
+        // Usar exactamente la misma función que mostrarEstadisticasCliente()
         const datosClienteMeses = await window.calcularEstadisticasClienteTiempoReal(cliente, hoja);
         const kpisTotales = window.calcularKPIsTiempoReal(datosClienteMeses);
         
-        console.log('📊 Datos obtenidos de estadísticas del cliente:', {
+        // Guardar en las mismas variables globales que mostrarEstadisticasCliente()
+        const datosCompletosCliente = { kpisTotales, datosClienteMeses };
+        window._datosCliente = datosCompletosCliente;
+        window._datosEstadisticasCliente = datosCompletosCliente;
+        
+        console.log('📊 Datos obtenidos con cliente del selector:', {
+            clienteNumero: cliente.numero_cliente,
+            hojaActual: window.hojaActual,
             meses: datosClienteMeses.length,
             kpis: Object.keys(kpisTotales),
             muestraDatos: datosClienteMeses.slice(0, 2)
@@ -604,15 +655,31 @@ class SistemaInformes {
         console.log('✅ Gráficos renderizados con datos reales');
     }
 
-    // Preparar datos para gráficos - USAR DATOS REALES DE ESTADÍSTICAS
+    // Preparar datos para gráficos - USAR CLIENTE DIRECTO
     async prepararDatosGraficos(cliente) {
-        console.log('📈 PREPARANDO GRÁFICOS CON DATOS REALES DE ESTADÍSTICAS');
+        console.log('📈 PREPARANDO GRÁFICOS CON CLIENTE DIRECTO');
         
-        // Usar exactamente los mismos datos que las estadísticas del cliente
-        const hoja = this.datosEditados.hojas[this.hojaActual];
+        // Verificar variables globales necesarias
+        if (!window.hojaActual) {
+            throw new Error('hojaActual no está definida');
+        }
+        
+        if (!window.datosEditados) {
+            throw new Error('datosEditados no está definido');
+        }
+        
+        // Usar la hoja actual
+        const hoja = window.datosEditados.hojas[window.hojaActual];
+        if (!hoja) {
+            throw new Error(`No se encontró la hoja ${window.hojaActual}`);
+        }
+        
+        // Usar exactamente la misma función que mostrarEstadisticasCliente()
         const datosClienteMeses = await window.calcularEstadisticasClienteTiempoReal(cliente, hoja);
         
-        console.log('📊 Datos para gráficos:', {
+        console.log('📊 Datos para gráficos con cliente directo:', {
+            clienteNumero: cliente.numero_cliente,
+            hojaActual: window.hojaActual,
             mesesRecibidos: datosClienteMeses.length,
             muestra: datosClienteMeses.slice(0, 2)
         });
@@ -712,7 +779,7 @@ class SistemaInformes {
     }
 
     mostrarNotificacion(mensaje, tipo) {
-        // Crear notificación
+        // Crear notificación pequeña
         const notificacion = document.createElement('div');
         notificacion.className = `notificacion ${tipo}`;
         notificacion.innerHTML = `
@@ -720,33 +787,34 @@ class SistemaInformes {
             ${mensaje}
         `;
         
-        // Estilos
+        // Estilos pequeños y compactos
         notificacion.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
-            padding: 15px 20px;
-            background: ${tipo === 'success' ? '#2E7D32' : '#D32F2F'};
-            color: white;
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            padding: 8px 12px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             z-index: 10000;
-            font-size: 14px;
+            font-size: 12px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 6px;
             animation: slideIn 0.3s ease;
+            max-width: 300px;
         `;
         
         document.body.appendChild(notificacion);
         
-        // Remover después de 3 segundos
+        // Remover después de 2 segundos (más rápido)
         setTimeout(() => {
             notificacion.style.animation = 'slideOut 0.3s ease';
             setTimeout(() => {
-                document.body.removeChild(notificacion);
+                if (document.body.contains(notificacion)) {
+                    document.body.removeChild(notificacion);
+                }
             }, 300);
-        }, 3000);
+        }, 2000);
     }
 }
 
