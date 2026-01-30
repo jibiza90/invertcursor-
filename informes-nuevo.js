@@ -320,8 +320,33 @@ class SistemaInformes {
     actualizarClienteSeleccionado() {
         const selector = document.getElementById('reportClientSelect');
         if (!selector) return;
-        
-        this.clienteActual = selector.value ? parseInt(selector.value) : null;
+
+        const valorSeleccionado = selector.value;
+        console.log('🎯 Cliente seleccionado:', {
+            valorSeleccionado,
+            tipo: typeof valorSeleccionado,
+            parsed: valorSeleccionado ? parseInt(valorSeleccionado) : null
+        });
+
+        this.clienteActual = valorSeleccionado ? parseInt(valorSeleccionado) : null;
+
+        // Debug detallado de la estructura de datos
+        if (this.clienteActual !== null) {
+            const hoja = this.datosEditados.hojas[this.hojaActual];
+            const cliente = hoja.clientes[this.clienteActual];
+
+            console.log('🔍 DEBUG CLIENTE SELECCIONADO:', {
+                clienteActual: this.clienteActual,
+                clienteExiste: !!cliente,
+                clienteData: cliente,
+                numeroCliente: cliente?.numero_cliente,
+                nombreCliente: this.obtenerNombreCliente(cliente),
+                totalClientes: Object.keys(hoja.clientes).length,
+                keysClientes: Object.keys(hoja.clientes),
+                clienteSeleccionado: hoja.clientes[this.clienteActual]
+            });
+        }
+
         this.actualizarEstado();
     }
 
@@ -424,8 +449,40 @@ class SistemaInformes {
     // 11. OBTENER CLIENTE ACTUAL
     // =============================================================================
     obtenerClienteActual() {
+        console.log('🔍 OBTENIENDO CLIENTE ACTUAL:', {
+            hojaActual: this.hojaActual,
+            clienteActual: this.clienteActual,
+            datosEditadosExiste: !!this.datosEditados,
+            hojaExiste: !!(this.datosEditados?.hojas?.[this.hojaActual]),
+            clientesEnHoja: Object.keys(this.datosEditados?.hojas?.[this.hojaActual]?.clientes || {}),
+            clienteActualEsNull: this.clienteActual === null,
+            clienteActualEsUndefined: this.clienteActual === undefined
+        });
+
         const hoja = this.datosEditados.hojas[this.hojaActual];
-        return hoja.clientes[this.clienteActual];
+
+        if (!hoja) {
+            console.error('❌ Hoja no encontrada:', this.hojaActual);
+            return null;
+        }
+
+        if (!hoja.clientes) {
+            console.error('❌ No hay clientes en la hoja:', this.hojaActual);
+            return null;
+        }
+
+        const cliente = hoja.clientes[this.clienteActual];
+
+        console.log('📋 CLIENTE OBTENIDO:', {
+            clienteExiste: !!cliente,
+            clienteData: cliente,
+            numeroCliente: cliente?.numero_cliente,
+            nombreCliente: this.obtenerNombreCliente(cliente),
+            clienteActualType: typeof this.clienteActual,
+            clienteActualValue: this.clienteActual
+        });
+
+        return cliente;
     }
 
     // =============================================================================
@@ -433,7 +490,18 @@ class SistemaInformes {
     // =============================================================================
     async extraerDatosInforme(cliente) {
         console.log('📊 Extrayendo datos del informe...');
-        
+
+        console.log('🔍 DEBUG DATOS CLIENTE ENTRADA:', {
+            clienteRecibido: cliente,
+            clienteEsNull: cliente === null,
+            clienteEsUndefined: cliente === undefined,
+            clienteTieneDatos: !!(cliente?.datos),
+            clienteNumero: cliente?.numero_cliente,
+            clienteNombre: this.obtenerNombreCliente(cliente),
+            datosCliente: cliente?.datos,
+            keysDatos: cliente?.datos ? Object.keys(cliente.datos) : []
+        });
+
         // DATOS BÁSICOS DEL CLIENTE
         const datosBasicos = {
             numeroCliente: cliente.numero_cliente,
@@ -442,12 +510,14 @@ class SistemaInformes {
             telefono: this.obtenerDatoCliente(cliente, 'TELEFONO'),
             fecha: new Date().toLocaleDateString('es-ES')
         };
-        
+
+        console.log('📋 DATOS BÁSICOS EXTRAÍDOS:', datosBasicos);
+
         // ESTADÍSTICAS FINANCIERAS
         const estadisticas = await this.calcularEstadisticasCliente(cliente);
-        
+
         // MOVIMIENTOS DETALLADOS
-        const movimientos = this.extraerMovimientos(cliente);
+        const movimientos = await this.extraerMovimientos(cliente);
         
         // EVOLUCIÓN MENSUAL
         const evolucionMensual = await this.calcularEvolucionMensual(cliente);
@@ -511,6 +581,18 @@ class SistemaInformes {
     async calcularEstadisticasCliente(cliente) {
         console.log('📈 Calculando estadísticas del cliente...');
 
+        console.log('🔍 DEBUG ESTADÍSTICAS - CLIENTE RECIBIDO:', {
+            clienteRecibido: cliente,
+            clienteEsNull: cliente === null,
+            clienteEsUndefined: cliente === undefined,
+            clienteNumero: cliente?.numero_cliente,
+            clienteNombre: this.obtenerNombreCliente(cliente),
+            clienteDatos: cliente?.datos,
+            hojaActual: this.hojaActual,
+            datosEditadosExiste: !!this.datosEditados,
+            hojaExiste: !!(this.datosEditados?.hojas?.[this.hojaActual])
+        });
+
         try {
             // Validar cliente
             if (!cliente) {
@@ -518,6 +600,11 @@ class SistemaInformes {
             }
 
             // Verificar funciones globales
+            console.log('🔍 DEBUG FUNCIONES GLOBALES:', {
+                calcularEstadisticasClienteTiempoReal: !!window.calcularEstadisticasClienteTiempoReal,
+                calcularKPIsTiempoReal: !!window.calcularKPIsTiempoReal
+            });
+
             if (!window.calcularEstadisticasClienteTiempoReal || !window.calcularKPIsTiempoReal) {
                 throw new Error('Funciones de cálculo no disponibles');
             }
@@ -527,7 +614,14 @@ class SistemaInformes {
                 throw new Error('Hoja actual no encontrada');
             }
 
+            console.log('🔍 DEBUG HOJA:', {
+                hojaKeys: Object.keys(hoja),
+                hojaClientes: Object.keys(hoja.clientes || {}),
+                clienteEstaEnHoja: !!(hoja.clientes?.[cliente.numero_cliente])
+            });
+
             // Calcular estadísticas mensuales con timeout
+            console.log('🔄 Llamando a calcularEstadisticasClienteTiempoReal...');
             const datosMensualesPromise = window.calcularEstadisticasClienteTiempoReal(cliente, hoja);
             const timeoutPromise = new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Timeout calculando estadísticas')), 10000)
@@ -535,13 +629,22 @@ class SistemaInformes {
 
             const datosMensuales = await Promise.race([datosMensualesPromise, timeoutPromise]);
 
+            console.log('📊 DATOS MENSUALES RECIBIDOS:', {
+                esArray: Array.isArray(datosMensuales),
+                longitud: datosMensuales?.length,
+                datosMensuales: datosMensuales
+            });
+
             if (!Array.isArray(datosMensuales)) {
                 console.warn('⚠️ Datos mensuales no válidos, usando valores por defecto');
                 return this.estadisticasPorDefecto();
             }
 
             // Calcular KPIs totales
+            console.log('🔄 Calculando KPIs totales...');
             const kpisTotales = window.calcularKPIsTiempoReal(datosMensuales);
+
+            console.log('💰 KPIs TOTALES:', kpisTotales);
 
             // Extraer estadísticas principales con validaciones
             const estadisticas = {
