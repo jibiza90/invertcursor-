@@ -237,106 +237,151 @@ class SistemaInformes {
                     }
                     
                     body {
-                        font-family: Arial, sans-serif;
-                        font-size: 14px;
-                        color: #000000;
-                        background: #FFFFFF;
-                        line-height: 1.6;
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        font-size: 12px;
+                        color: #000000 !important;
+                        background: #FFFFFF !important;
+                        line-height: 1.4;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                        margin: 0;
+                        padding: 0;
                     }
                     
                     .header {
                         text-align: center;
-                        padding: 20px;
+                        padding: 30px 0;
                         border-bottom: 3px solid #1F3A5F;
                         margin-bottom: 30px;
+                        background: #F8F9FA !important;
                     }
                     
                     .header h1 {
-                        color: #1F3A5F;
-                        font-size: 24px;
+                        color: #1F3A5F !important;
+                        font-size: 28px;
                         font-weight: bold;
                         margin-bottom: 10px;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
                     }
                     
                     .header p {
-                        color: #333333;
-                        font-size: 12px;
+                        color: #333333 !important;
+                        font-size: 14px;
+                        margin: 5px 0;
                     }
                     
                     .section {
                         margin-bottom: 30px;
-                        padding: 20px;
-                        border: 1px solid #000000;
+                        padding: 25px;
+                        border: 2px solid #000000 !important;
+                        background: #FFFFFF !important;
+                        page-break-inside: avoid;
+                        border-radius: 0;
                     }
                     
                     .section-title {
-                        background: #1F3A5F;
-                        color: #FFFFFF;
-                        padding: 10px 15px;
+                        background: #1F3A5F !important;
+                        color: #FFFFFF !important;
+                        padding: 15px 25px;
                         font-size: 16px;
                         font-weight: bold;
-                        margin-bottom: 15px;
+                        margin: -25px -25px 20px -25px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
                     }
                     
                     table {
                         width: 100%;
                         border-collapse: collapse;
                         margin-bottom: 20px;
+                        font-size: 11px;
+                        border-spacing: 0;
                     }
                     
                     th, td {
-                        border: 1px solid #000000;
-                        padding: 10px;
+                        border: 1px solid #000000 !important;
+                        padding: 10px 12px;
                         text-align: left;
+                        vertical-align: top;
+                        font-weight: normal;
                     }
                     
                     th {
-                        background: #F2F2F2;
+                        background: #E8EAED !important;
                         font-weight: bold;
-                        color: #000000;
+                        color: #000000 !important;
+                        font-size: 11px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
                     }
                     
                     tr:nth-child(even) {
-                        background: #F2F2F2;
+                        background: #F8F9FA !important;
                     }
                     
                     tr:nth-child(odd) {
-                        background: #FFFFFF;
+                        background: #FFFFFF !important;
                     }
                     
                     .positive {
-                        color: #2E7D32;
+                        color: #2E7D32 !important;
                         font-weight: bold;
                     }
                     
                     .negative {
-                        color: #D32F2F;
+                        color: #D32F2F !important;
                         font-weight: bold;
                     }
                     
                     .chart-container {
-                        margin: 20px 0;
+                        margin: 25px 0;
+                        padding: 20px;
+                        border: 2px solid #000000 !important;
+                        background: #FFFFFF !important;
                         text-align: center;
+                        page-break-inside: avoid;
                     }
                     
                     .chart-title {
-                        font-size: 16px;
+                        font-size: 14px;
                         font-weight: bold;
-                        color: #1F3A5F;
-                        margin-bottom: 10px;
+                        color: #1F3A5F !important;
+                        margin-bottom: 15px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
                     }
                     
                     canvas {
+                        border: 1px solid #CCCCCC !important;
                         max-width: 100%;
-                        height: 300px;
+                        height: 250px !important;
                     }
                     
                     .footer {
                         text-align: center;
-                        padding: 20px;
-                        border-top: 1px solid #000000;
-                        font-size: 12px;
-                        color: #666666;
+                        padding: 25px 0;
+                        border-top: 2px solid #000000 !important;
+                        font-size: 10px;
+                        color: #666666 !important;
+                        margin-top: 30px;
+                        background: #F8F9FA !important;
+                    }
+                    
+                    /* Para impresión */
+                    @media print {
+                        body {
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                        }
+                        
+                        .section {
+                            page-break-inside: avoid;
+                        }
+                        
+                        .chart-container {
+                            page-break-inside: avoid;
+                        }
                     }
                 </style>
             </head>
@@ -545,9 +590,9 @@ class SistemaInformes {
         return movimientos;
     }
 
-    // Convertir HTML a PDF
+    // Convertir HTML a PDF - VERSIÓN PROFESIONAL
     async convertirHTMLaPDF(html, cliente) {
-        console.log('🔄 Convirtiendo HTML a PDF...');
+        console.log('🔄 Convirtiendo HTML a PDF con alta calidad...');
         
         return new Promise((resolve, reject) => {
             const tempDiv = document.createElement('div');
@@ -556,41 +601,76 @@ class SistemaInformes {
             tempDiv.style.left = '-9999px';
             tempDiv.style.width = '210mm';
             tempDiv.style.background = '#FFFFFF';
+            tempDiv.style.fontFamily = "'Segoe UI', Arial, sans-serif";
             document.body.appendChild(tempDiv);
             
             setTimeout(async () => {
                 try {
-                    // Renderizar gráficos
+                    // Renderizar gráficos primero
                     await this.renderizarGraficos(tempDiv, cliente);
                     
-                    // Capturar con html2canvas
+                    // Configuración profesional para html2canvas
                     const canvas = await html2canvas(tempDiv, {
-                        scale: 2,
+                        scale: 3, // Mayor escala para mejor calidad
                         backgroundColor: '#FFFFFF',
                         useCORS: true,
                         allowTaint: true,
-                        logging: false
+                        logging: false,
+                        width: 794, // A4 width in pixels at 96dpi
+                        height: 1123, // A4 height in pixels at 96dpi
+                        windowWidth: 794,
+                        windowHeight: 1123,
+                        x: 0,
+                        y: 0,
+                        scrollX: 0,
+                        scrollY: 0,
+                        foreignObjectRendering: true, // Mejor renderizado de texto
+                        imageTimeout: 0, // Sin timeout para imágenes
+                        removeContainer: false, // No eliminar el contenedor
+                        onclone: (clonedDoc) => {
+                            // Asegurar estilos en el clon
+                            const clonedElement = clonedDoc.querySelector('body > div');
+                            if (clonedElement) {
+                                clonedElement.style.visibility = 'visible';
+                                clonedElement.style.display = 'block';
+                            }
+                        }
                     });
                     
-                    // Generar PDF
-                    const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
-                    const imgData = canvas.toDataURL('image/png', 1.0);
+                    // Generar PDF con configuración profesional
+                    const pdf = new jspdf.jsPDF({
+                        orientation: 'portrait',
+                        unit: 'mm',
+                        format: 'a4',
+                        compress: true
+                    });
                     
-                    const imgWidth = 210;
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95); // JPEG para mejor calidad/size
                     
-                    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                    // Calcular dimensiones correctas para A4
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = pdf.internal.pageSize.getHeight();
+                    const imgWidth = canvas.width;
+                    const imgHeight = canvas.height;
+                    const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+                    const imgX = (pdfWidth - imgWidth * ratio) / 2;
+                    const imgY = 0;
+                    
+                    pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
                     
                     document.body.removeChild(tempDiv);
                     
-                    console.log('✅ PDF generado correctamente');
+                    console.log('✅ PDF profesional generado correctamente');
                     resolve(pdf);
                     
                 } catch (error) {
-                    document.body.removeChild(tempDiv);
+                    console.error('❌ Error en conversión PDF:', error);
+                    if (document.body.contains(tempDiv)) {
+                        document.body.removeChild(tempDiv);
+                    }
                     reject(error);
                 }
-            }, 1000);
+            }, 2000); // Más tiempo para que se rendericen los gráficos
         });
     }
 
