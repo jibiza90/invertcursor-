@@ -1027,24 +1027,52 @@ class SistemaInformes {
 // =============================================================================
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Iniciando Sistema de Informes PDF v3.0...');
-    
-    // Esperar a que el sistema principal esté listo
-    setTimeout(() => {
-        if (window.datosEditados && window.hojaActual) {
+
+    // Función para intentar inicializar el sistema de informes
+    function intentarInicializarInformes(intento = 1) {
+        console.log(`🔄 Intento ${intento} de inicialización de informes...`);
+
+        // Verificar que el sistema principal esté listo
+        if (window.datosEditados && window.hojaActual && window.calcularEstadisticasClienteTiempoReal) {
             console.log('✅ Sistema principal listo, iniciando informes...');
-            window.sistemaInformes = new SistemaInformes();
+
+            try {
+                window.sistemaInformes = new SistemaInformes();
+                console.log('✅ Sistema de informes inicializado correctamente');
+                return true;
+            } catch (error) {
+                console.error('❌ Error al inicializar sistema de informes:', error);
+                return false;
+            }
         } else {
-            console.log('⏳ Esperando sistema principal...');
-            setTimeout(() => {
-                if (window.datosEditados && window.hojaActual) {
-                    console.log('✅ Sistema principal listo (retry), iniciando informes...');
+            console.log(`⏳ Sistema principal no listo (intento ${intento}):`, {
+                datosEditados: !!window.datosEditados,
+                hojaActual: !!window.hojaActual,
+                calcularEstadisticas: !!window.calcularEstadisticasClienteTiempoReal
+            });
+
+            // Reintentar con delay progresivo
+            if (intento < 10) {
+                const delay = 1000 * Math.min(intento, 3); // Máximo 3 segundos entre reintentos
+                setTimeout(() => intentarInicializarInformes(intento + 1), delay);
+            } else {
+                console.error('❌ No se pudo inicializar el sistema de informes después de 10 intentos');
+
+                // Crear sistema de informes manualmente para debug
+                console.log('🔧 Creando sistema de informes manualmente para debug...');
+                try {
                     window.sistemaInformes = new SistemaInformes();
-                } else {
-                    console.error('❌ No se pudo inicializar el sistema de informes');
+                    console.log('✅ Sistema de informes creado manualmente (modo debug)');
+                } catch (error) {
+                    console.error('❌ Error crítico: no se puede crear el sistema de informes:', error);
                 }
-            }, 2000);
+            }
+            return false;
         }
-    }, 1000);
+    }
+
+    // Iniciar el primer intento después de 2 segundos
+    setTimeout(() => intentarInicializarInformes(1), 2000);
 });
 
 // =============================================================================

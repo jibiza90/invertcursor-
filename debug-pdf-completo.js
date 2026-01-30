@@ -388,10 +388,23 @@ window.probarGeneracionInforme = probarGeneracionInforme;
 // =============================================================================
 // 10. EJECUTAR AUTOMÁTICAMENTE
 // =============================================================================
-console.log('🔧 Script de debug cargado. Ejecuta: debugCompletoSistemaInformes()');
 
-// Ejecutar después de 2 segundos para dar tiempo a que todo cargue
-setTimeout(() => {
-    console.log('\n⏰ Ejecutando debug automático...');
-    debugCompletoSistemaInformes();
-}, 2000);
+// Controlar que el debug no se ejecute repetidamente
+let __debugEjecutado = false;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Esperar un poco para que el sistema se estabilice
+    setTimeout(async () => {
+        if (!__debugEjecutado) {
+            __debugEjecutado = true;
+            console.log('🔍 INICIANDO DEBUG COMPLETO DEL SISTEMA DE INFORMES');
+            
+            try {
+                await debugCompletoSistemaInformes();
+                console.log('✅ DEBUG COMPLETADO');
+            } catch (error) {
+                console.error('❌ Error en debug:', error);
+            }
+        }
+    }, 5000); // Esperar 5 segundos para que todo se cargue
+});
