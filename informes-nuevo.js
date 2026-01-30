@@ -852,9 +852,26 @@ class SistemaInformes {
     }
 }
 
-// Inicializar el sistema cuando el DOM esté listo
+// Inicializar el sistema cuando el DOM esté listo Y la app principal esté cargada
 document.addEventListener('DOMContentLoaded', () => {
-    window.sistemaInformes = new SistemaInformes();
+    // Esperar a que la app principal se inicialice
+    setTimeout(() => {
+        // Verificar que las variables globales existan antes de inicializar
+        if (window.datosEditados && window.hojaActual) {
+            console.log('✅ App principal lista, inicializando sistema de informes...');
+            window.sistemaInformes = new SistemaInformes();
+        } else {
+            console.log('⏳ App principal no está lista aún, reintentando en 1 segundo...');
+            setTimeout(() => {
+                if (window.datosEditados && window.hojaActual) {
+                    console.log('✅ App principal lista (reintento), inicializando sistema de informes...');
+                    window.sistemaInformes = new SistemaInformes();
+                } else {
+                    console.error('❌ No se pudo inicializar el sistema de informes: la app principal no está disponible');
+                }
+            }, 1000);
+        }
+    }, 500); // Pequeño retraso para asegurar que app.js se inicialice primero
 });
 
 // Añadir animaciones CSS
