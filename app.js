@@ -14317,376 +14317,411 @@ class ReportsManager {
     
     async generarHTMLInforme(cliente) {
         const fecha = new Date().toLocaleDateString('es-ES');
-        const datosCliente = cliente.datos.datos || {};
+        
+        // Obtener datos del cliente correctamente
+        const datosCliente = cliente.datos || {};
         const nombre = datosCliente['NOMBRE']?.valor || '';
         const apellidos = datosCliente['APELLIDOS']?.valor || '';
-        const nombreCompleto = nombre || apellidos ? `${nombre} ${apellidos}`.trim() : `Cliente ${cliente.id}`;
+        const nombreCompleto = nombre || apellidos ? `${nombre} ${apellidos}`.trim() : `Cliente ${cliente.numero_cliente || 0}`;
         
-        // Calcular estadísticas
-        const estadisticas = await this.calcularEstadisticasCliente(cliente);
+        // Obtener hoja actual
+        const hoja = datosEditados?.hojas?.[hojaActual];
+        if (!hoja) {
+            return `<p style="color: red; font-size: 14px; font-weight: bold;">No hay hoja activa</p>`;
+        }
         
-        // Extraer detalles de incrementos/decrementos de los datos diarios del cliente
-        const detallesMovimientos = [];
+        console.log('🔍 DEBUG INFORME:', {
+            hojaActual,
+            clienteIndex: cliente.numero_cliente,
+            tieneDatosDiarios: cliente.datos_diarios?.length || 0
+        });
         
-        // Acceder a los datos diarios del cliente directamente
-        const datosDiarios = cliente.datos_diarios || [];
-        
-        datosDiarios.forEach(fila => {
-            const inc = typeof fila.incremento === 'number' ? fila.incremento : 0;
-            const dec = typeof fila.decremento === 'number' ? fila.decremento : 0;
+        // USAR EXACTAMENTE EL MISMO SISTEMA QUE ESTADÍSTICAS DE CLIENTES
+        try {
+            console.log('🚀 INICIANDO INFORME 100% en tiempo real');
+            const datosClienteMeses = await calcularEstadisticasClienteTiempoReal(cliente, hoja);
+            console.log('📊 Datos calculados:', datosClienteMeses.length, 'meses');
             
-            // Extraer mes de la fecha
-            let nombreMes = 'Sin mes';
-            if (fila.fecha && fila.fecha !== 'FECHA') {
-                const fecha = new Date(fila.fecha);
-                if (!isNaN(fecha.getTime())) {
-                    nombreMes = fecha.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+            // Calcular KPIs
+            const kpisTotales = calcularKPIsTiempoReal(datosClienteMeses);
+            
+            // ESTABLECER DATOS GLOBALES PARA GRÁFICOS (CRÍTICO)
+            const datosCompletosCliente = { kpisTotales, datosClienteMeses };
+            window._datosCliente = datosCompletosCliente;
+            window._datosEstadisticasCliente = datosCompletosCliente;
+            
+            console.log('✅ Datos globales establecidos para gráficos:', {
+                kpisTotales: Object.keys(kpisTotales),
+                mesesCount: datosClienteMeses.length,
+                datosGlobales: !!window._datosEstadisticasCliente
+            });
+            
+            // Extraer detalles de incrementos/decrementos de los datos diarios del cliente
+            const detallesMovimientos = [];
+            
+            // Acceder a los datos diarios del cliente directamente
+            const datosDiarios = cliente.datos_diarios || [];
+            
+            console.log(`📊 Procesando ${datosDiarios.length} filas de datos diarios para movimientos`);
+            console.log(`📊 Estructura del cliente:`, {
+                tieneDatosDiarios: !!cliente.datos_diarios,
+                longitudDatosDiarios: cliente.datos_diarios?.length || 0,
+                clienteKeys: Object.keys(cliente),
+                primerFila: datosDiarios[0],
+                muestraFilas: datosDiarios.slice(0, 3)
+            });
+            
+            // Revisar las primeras 10 filas para depuración
+            console.log(`📊 Primeras 10 filas de datos_diarios:`);
+            datosDiarios.slice(0, 10).forEach((fila, idx) => {
+                console.log(`   Fila ${idx}: fila=${fila.fila}, fecha=${fila.fecha}, incremento=${fila.incremento}, decremento=${fila.decremento}`);
+            });
+            
+            datosDiarios.forEach(fila => {
+                const inc = typeof fila.incremento === 'number' ? fila.incremento : 0;
+                const dec = typeof fila.decremento === 'number' ? fila.decremento : 0;
+                
+                // Extraer mes de la fecha
+                let nombreMes = 'Sin mes';
+                if (fila.fecha && fila.fecha !== 'FECHA') {
+                    const fecha = new Date(fila.fecha);
+                    if (!isNaN(fecha.getTime())) {
+                        nombreMes = fecha.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+                    }
                 }
-            }
+                
+                // Si hay incremento, añadir movimiento
+                if (inc > 0) {
+                    detallesMovimientos.push({
+                        fecha: fila.fecha || '',
+                        importe: inc,
+                        tipo: 'Ingreso',
+                        mes: nombreMes
+                    });
+                }
+                
+                // Si hay decremento, añadir movimiento
+                if (dec > 0) {
+                    detallesMovimientos.push({
+                        fecha: fila.fecha || '',
+                        importe: dec,
+                        tipo: 'Retirada',
+                        mes: nombreMes
+                    });
+                }
+            });
             
-            // Si hay incremento, añadir movimiento
-            if (inc > 0) {
-                detallesMovimientos.push({
-                    fecha: fila.fecha || '',
-                    importe: inc,
-                    tipo: 'Ingreso',
-                    mes: nombreMes
-                });
-            }
+            console.log('📊 Movimientos encontrados:', detallesMovimientos.length);
+            detallesMovimientos.forEach(mov => {
+                console.log(`   ${mov.fecha}: ${mov.tipo} - ${this.formatearMoneda(mov.importe)}`);
+            });
             
-            // Si hay decremento, añadir movimiento
-            if (dec > 0) {
-                detallesMovimientos.push({
-                    fecha: fila.fecha || '',
-                    importe: dec,
-                    tipo: 'Retirada',
-                    mes: nombreMes
-                });
-            }
-        });
-        
-        console.log('📊 Movimientos encontrados:', detallesMovimientos.length);
-        detallesMovimientos.forEach(mov => {
-            console.log(`   ${mov.fecha}: ${mov.tipo} - ${this.formatearMoneda(mov.importe)}`);
-        });
-        
-        return `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <title>Informe de Cliente</title>
-                <style>
-                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-                    
-                    * {
-                        margin: 0;
-                        padding: 0;
-                        box-sizing: border-box;
-                    }
-                    
-                    body {
-                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                        background: #ffffff;
-                        color: #000000;
-                        line-height: 1.6;
-                        font-size: 11px;
-                    }
-                    
-                    .container {
-                        max-width: 100%;
-                        margin: 0 auto;
-                        padding: 25px;
-                        background: #ffffff;
-                    }
-                    
-                    .header {
-                        text-align: center;
-                        margin-bottom: 35px;
-                        padding-bottom: 25px;
-                        border-bottom: 3px solid #1e40af;
-                    }
-                    
-                    .header h1 {
-                        font-size: 24px;
-                        font-weight: 800;
-                        color: #1e40af;
-                        margin-bottom: 8px;
-                        letter-spacing: -0.5px;
-                    }
-                    
-                    .header .subtitle {
-                        font-size: 14px;
-                        font-weight: 600;
-                        color: #4b5563;
-                    }
-                    
-                    .section {
-                        margin-bottom: 35px;
-                        page-break-inside: avoid;
-                    }
-                    
-                    .section-header {
-                        display: flex;
-                        align-items: center;
-                        margin-bottom: 20px;
-                        padding: 12px 16px;
-                        background: linear-gradient(135deg, #1e40af 0%, #3730a3 100%);
-                        border-radius: 8px;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                    }
-                    
-                    .section-title {
-                        font-size: 16px;
-                        font-weight: 700;
-                        color: #ffffff;
-                        margin-left: 8px;
-                    }
-                    
-                    .data-table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        background: #ffffff;
-                        border-radius: 8px;
-                        overflow: hidden;
-                        border: 2px solid #e5e7eb;
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                    }
-                    
-                    .data-table td {
-                        padding: 12px 10px;
-                        border: 1px solid #d1d5db;
-                        font-size: 11px;
-                        font-weight: 500;
-                        color: #000000;
-                    }
-                    
-                    .data-table td:first-child {
-                        font-weight: 700;
-                        color: #ffffff;
-                        background: #374151;
-                        width: 25%;
-                    }
-                    
-                    .data-table tr:nth-child(even) td:not(:first-child) {
-                        background: #f9fafb;
-                    }
-                    
-                    .metric-blue {
-                        color: #1e40af !important;
-                        font-weight: 700 !important;
-                    }
-                    
-                    .metric-positive {
-                        color: #059669 !important;
-                        font-weight: 700 !important;
-                    }
-                    
-                    .metric-negative {
-                        color: #dc2626 !important;
-                        font-weight: 700 !important;
-                    }
-                    
-                    .table-header {
-                        background: #1e40af !important;
-                        font-weight: 700 !important;
-                        color: #ffffff !important;
-                        text-align: center !important;
-                        border-bottom: 2px solid #1e40af !important;
-                    }
-                    
-                    .table-header td {
-                        color: #ffffff !important;
-                        font-weight: 700 !important;
-                    }
-                    
-                    .chart-container {
-                        margin: 25px 0;
-                        padding: 20px;
-                        border: 2px solid #e5e7eb;
-                        border-radius: 8px;
-                        background: #f8fafc;
-                        page-break-inside: avoid;
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                    }
-                    
-                    .chart-title {
-                        font-size: 14px;
-                        font-weight: 700;
-                        color: #1e40af;
-                        margin-bottom: 15px;
-                        text-align: center;
-                        background: #eff6ff;
-                        padding: 8px;
-                        border-radius: 6px;
-                        border: 1px solid #bfdbfe;
-                    }
-                    
-                    .footer {
-                        text-align: center;
-                        margin-top: 40px;
-                        padding-top: 25px;
-                        border-top: 2px solid #e5e7eb;
-                        font-size: 10px;
-                        color: #6b7280;
-                        font-weight: 600;
-                        background: #f9fafb;
-                        padding: 15px;
-                        border-radius: 8px;
-                    }
-                    
-                    @media print {
-                        body { 
-                            margin: 0; 
-                            font-size: 10px;
+            return `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <title>Informe de Cliente</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            background: #FFFFFF;
+                            color: #000000;
+                            line-height: 1.6;
+                            font-size: 14px;
+                            font-weight: 400;
+                            margin: 0;
+                            padding: 0;
                         }
-                        .container { 
-                            margin: 0; 
-                            max-width: 100%; 
-                            padding: 15px;
+                        
+                        .container {
+                            max-width: 100%;
+                            margin: 0 auto;
+                            padding: 20px;
+                            background: #FFFFFF;
                         }
-                        .section {
-                            margin-bottom: 25px;
+                        
+                        .header {
+                            text-align: center;
+                            margin-bottom: 30px;
+                            padding-bottom: 20px;
+                            border-bottom: 3px solid #1F3A5F;
                         }
+                        
                         .header h1 {
-                            font-size: 20px;
+                            font-size: 24px;
+                            font-weight: 900;
+                            color: #1F3A5F;
+                            margin-bottom: 8px;
                         }
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <!-- Cabecera -->
-                    <div class="header">
-                        <h1>📊 INFORME DE CLIENTE</h1>
-                        <div class="subtitle">${nombreCompleto} - ${fecha}</div>
-                    </div>
-                    
-                    <!-- Datos del Cliente -->
-                    <div class="section">
-                        <div class="section-header">
-                            <span class="section-title">👤 DATOS DEL CLIENTE</span>
-                        </div>
-                        <table class="data-table">
-                            <tr>
-                                <td>Nombre Completo:</td>
-                                <td>${nombreCompleto}</td>
-                                <td>Fecha del Informe:</td>
-                                <td>${fecha}</td>
-                            </tr>
-                        </table>
-                    </div>
-                    
-                    <!-- Estadísticas Principales -->
-                    <div class="section">
-                        <div class="section-header">
-                            <span class="section-title">💰 ESTADÍSTICAS PRINCIPALES</span>
-                        </div>
-                        <table class="data-table">
-                            <tr>
-                                <td>Inversión Total:</td>
-                                <td class="metric-blue">${this.formatearMoneda(estadisticas.kpis.inversion)}</td>
-                                <td>Beneficio Total:</td>
-                                <td class="${estadisticas.kpis.beneficioEuro >= 0 ? 'metric-positive' : 'metric-negative'}">${this.formatearMoneda(estadisticas.kpis.beneficioEuro)} (${estadisticas.kpis.rentabilidadTotal.toFixed(2)}%)</td>
-                            </tr>
-                            <tr>
-                                <td>Retiradas:</td>
-                                <td class="metric-negative">${this.formatearMoneda(estadisticas.kpis.decrementos)}</td>
-                                <td>Saldo Actual:</td>
-                                <td class="metric-blue">${this.formatearMoneda(estadisticas.kpis.saldoActual)}</td>
-                            </tr>
-                            <tr>
-                                <td>Mejor Mes:</td>
-                                <td class="metric-positive">${estadisticas.kpis.mejorMes ? this.formatearMes(estadisticas.kpis.mejorMes.mes) + ': +' + estadisticas.kpis.mejorMes.rentabilidad.toFixed(2) + '%' : 'Sin operaciones'}</td>
-                                <td>Peor Mes:</td>
-                                <td class="${estadisticas.kpis.peorMes && estadisticas.kpis.peorMes.rentabilidad >= 0 ? 'metric-positive' : 'metric-negative'}">${estadisticas.kpis.peorMes ? this.formatearMes(estadisticas.kpis.peorMes.mes) + ': ' + (estadisticas.kpis.peorMes.rentabilidad >= 0 ? '+' : '') + estadisticas.kpis.peorMes.rentabilidad.toFixed(2) + '%' : 'Sin operaciones'}</td>
-                            </tr>
-                        </table>
-                    </div>
-                    
-                    <!-- Detalle de Movimientos -->
-                    <div class="section">
-                        <div class="section-header">
-                            <span class="section-title">💳 DETALLE DE MOVIMIENTOS</span>
-                        </div>
-                        <table class="data-table">
-                            <tr class="table-header">
-                                <td>FECHA</td>
-                                <td>TIPO</td>
-                                <td>IMPORTE</td>
-                                <td>MES</td>
-                            </tr>
-                            ${detallesMovimientos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha)).map(mov => `
-                                <tr>
-                                    <td>${mov.fecha}</td>
-                                    <td class="${mov.tipo === 'Ingreso' ? 'metric-positive' : 'metric-negative'}" style="font-weight: 700;">${mov.tipo}</td>
-                                    <td class="${mov.tipo === 'Ingreso' ? 'metric-positive' : 'metric-negative'}" style="font-weight: 700;">${this.formatearMoneda(mov.importe)}</td>
-                                    <td>${mov.mes}</td>
-                                </tr>
-                            `).join('')}
-                            ${detallesMovimientos.length === 0 ? 
-                                '<tr><td colspan="4" style="text-align: center; color: #6b7280; font-style: italic;">No se encontraron movimientos</td></tr>' : ''
+                        
+                        .header .subtitle {
+                            font-size: 14px;
+                            font-weight: 700;
+                            color: #333333;
+                        }
+                        
+                        .section {
+                            margin-bottom: 30px;
+                            page-break-inside: avoid;
+                        }
+                        
+                        .section-header {
+                            display: flex;
+                            align-items: center;
+                            margin-bottom: 15px;
+                            padding: 12px 15px;
+                            background: #1F3A5F;
+                        }
+                        
+                        .section-title {
+                            font-size: 16px;
+                            font-weight: 900;
+                            color: #FFFFFF;
+                            margin-left: 8px;
+                        }
+                        
+                        .data-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            background: #FFFFFF;
+                            border: 2px solid #000000;
+                        }
+                        
+                        .data-table td {
+                            padding: 14px 12px;
+                            border: 1px solid #000000;
+                            font-size: 13px;
+                            font-weight: 700;
+                            color: #000000;
+                            text-align: left;
+                        }
+                        
+                        .data-table td:first-child {
+                            font-weight: 900;
+                            color: #FFFFFF;
+                            background: #1F3A5F;
+                            width: 25%;
+                        }
+                        
+                        .data-table tr:nth-child(even) td:not(:first-child) {
+                            background: #F2F2F2;
+                        }
+                        
+                        .table-header {
+                            background: #1F3A5F !important;
+                            font-weight: 900 !important;
+                            color: #FFFFFF !important;
+                            text-align: center !important;
+                            border-bottom: 2px solid #1F3A5F !important;
+                        }
+                        
+                        .table-header td {
+                            color: #FFFFFF !important;
+                            font-weight: 900 !important;
+                            font-size: 12px !important;
+                        }
+                        
+                        .metric-positive {
+                            color: #FFFFFF !important;
+                            font-weight: 900 !important;
+                            background: #2E7D32 !important;
+                        }
+                        
+                        .metric-negative {
+                            color: #FFFFFF !important;
+                            font-weight: 900 !important;
+                            background: #D32F2F !important;
+                        }
+                        
+                        .metric-blue {
+                            color: #FFFFFF !important;
+                            font-weight: 900 !important;
+                            background: #1F3A5F !important;
+                        }
+                        
+                        .chart-container {
+                            margin: 20px 0;
+                            padding: 15px;
+                            border: 2px solid #333333;
+                            background: #FFFFFF;
+                            page-break-inside: avoid;
+                        }
+                        
+                        .chart-title {
+                            font-size: 14px;
+                            font-weight: 900;
+                            color: #1F3A5F;
+                            margin-bottom: 10px;
+                            text-align: center;
+                            background: #F2F2F2;
+                            padding: 8px;
+                            border: 1px solid #333333;
+                        }
+                        
+                        .footer {
+                            text-align: center;
+                            margin-top: 30px;
+                            padding-top: 20px;
+                            border-top: 2px solid #1F3A5F;
+                            font-size: 12px;
+                            color: #000000;
+                            font-weight: 700;
+                        }
+                        
+                        @media print {
+                            body { 
+                                margin: 0; 
+                                font-size: 13px;
                             }
-                        </table>
-                    </div>
-                    
-                    <!-- Evolución Mensual -->
-                    <div class="section">
-                        <div class="section-header">
-                            <span class="section-title">📈 EVOLUCIÓN MENSUAL</span>
+                            .container { 
+                                margin: 0; 
+                                padding: 10px;
+                            }
+                            .header h1 {
+                                font-size: 20px;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <!-- Cabecera -->
+                        <div class="header">
+                            <h1>INFORME DE CLIENTE</h1>
+                            <div class="subtitle">${nombreCompleto} - ${fecha}</div>
                         </div>
-                        <table class="data-table">
-                            <tr class="table-header">
-                                <td>MES</td>
-                                <td>SALDO INICIAL</td>
-                                <td>INGRESOS</td>
-                                <td>RETIRADAS</td>
-                                <td>SALDO FINAL</td>
-                                <td>RENTABILIDAD</td>
-                            </tr>
-                            ${estadisticas.meses.map(mes => `
+                        
+                        <!-- Datos del Cliente -->
+                        <div class="section">
+                            <div class="section-header">
+                                <span class="section-title">DATOS DEL CLIENTE</span>
+                            </div>
+                            <table class="data-table">
                                 <tr>
-                                    <td style="font-weight: 700;">${mes.nombreMes}</td>
-                                    <td>${this.formatearMoneda(mes.saldoInicial)}</td>
-                                    <td class="metric-positive">${this.formatearMoneda(mes.incrementos)}</td>
-                                    <td class="metric-negative">${this.formatearMoneda(mes.decrementos)}</td>
-                                    <td class="metric-blue">${this.formatearMoneda(mes.saldoFinal)}</td>
-                                    <td class="${mes.rentabilidad >= 0 ? 'metric-positive' : 'metric-negative'}" style="font-weight: 700;">${mes.rentabilidad.toFixed(2)}%</td>
+                                    <td>Nombre Completo:</td>
+                                    <td>${nombreCompleto}</td>
+                                    <td>Fecha del Informe:</td>
+                                    <td>${fecha}</td>
                                 </tr>
-                            `).join('')}
-                        </table>
-                    </div>
-                    
-                    <!-- Gráficos -->
-                    <div class="section">
-                        <div class="section-header">
-                            <span class="section-title">📊 GRÁFICOS DE EVOLUCIÓN</span>
+                            </table>
                         </div>
-                        <div class="chart-container">
-                            <div class="chart-title">📊 Rentabilidad Mensual</div>
-                            <canvas id="chartRentabilidadPDF" width="760" height="300"></canvas>
+                        
+                        <!-- Estadísticas Principales -->
+                        <div class="section">
+                            <div class="section-header">
+                                <span class="section-title">ESTADÍSTICAS PRINCIPALES</span>
+                            </div>
+                            <table class="data-table">
+                                <tr>
+                                    <td>Inversión Total:</td>
+                                    <td class="metric-blue">${this.formatearMoneda(kpisTotales.inversion)}</td>
+                                    <td>Beneficio Total:</td>
+                                    <td class="${kpisTotales.beneficioEuro >= 0 ? 'metric-positive' : 'metric-negative'}">${this.formatearMoneda(kpisTotales.beneficioEuro)} (${kpisTotales.rentabilidadTotal.toFixed(2)}%)</td>
+                                </tr>
+                                <tr>
+                                    <td>Retiradas:</td>
+                                    <td class="metric-negative">${this.formatearMoneda(kpisTotales.decrementos)}</td>
+                                    <td>Saldo Actual:</td>
+                                    <td class="metric-blue">${this.formatearMoneda(kpisTotales.saldoActual)}</td>
+                                </tr>
+                                <tr>
+                                    <td>Mejor Mes:</td>
+                                    <td class="metric-positive">${kpisTotales.mejorMes ? this.formatearMes(kpisTotales.mejorMes.mes) + ': +' + kpisTotales.mejorMes.rentabilidad.toFixed(2) + '%' : 'Sin operaciones'}</td>
+                                    <td>Peor Mes:</td>
+                                    <td class="${kpisTotales.peorMes && kpisTotales.peorMes.rentabilidad >= 0 ? 'metric-positive' : 'metric-negative'}">${kpisTotales.peorMes ? this.formatearMes(kpisTotales.peorMes.mes) + ': ' + (kpisTotales.peorMes.rentabilidad >= 0 ? '+' : '') + kpisTotales.peorMes.rentabilidad.toFixed(2) + '%' : 'Sin operaciones'}</td>
+                                </tr>
+                            </table>
                         </div>
-                        <div class="chart-container">
-                            <div class="chart-title">📈 Evolución del Patrimonio</div>
-                            <canvas id="chartEvolucionPDF" width="760" height="300"></canvas>
+                        
+                        <!-- Detalle de Movimientos -->
+                        <div class="section">
+                            <div class="section-header">
+                                <span class="section-title">DETALLE DE MOVIMIENTOS</span>
+                            </div>
+                            <table class="data-table">
+                                <tr class="table-header">
+                                    <td>FECHA</td>
+                                    <td>TIPO</td>
+                                    <td>IMPORTE</td>
+                                    <td>MES</td>
+                                </tr>
+                                ${detallesMovimientos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha)).map(mov => `
+                                    <tr>
+                                        <td>${mov.fecha}</td>
+                                        <td class="${mov.tipo === 'Ingreso' ? 'metric-positive' : 'metric-negative'}">${mov.tipo}</td>
+                                        <td class="${mov.tipo === 'Ingreso' ? 'metric-positive' : 'metric-negative'}">${this.formatearMoneda(mov.importe)}</td>
+                                        <td>${mov.mes}</td>
+                                    </tr>
+                                `).join('')}
+                                ${detallesMovimientos.length === 0 ? 
+                                    '<tr><td colspan="4" style="text-align: center; color: #333333; font-style: italic;">No se encontraron movimientos</td></tr>' : ''
+                                }
+                            </table>
+                        </div>
+                        
+                        <!-- Evolución Mensual -->
+                        <div class="section">
+                            <div class="section-header">
+                                <span class="section-title">EVOLUCIÓN MENSUAL</span>
+                            </div>
+                            <table class="data-table">
+                                <tr class="table-header">
+                                    <td>MES</td>
+                                    <td>SALDO INICIAL</td>
+                                    <td>INGRESOS</td>
+                                    <td>RETIRADAS</td>
+                                    <td>SALDO FINAL</td>
+                                    <td>RENTABILIDAD</td>
+                                </tr>
+                                ${datosClienteMeses.map(mes => `
+                                    <tr>
+                                        <td style="font-weight: 900;">${mes.nombreMes}</td>
+                                        <td>${this.formatearMoneda(mes.saldoInicial)}</td>
+                                        <td class="metric-positive">${this.formatearMoneda(mes.incrementos)}</td>
+                                        <td class="metric-negative">${this.formatearMoneda(mes.decrementos)}</td>
+                                        <td class="metric-blue">${this.formatearMoneda(mes.saldoFinal)}</td>
+                                        <td class="${mes.rentabilidad >= 0 ? 'metric-positive' : 'metric-negative'}">${mes.rentabilidad.toFixed(2)}%</td>
+                                    </tr>
+                                `).join('')}
+                            </table>
+                        </div>
+                        
+                        <!-- Gráficos -->
+                        <div class="section">
+                            <div class="section-header">
+                                <span class="section-title">GRÁFICOS DE EVOLUCIÓN</span>
+                            </div>
+                            <div class="chart-container">
+                                <div class="chart-title">Rentabilidad Mensual</div>
+                                <canvas id="chartRentabilidadPDF" width="760" height="300"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <div class="chart-title">Evolución del Patrimonio</div>
+                                <canvas id="chartEvolucionPDF" width="760" height="300"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Pie de Página -->
+                        <div class="footer">
+                            Informe generado automáticamente por InvertCursor - ${fecha}
                         </div>
                     </div>
-                    
-                    <!-- Pie de Página -->
-                    <div class="footer">
-                        Informe generado automáticamente por InvertCursor - ${fecha}
-                    </div>
-                </div>
-            </body>
-            </html>
-        `;
+                </body>
+                </html>
+            `;
+            
+        } catch (error) {
+            console.error('❌ Error generando informe:', error);
+            return `<p style="color: red; font-size: 14px; font-weight: bold;">Error al generar el informe: ${error.message}</p>`;
+        }
     }
     
     async calcularEstadisticasCliente(cliente) {
         try {
             // Usar exactamente la misma función que las estadísticas del cliente
             const hoja = datosEditados.hojas[cliente.hoja];
-            const datosClienteMeses = await calcularEstadisticasClienteTiempoReal(cliente.datos, hoja);
+            const datosClienteMeses = await calcularEstadisticasClienteTiempoReal(cliente, hoja);
             const kpisTotales = calcularKPIsTiempoReal(datosClienteMeses);
             
             return {
@@ -14761,7 +14796,7 @@ class ReportsManager {
         tempDiv.style.left = '-9999px';
         tempDiv.style.top = '0';
         tempDiv.style.width = '210mm'; // Ancho A4
-        tempDiv.style.background = 'white';
+        tempDiv.style.background = '#FFFFFF';
         tempDiv.style.padding = '20px';
         tempDiv.style.boxSizing = 'border-box';
         document.body.appendChild(tempDiv);
@@ -14770,18 +14805,21 @@ class ReportsManager {
             // Esperar a que las fuentes se carguen
             await new Promise(resolve => setTimeout(resolve, 300));
             
-            // Renderizar gráficos si Chart está disponible
-            if (window.Chart && window._datosEstadisticasCliente) {
+            // Renderizar gráficos si Chart está disponible (CONDICIÓN MEJORADA)
+            if (window.Chart) {
+                console.log('🎨 Chart.js disponible, renderizando gráficos...');
                 await this.renderizarGraficosPDF(tempDiv);
-                // Esperar a que los gráficos se rendericen
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // Esperar a que los gráficos se rendericen y conviertan a imágenes
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            } else {
+                console.warn('⚠️ Chart.js no disponible, omitiendo gráficos');
             }
             
             // Obtener la altura real del contenido
             const contentHeight = tempDiv.scrollHeight;
             console.log('📏 Altura del contenido:', contentHeight, 'px');
             
-            // Configuración para html2canvas
+            // Configuración para html2canvas optimizada
             const pageHeight = 1123; // 297mm en pixels a 96dpi
             const pageWidth = 794;   // 210mm en pixels a 96dpi
             const padding = 40;      // Padding entre páginas
@@ -14791,20 +14829,22 @@ class ReportsManager {
             
             // Generar páginas mientras haya contenido
             while (currentPosition < contentHeight) {
-                // Capturar la porción actual del contenido
+                // Capturar la porción actual del contenido con MÁXIMA CALIDAD
                 const canvas = await html2canvas(tempDiv, {
-                    scale: 2,
+                    scale: 2.5,
+                    backgroundColor: '#FFFFFF',
                     useCORS: true,
                     allowTaint: true,
-                    backgroundColor: '#ffffff',
+                    removeContainer: false,
+                    logging: false,
                     width: pageWidth,
                     height: Math.min(pageHeight - padding, contentHeight - currentPosition),
                     x: 0,
                     y: currentPosition,
                     scrollX: 0,
                     scrollY: currentPosition,
-                    logging: false,
-                    removeContainer: false
+                    windowWidth: pageWidth,
+                    windowHeight: pageHeight
                 });
                 
                 // Añadir la imagen al PDF (si no es la primera página, añadir nueva página)
@@ -14812,8 +14852,12 @@ class ReportsManager {
                     pdf.addPage();
                 }
                 
-                const imgData = canvas.toDataURL('image/png');
-                pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
+                // Calcular dimensiones correctas para evitar estiramiento
+                const imgWidth = 210; // A4 width in mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
                 
                 // Avanzar a la siguiente posición
                 currentPosition += (pageHeight - padding);
@@ -14830,55 +14874,112 @@ class ReportsManager {
         }
     }
     
+    formatearMes(mesKey) {
+        if (!mesKey) return 'Sin mes';
+        
+        // Si es formato YYYY-MM, formatear a nombre de mes
+        if (typeof mesKey === 'string' && mesKey.includes('-')) {
+            const [year, month] = mesKey.split('-');
+            const date = new Date(parseInt(year), parseInt(month) - 1);
+            return date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+        }
+        
+        // Si ya es un nombre de mes, devolverlo
+        return mesKey;
+    }
+
     async renderizarGraficosPDF(container) {
-        // Usar los mismos datos que las estadísticas del cliente
-        const datos = window._datosEstadisticasCliente;
-        if (!datos || !datos.datosClienteMeses) return;
+        console.log('🎨 Renderizando gráficos PDF con datos reales del cliente...');
         
-        const meses = datos.datosClienteMeses;
+        // OBTENER DATOS REALES DEL CLIENTE
+        const datosCliente = window._datosEstadisticasCliente || window._datosCliente;
+        if (!datosCliente || !datosCliente.datosClienteMeses) {
+            console.error('❌ No hay datos del cliente para renderizar gráficos');
+            return;
+        }
         
-        // Renderizar gráfico de rentabilidad
+        const datosMensuales = datosCliente.datosClienteMeses;
+        console.log('📊 Datos mensuales para gráficos:', datosMensuales.length, 'meses');
+        
+        const charts = [];
+        
+        // PREPARAR DATOS REALES PARA GRÁFICOS
+        const labels = datosMensuales.map(m => this.formatearMes(m.mes));
+        const rentabilidadData = datosMensuales.map(m => m.rentabilidad || 0);
+        const saldoData = datosMensuales.map(m => m.saldoFinal || 0);
+        
+        console.log('📊 Datos preparados:', {
+            labels: labels.length,
+            rentabilidad: rentabilidadData.length,
+            saldos: saldoData.length,
+            muestraRentabilidad: rentabilidadData.slice(0, 3),
+            muestraSaldos: saldoData.slice(0, 3)
+        });
+        
+        // Renderizar gráfico de rentabilidad con DATOS REALES
         const canvasRentabilidad = container.querySelector('#chartRentabilidadPDF');
         if (canvasRentabilidad) {
-            new Chart(canvasRentabilidad, {
+            console.log('📊 Creando gráfico de rentabilidad con datos reales...');
+            const chart = new Chart(canvasRentabilidad, {
                 type: 'bar',
                 data: {
-                    labels: meses.map(m => m.nombreMes),
+                    labels: labels,
                     datasets: [{
                         label: 'Rentabilidad (%)',
-                        data: meses.map(m => (m.rentabilidad || 0).toFixed(2)),
-                        backgroundColor: meses.map(m => 
-                            (m.rentabilidad || 0) >= 0 ? '#059669' : '#dc2626'
-                        ),
-                        borderColor: meses.map(m => 
-                            (m.rentabilidad || 0) >= 0 ? '#047857' : '#b91c1c'
-                        ),
+                        data: rentabilidadData,
+                        backgroundColor: rentabilidadData.map(r => r >= 0 ? '#2E7D32' : '#D32F2F'),
+                        borderColor: '#000000',
                         borderWidth: 2
                     }]
                 },
                 options: {
                     responsive: false,
-                    maintainAspectRatio: false,
+                    animation: false,
                     plugins: {
                         legend: {
-                            display: false
+                            display: true,
+                            labels: {
+                                color: '#000000',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#000000',
+                            titleColor: '#FFFFFF',
+                            bodyColor: '#FFFFFF',
+                            borderColor: '#FFFFFF',
+                            borderWidth: 1
                         }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
                             grid: {
-                                color: '#e5e7eb',
-                                drawBorder: false
+                                color: '#CCCCCC',
+                                drawBorder: true,
+                                borderColor: '#000000'
                             },
                             ticks: {
-                                color: '#374151',
+                                color: '#000000',
                                 font: {
-                                    weight: '600'
+                                    size: 12,
+                                    weight: 'bold'
                                 },
                                 callback: function(value) {
                                     return value + '%';
                                 }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Rentabilidad (%)',
+                                color: '#000000',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
                             }
                         },
                         x: {
@@ -14886,64 +14987,100 @@ class ReportsManager {
                                 display: false
                             },
                             ticks: {
-                                color: '#374151',
+                                color: '#000000',
                                 font: {
-                                    weight: '500'
+                                    size: 11,
+                                    weight: 'bold'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Mes',
+                                color: '#000000',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
                                 }
                             }
                         }
                     }
                 }
             });
+            
+            // Forzar renderizado sin animación
+            chart.update('none');
+            charts.push({ chart, canvas: canvasRentabilidad });
         }
         
-        // Renderizar gráfico de evolución
+        // Renderizar gráfico de evolución con DATOS REALES
         const canvasEvolucion = container.querySelector('#chartEvolucionPDF');
         if (canvasEvolucion) {
-            new Chart(canvasEvolucion, {
+            console.log('📈 Creando gráfico de evolución con datos reales...');
+            const chart = new Chart(canvasEvolucion, {
                 type: 'line',
                 data: {
-                    labels: meses.map(m => m.nombreMes),
+                    labels: labels,
                     datasets: [{
                         label: 'Saldo Final',
-                        data: meses.map(m => m.saldoFinal || 0),
-                        borderColor: '#2563eb',
-                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        data: saldoData,
+                        borderColor: '#1F3A5F',
+                        backgroundColor: '#E3F2FD',
                         borderWidth: 3,
                         fill: true,
                         tension: 0.1,
-                        pointBackgroundColor: '#2563eb',
-                        pointBorderColor: '#1d4ed8',
+                        pointBackgroundColor: '#1F3A5F',
+                        pointBorderColor: '#000000',
                         pointBorderWidth: 2,
-                        pointRadius: 4
+                        pointRadius: 5
                     }]
                 },
                 options: {
                     responsive: false,
-                    maintainAspectRatio: false,
+                    animation: false,
                     plugins: {
                         legend: {
-                            display: false
+                            display: true,
+                            labels: {
+                                color: '#000000',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#000000',
+                            titleColor: '#FFFFFF',
+                            bodyColor: '#FFFFFF',
+                            borderColor: '#FFFFFF',
+                            borderWidth: 1
                         }
                     },
                     scales: {
                         y: {
-                            beginAtZero: true,
+                            beginAtZero: false,
                             grid: {
-                                color: '#e5e7eb',
-                                drawBorder: false
+                                color: '#CCCCCC',
+                                drawBorder: true,
+                                borderColor: '#000000'
                             },
                             ticks: {
-                                color: '#374151',
+                                color: '#000000',
                                 font: {
-                                    weight: '600'
+                                    size: 12,
+                                    weight: 'bold'
                                 },
                                 callback: function(value) {
-                                    return new Intl.NumberFormat('es-ES', {
-                                        style: 'currency',
-                                        currency: 'EUR',
-                                        minimumFractionDigits: 0
-                                    }).format(value);
+                                    return '€' + value.toLocaleString();
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Patrimonio (€)',
+                                color: '#000000',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
                                 }
                             }
                         },
@@ -14952,16 +15089,57 @@ class ReportsManager {
                                 display: false
                             },
                             ticks: {
-                                color: '#374151',
+                                color: '#000000',
                                 font: {
-                                    weight: '500'
+                                    size: 11,
+                                    weight: 'bold'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Mes',
+                                color: '#000000',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
                                 }
                             }
                         }
                     }
                 }
             });
+            
+            // Forzar renderizado sin animación
+            chart.update('none');
+            charts.push({ chart, canvas: canvasEvolucion });
         }
+        
+        // Esperar 2 frames para asegurar renderizado completo
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        
+        // Convertir cada gráfico a imagen y reemplazar el canvas
+        for (const { chart, canvas } of charts) {
+            try {
+                console.log('🔄 Convirtiendo gráfico a imagen...');
+                const imgData = chart.toBase64Image('image/png', 1);
+                
+                // Crear elemento img con mismas dimensiones
+                const img = document.createElement('img');
+                img.src = imgData;
+                img.style.width = canvas.width + 'px';
+                img.style.height = canvas.height + 'px';
+                img.style.display = 'block';
+                
+                // Reemplazar canvas con img
+                canvas.parentNode.replaceChild(img, canvas);
+                
+                console.log('✅ Gráfico convertido a imagen');
+            } catch (error) {
+                console.error('❌ Error al convertir gráfico:', error);
+            }
+        }
+        
+        console.log('✅ Todos los gráficos renderizados con datos reales y convertidos a imágenes');
     }
     
     mostrarPrevisualizacionPDF(pdf, cliente) {
