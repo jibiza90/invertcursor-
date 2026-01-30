@@ -24,15 +24,166 @@ class SistemaInformes {
     // =============================================================================
     inicializar() {
         console.log('📊 Configurando sistema de informes...');
-        
-        // Conectar con el sistema principal
-        this.conectarConSistemaPrincipal();
-        
-        // Configurar eventos
-        this.configurarEventos();
-        
-        // Inicializar interfaz
-        this.inicializarInterfaz();
+
+        try {
+            // Validar todas las dependencias críticas
+            this.validarDependenciasCriticas();
+
+            // Conectar con el sistema principal
+            this.conectarConSistemaPrincipal();
+
+            // Configurar eventos
+            this.configurarEventos();
+
+            // Inicializar interfaz
+            this.inicializarInterfaz();
+
+            console.log('✅ Sistema de informes configurado correctamente');
+        } catch (error) {
+            console.error('❌ Error crítico en inicialización del sistema de informes:', error);
+
+            // Modo de emergencia: inicializar con valores por defecto
+            console.log('🔧 Activando modo de emergencia...');
+            this.inicializarModoEmergencia();
+
+            // Mostrar notificación de error
+            this.mostrarNotificacion('⚠️ Sistema de informes en modo limitado. Algunos datos pueden no estar disponibles.', 'warning');
+        }
+    }
+
+    // =============================================================================
+    // VALIDAR DEPENDENCIAS CRÍTICAS
+    // =============================================================================
+    validarDependenciasCriticas() {
+        console.log('🔍 Validando dependencias críticas...');
+
+        const dependencias = [
+            { nombre: 'window.datosEditados', valor: window.datosEditados },
+            { nombre: 'window.hojaActual', valor: window.hojaActual },
+            { nombre: 'window.calcularEstadisticasClienteTiempoReal', valor: window.calcularEstadisticasClienteTiempoReal },
+            { nombre: 'window.calcularKPIsTiempoReal', valor: window.calcularKPIsTiempoReal },
+            { nombre: 'window.jspdf', valor: window.jspdf },
+            { nombre: 'window.html2canvas', valor: window.html2canvas }
+        ];
+
+        const faltantes = dependencias.filter(dep => !dep.valor);
+
+        if (faltantes.length > 0) {
+            const mensaje = `Dependencias faltantes: ${faltantes.map(d => d.nombre).join(', ')}`;
+            console.warn('⚠️', mensaje);
+            throw new Error(mensaje);
+        }
+
+        console.log('✅ Todas las dependencias críticas validadas');
+    }
+
+    // =============================================================================
+    // MODO DE EMERGENCIA
+    // =============================================================================
+    inicializarModoEmergencia() {
+        console.log('🚨 Inicializando sistema de informes en modo de emergencia');
+
+        // Valores por defecto seguros
+        this.datosEditados = { hojas: {} };
+        this.hojaActual = null;
+        this.clienteActual = null;
+
+        // Configurar eventos básicos con validaciones
+        this.configurarEventosEmergencia();
+
+        // Inicializar interfaz con mensaje de emergencia
+        this.inicializarInterfazEmergencia();
+
+        console.log('✅ Modo de emergencia inicializado');
+    }
+
+    // =============================================================================
+    // CONFIGURAR EVENTOS DE EMERGENCIA
+    // =============================================================================
+    configurarEventosEmergencia() {
+        // Configurar eventos pero con validaciones adicionales
+        const btnGenerar = document.getElementById('generateReportBtn');
+        if (btnGenerar) {
+            btnGenerar.onclick = () => {
+                this.mostrarNotificacion('❌ Sistema en modo de emergencia. No se pueden generar informes.', 'error');
+            };
+        }
+
+        const btnRecargar = document.getElementById('reloadClientsBtn');
+        if (btnRecargar) {
+            btnRecargar.onclick = () => this.intentarReiniciarSistema();
+        }
+    }
+
+    // =============================================================================
+    // INTENTAR REINICIAR SISTEMA
+    // =============================================================================
+    intentarReiniciarSistema() {
+        console.log('🔄 Intentando reiniciar sistema de informes...');
+
+        try {
+            // Revalidar dependencias
+            this.validarDependenciasCriticas();
+
+            // Reinicializar completamente
+            this.inicializar();
+
+            this.mostrarNotificacion('✅ Sistema de informes reiniciado correctamente', 'success');
+
+        } catch (error) {
+            console.error('❌ No se pudo reiniciar el sistema:', error);
+            this.mostrarNotificacion('❌ Error al reiniciar. Intenta recargar la página.', 'error');
+        }
+    }
+
+    // =============================================================================
+    // INICIALIZAR INTERFAZ DE EMERGENCIA
+    // =============================================================================
+    inicializarInterfazEmergencia() {
+        console.log('🖥️ Inicializando interfaz de emergencia...');
+
+        // Mostrar mensaje en el selector de clientes
+        const selector = document.getElementById('reportClientSelect');
+        if (selector) {
+            selector.innerHTML = `
+                <option value="" disabled selected>
+                    -- Sistema principal no cargado --
+                </option>
+            `;
+        }
+
+        // Mostrar mensaje en el contador
+        const contador = document.getElementById('clientesCount');
+        if (contador) {
+            contador.textContent = 'Modo de emergencia';
+        }
+
+        // Actualizar estado del botón
+        this.actualizarEstado();
+
+        // Agregar mensaje informativo
+        const container = document.getElementById('reportClientSelect')?.parentElement;
+        if (container && !container.querySelector('.emergencia-info')) {
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'emergencia-info';
+            infoDiv.style.cssText = `
+                margin-top: 10px;
+                padding: 10px;
+                background: #fff3cd;
+                border: 1px solid #ffeaa7;
+                border-radius: 6px;
+                font-size: 0.9em;
+                color: #856404;
+            `;
+            infoDiv.innerHTML = `
+                <strong>⚠️ Modo de Emergencia</strong><br>
+                El sistema principal no está completamente cargado.<br>
+                Haz clic en "Recargar" para intentar conectarte nuevamente.
+            `;
+            container.appendChild(infoDiv);
+        }
+
+        console.log('✅ Interfaz de emergencia inicializada');
     }
 
     // =============================================================================
@@ -320,8 +471,38 @@ class SistemaInformes {
     // 13. OBTENER DATO ESPECÍFICO DEL CLIENTE
     // =============================================================================
     obtenerDatoCliente(cliente, campo) {
-        const datos = cliente.datos || {};
-        return datos[campo]?.valor || 'No especificado';
+        try {
+            // Validar que cliente existe
+            if (!cliente) {
+                console.warn(`⚠️ Cliente no válido para campo ${campo}`);
+                return 'Cliente no válido';
+            }
+
+            // Verificar estructura de datos
+            if (!cliente.datos || typeof cliente.datos !== 'object') {
+                console.warn(`⚠️ Cliente ${cliente.numero_cliente} no tiene datos válidos`);
+                return 'Datos no disponibles';
+            }
+
+            // Buscar campo específico
+            const campoData = cliente.datos[campo];
+            if (!campoData) {
+                console.log(`ℹ️ Campo ${campo} no encontrado para cliente ${cliente.numero_cliente}`);
+                return 'No especificado';
+            }
+
+            // Extraer valor
+            const valor = campoData.valor;
+            if (valor === undefined || valor === null || valor === '') {
+                return 'No especificado';
+            }
+
+            return String(valor).trim();
+
+        } catch (error) {
+            console.error(`❌ Error obteniendo campo ${campo} del cliente:`, error);
+            return 'Error al obtener dato';
+        }
     }
 
     // =============================================================================
@@ -329,29 +510,81 @@ class SistemaInformes {
     // =============================================================================
     async calcularEstadisticasCliente(cliente) {
         console.log('📈 Calculando estadísticas del cliente...');
-        
-        // Usar las mismas funciones que el sistema principal
-        const hoja = this.datosEditados.hojas[this.hojaActual];
-        
-        // Calcular estadísticas mensuales
-        const datosMensuales = await window.calcularEstadisticasClienteTiempoReal(cliente, hoja);
-        
-        // Calcular KPIs totales
-        const kpisTotales = window.calcularKPIsTiempoReal(datosMensuales);
-        
-        // Extraer estadísticas principales
-        const estadisticas = {
-            inversionInicial: kpisTotales.inversionInicial || 0,
-            saldoActual: kpisTotales.saldoActual || 0,
-            beneficioTotal: kpisTotales.beneficioTotal || 0,
-            rentabilidadTotal: kpisTotales.rentabilidadTotal || 0,
-            totalIncrementos: kpisTotales.totalIncrementos || 0,
-            totalDecrementos: kpisTotales.totalDecrementos || 0,
-            mesesConDatos: datosMensuales.length
+
+        try {
+            // Validar cliente
+            if (!cliente) {
+                throw new Error('Cliente no válido para calcular estadísticas');
+            }
+
+            // Verificar funciones globales
+            if (!window.calcularEstadisticasClienteTiempoReal || !window.calcularKPIsTiempoReal) {
+                throw new Error('Funciones de cálculo no disponibles');
+            }
+
+            const hoja = this.datosEditados.hojas[this.hojaActual];
+            if (!hoja) {
+                throw new Error('Hoja actual no encontrada');
+            }
+
+            // Calcular estadísticas mensuales con timeout
+            const datosMensualesPromise = window.calcularEstadisticasClienteTiempoReal(cliente, hoja);
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Timeout calculando estadísticas')), 10000)
+            );
+
+            const datosMensuales = await Promise.race([datosMensualesPromise, timeoutPromise]);
+
+            if (!Array.isArray(datosMensuales)) {
+                console.warn('⚠️ Datos mensuales no válidos, usando valores por defecto');
+                return this.estadisticasPorDefecto();
+            }
+
+            // Calcular KPIs totales
+            const kpisTotales = window.calcularKPIsTiempoReal(datosMensuales);
+
+            // Extraer estadísticas principales con validaciones
+            const estadisticas = {
+                inversionInicial: this.validarNumero(kpisTotales?.inversionInicial, 0),
+                saldoActual: this.validarNumero(kpisTotales?.saldoActual, 0),
+                beneficioTotal: this.validarNumero(kpisTotales?.beneficioTotal, 0),
+                rentabilidadTotal: this.validarNumero(kpisTotales?.rentabilidadTotal, 0),
+                totalIncrementos: this.validarNumero(kpisTotales?.totalIncrementos, 0),
+                totalDecrementos: this.validarNumero(kpisTotales?.totalDecrementos, 0),
+                mesesConDatos: Array.isArray(datosMensuales) ? datosMensuales.length : 0
+            };
+
+            console.log('✅ Estadísticas calculadas:', estadisticas);
+            return estadisticas;
+
+        } catch (error) {
+            console.error('❌ Error calculando estadísticas:', error);
+            console.log('🔄 Usando estadísticas por defecto');
+            return this.estadisticasPorDefecto();
+        }
+    }
+
+    // =============================================================================
+    // ESTADÍSTICAS POR DEFECTO
+    // =============================================================================
+    estadisticasPorDefecto() {
+        return {
+            inversionInicial: 0,
+            saldoActual: 0,
+            beneficioTotal: 0,
+            rentabilidadTotal: 0,
+            totalIncrementos: 0,
+            totalDecrementos: 0,
+            mesesConDatos: 0
         };
-        
-        console.log('✅ Estadísticas calculadas:', estadisticas);
-        return estadisticas;
+    }
+
+    // =============================================================================
+    // VALIDAR NÚMERO
+    // =============================================================================
+    validarNumero(valor, defecto = 0) {
+        const num = parseFloat(valor);
+        return isNaN(num) ? defecto : num;
     }
 
     // =============================================================================
@@ -359,40 +592,77 @@ class SistemaInformes {
     // =============================================================================
     extraerMovimientos(cliente) {
         console.log('💰 Extrayendo movimientos...');
-        
-        const movimientos = [];
-        const datosDiarios = cliente.datos_diarios || [];
-        
-        datosDiarios.forEach(fila => {
-            const incremento = typeof fila.incremento === 'number' ? fila.incremento : 0;
-            const decremento = typeof fila.decremento === 'number' ? fila.decremento : 0;
-            
-            // Movimiento de ingreso
-            if (incremento > 0) {
-                movimientos.push({
-                    fecha: fila.fecha || '',
-                    tipo: 'Ingreso',
-                    importe: incremento,
-                    mes: this.obtenerNombreMes(fila.fecha)
-                });
+
+        try {
+            // Validar cliente
+            if (!cliente) {
+                console.warn('⚠️ Cliente no válido para extraer movimientos');
+                return [];
             }
-            
-            // Movimiento de retirada
-            if (decremento > 0) {
-                movimientos.push({
-                    fecha: fila.fecha || '',
-                    tipo: 'Retirada',
-                    importe: decremento,
-                    mes: this.obtenerNombreMes(fila.fecha)
-                });
+
+            const movimientos = [];
+            const datosDiarios = cliente.datos_diarios || [];
+
+            // Validar que datosDiarios sea un array
+            if (!Array.isArray(datosDiarios)) {
+                console.warn('⚠️ Cliente no tiene datos_diarios válidos');
+                return [];
             }
-        });
-        
-        // Ordenar por fecha
-        movimientos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-        
-        console.log(`✅ Extraídos ${movimientos.length} movimientos`);
-        return movimientos;
+
+            console.log(`📊 Procesando ${datosDiarios.length} filas de datos diarios`);
+
+            datosDiarios.forEach((fila, index) => {
+                try {
+                    // Validar fila
+                    if (!fila || typeof fila !== 'object') {
+                        console.log(`⚠️ Fila ${index} no válida, saltando`);
+                        return;
+                    }
+
+                    // Extraer valores numéricos con validación
+                    const incremento = this.validarNumero(fila.incremento, 0);
+                    const decremento = this.validarNumero(fila.decremento, 0);
+                    const fecha = fila.fecha || '';
+
+                    // Movimiento de ingreso
+                    if (incremento > 0) {
+                        movimientos.push({
+                            fecha: fecha,
+                            tipo: 'Ingreso',
+                            importe: incremento,
+                            mes: this.obtenerNombreMes(fecha)
+                        });
+                    }
+
+                    // Movimiento de retirada
+                    if (decremento > 0) {
+                        movimientos.push({
+                            fecha: fecha,
+                            tipo: 'Retirada',
+                            importe: decremento,
+                            mes: this.obtenerNombreMes(fecha)
+                        });
+                    }
+
+                } catch (error) {
+                    console.warn(`⚠️ Error procesando fila ${index}:`, error);
+                }
+            });
+
+            // Ordenar por fecha (más recientes primero)
+            movimientos.sort((a, b) => {
+                const fechaA = new Date(a.fecha || '1970-01-01');
+                const fechaB = new Date(b.fecha || '1970-01-01');
+                return fechaB - fechaA; // Orden descendente
+            });
+
+            console.log(`✅ Extraídos ${movimientos.length} movimientos válidos`);
+            return movimientos;
+
+        } catch (error) {
+            console.error('❌ Error extrayendo movimientos:', error);
+            return [];
+        }
     }
 
     // =============================================================================
@@ -452,340 +722,511 @@ class SistemaInformes {
                 <meta charset="UTF-8">
                 <title>Informe Financiero - ${datosBasicos.nombre}</title>
                 <style>
-                    /* ESTILOS PROFESIONALES PARA PDF */
+                    /* ============================================
+                       CSS PROFESIONAL PARA PDF - ALTO CONTRASTE
+                       ============================================ */
+
                     @page {
                         size: A4;
-                        margin: 15mm;
+                        margin: 20mm;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
-                    
+
                     * {
                         margin: 0;
                         padding: 0;
                         box-sizing: border-box;
                     }
-                    
+
                     body {
-                        font-family: 'Segoe UI', Arial, sans-serif;
-                        font-size: 12px;
+                        font-family: 'Helvetica Neue', 'Arial', sans-serif;
+                        font-size: 14px;
                         color: #000000 !important;
                         background: #FFFFFF !important;
-                        line-height: 1.4;
+                        line-height: 1.5;
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
                     }
-                    
+
+                    /* ============================================
+                       ENCABEZADO PROFESIONAL
+                       ============================================ */
                     .encabezado {
                         text-align: center;
-                        padding: 30px 0;
-                        border-bottom: 3px solid #1F3A5F;
-                        margin-bottom: 30px;
-                        background: #F8F9FA !important;
+                        padding: 40px 30px;
+                        border-bottom: 4px solid #1a365d;
+                        margin-bottom: 40px;
+                        background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%) !important;
+                        border-radius: 8px;
+                        position: relative;
+                        overflow: hidden;
                     }
-                    
+
+                    .encabezado::before {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        height: 4px;
+                        background: linear-gradient(90deg, #1a365d 0%, #2d3748 100%);
+                    }
+
                     .encabezado h1 {
-                        color: #1F3A5F !important;
-                        font-size: 28px;
-                        font-weight: bold;
-                        margin-bottom: 10px;
+                        color: #1a365d !important;
+                        font-size: 32px;
+                        font-weight: 900;
+                        margin-bottom: 12px;
+                        text-transform: uppercase;
+                        letter-spacing: 2px;
+                        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+                        position: relative;
+                        z-index: 1;
+                    }
+
+                    .encabezado h2 {
+                        color: #2d3748 !important;
+                        font-size: 20px;
+                        font-weight: 700;
+                        margin-bottom: 8px;
+                        position: relative;
+                        z-index: 1;
+                    }
+
+                    .encabezado p {
+                        color: #4a5568 !important;
+                        font-size: 16px;
+                        font-weight: 500;
+                        position: relative;
+                        z-index: 1;
+                    }
+
+                    /* ============================================
+                       SECCIONES PROFESIONALES
+                       ============================================ */
+                    .seccion {
+                        margin-bottom: 35px;
+                        padding: 30px;
+                        border: 3px solid #2d3748 !important;
+                        background: #ffffff !important;
+                        border-radius: 12px;
+                        page-break-inside: avoid;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                        position: relative;
+                    }
+
+                    .seccion::before {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        height: 6px;
+                        background: linear-gradient(90deg, #1a365d 0%, #2d3748 50%, #4a5568 100%);
+                        border-radius: 10px 10px 0 0;
+                    }
+
+                    .titulo-seccion {
+                        background: linear-gradient(135deg, #1a365d 0%, #2d3748 100%) !important;
+                        color: #ffffff !important;
+                        padding: 18px 30px;
+                        font-size: 18px;
+                        font-weight: 900;
+                        margin: -30px -30px 25px -30px;
                         text-transform: uppercase;
                         letter-spacing: 1px;
+                        border-radius: 10px 10px 0 0;
+                        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+                        position: relative;
+                        z-index: 2;
                     }
-                    
-                    .encabezado h2 {
-                        color: #333333 !important;
-                        font-size: 18px;
-                        margin-bottom: 5px;
-                    }
-                    
-                    .encabezado p {
-                        color: #666666 !important;
-                        font-size: 14px;
-                    }
-                    
-                    .seccion {
-                        margin-bottom: 30px;
-                        padding: 25px;
-                        border: 2px solid #000000 !important;
-                        background: #FFFFFF !important;
-                        page-break-inside: avoid;
-                    }
-                    
-                    .titulo-seccion {
-                        background: #1F3A5F !important;
-                        color: #FFFFFF !important;
-                        padding: 15px 25px;
-                        font-size: 16px;
-                        font-weight: bold;
-                        margin: -25px -25px 20px -25px;
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
-                    }
-                    
+
+                    /* ============================================
+                       TABLAS PROFESIONALES
+                       ============================================ */
                     table {
                         width: 100%;
                         border-collapse: collapse;
-                        margin-bottom: 20px;
-                        font-size: 11px;
+                        margin-bottom: 25px;
+                        font-size: 13px;
+                        border-radius: 8px;
+                        overflow: hidden;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
                     }
-                    
+
                     th, td {
-                        border: 1px solid #000000 !important;
-                        padding: 10px 12px;
+                        border: 2px solid #4a5568 !important;
+                        padding: 14px 16px;
                         text-align: left;
-                        vertical-align: top;
+                        vertical-align: middle;
+                        font-weight: 500;
                     }
-                    
+
                     th {
-                        background: #E8EAED !important;
-                        font-weight: bold;
-                        color: #000000 !important;
+                        background: linear-gradient(135deg, #2d3748 0%, #1a365d 100%) !important;
+                        color: #ffffff !important;
+                        font-weight: 700;
+                        font-size: 14px;
                         text-transform: uppercase;
                         letter-spacing: 0.5px;
+                        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+                        border-bottom: 3px solid #4a5568 !important;
                     }
-                    
+
                     tr:nth-child(even) {
-                        background: #F8F9FA !important;
+                        background: #f7fafc !important;
                     }
-                    
+
                     tr:nth-child(odd) {
-                        background: #FFFFFF !important;
+                        background: #ffffff !important;
                     }
-                    
+
+                    tr:hover {
+                        background: #e2e8f0 !important;
+                    }
+
+                    /* ============================================
+                       COLORES Y ESTILOS DE DATOS
+                       ============================================ */
                     .positivo {
-                        color: #2E7D32 !important;
-                        font-weight: bold;
+                        color: #059669 !important;
+                        font-weight: 700;
+                        background: rgba(5, 150, 105, 0.1) !important;
+                        padding: 4px 8px;
+                        border-radius: 4px;
+                        border: 1px solid rgba(5, 150, 105, 0.3) !important;
                     }
-                    
+
                     .negativo {
-                        color: #D32F2F !important;
-                        font-weight: bold;
+                        color: #dc2626 !important;
+                        font-weight: 700;
+                        background: rgba(220, 38, 38, 0.1) !important;
+                        padding: 4px 8px;
+                        border-radius: 4px;
+                        border: 1px solid rgba(220, 38, 38, 0.3) !important;
                     }
-                    
+
+                    .neutro {
+                        color: #6b7280 !important;
+                        font-weight: 500;
+                    }
+
+                    .destacado {
+                        background: rgba(251, 191, 36, 0.1) !important;
+                        border: 2px solid #d97706 !important;
+                        font-weight: 700;
+                        color: #92400e !important;
+                    }
+
+                    /* ============================================
+                       GRID DE RESUMEN PROFESIONAL
+                       ============================================ */
                     .resumen-grid {
                         display: grid;
-                        grid-template-columns: 1fr 1fr;
-                        gap: 15px;
-                        margin-bottom: 20px;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 20px;
+                        margin-bottom: 30px;
                     }
-                    
+
                     .resumen-item {
-                        padding: 15px;
-                        border: 1px solid #E0E0E0;
-                        border-radius: 4px;
-                        background: #FAFAFA;
-                    }
-                    
-                    .resumen-label {
-                        font-size: 10px;
-                        color: #666666;
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
-                        margin-bottom: 5px;
-                    }
-                    
-                    .resumen-value {
-                        font-size: 16px;
-                        font-weight: bold;
-                        color: #000000;
-                    }
-                    
-                    .grafico-container {
-                        margin: 25px 0;
                         padding: 20px;
-                        border: 2px solid #000000 !important;
-                        background: #FFFFFF !important;
+                        border: 2px solid #cbd5e0;
+                        border-radius: 8px;
+                        background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
                         text-align: center;
-                        page-break-inside: avoid;
+                        position: relative;
+                        overflow: hidden;
                     }
-                    
-                    .grafico-titulo {
-                        font-size: 14px;
-                        font-weight: bold;
-                        color: #1F3A5F !important;
-                        margin-bottom: 15px;
+
+                    .resumen-item::before {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        height: 4px;
+                        background: linear-gradient(90deg, #1a365d 0%, #2d3748 100%);
+                    }
+
+                    .resumen-label {
+                        font-size: 12px;
+                        font-weight: 700;
+                        color: #4a5568 !important;
                         text-transform: uppercase;
                         letter-spacing: 0.5px;
+                        margin-bottom: 8px;
                     }
-                    
-                    canvas {
-                        border: 1px solid #CCCCCC !important;
-                        max-width: 100%;
-                        height: 250px !important;
+
+                    .resumen-valor {
+                        font-size: 24px;
+                        font-weight: 900;
+                        color: #1a365d !important;
+                        margin-bottom: 4px;
+                        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
                     }
-                    
+
+                    .resumen-sub {
+                        font-size: 11px;
+                        color: #718096 !important;
+                        font-weight: 500;
+                    }
+
+                    /* ============================================
+                       PIE DE PÁGINA PROFESIONAL
+                       ============================================ */
                     .pie-pagina {
+                        margin-top: 50px;
+                        padding: 25px;
+                        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+                        border-top: 3px solid #1a365d;
                         text-align: center;
-                        padding: 25px 0;
-                        border-top: 2px solid #000000 !important;
-                        font-size: 10px;
-                        color: #666666 !important;
-                        margin-top: 30px;
-                        background: #F8F9FA !important;
+                        font-size: 12px;
+                        color: #4a5568 !important;
+                        border-radius: 8px;
                     }
-                    
+
+                    .pie-pagina strong {
+                        color: #1a365d !important;
+                    }
+
+                    /* ============================================
+                       UTILIDADES DE LEGIBILIDAD
+                       ============================================ */
+                    .numero {
+                        font-family: 'Courier New', monospace;
+                        font-weight: 600;
+                        letter-spacing: 0.5px;
+                    }
+
+                    .fecha {
+                        font-weight: 500;
+                        color: #2d3748 !important;
+                    }
+
+                    .moneda {
+                        font-weight: 700;
+                    }
+
+                    /* ============================================
+                       RESPONSIVE PARA PDF
+                       ============================================ */
                     @media print {
                         body {
-                            -webkit-print-color-adjust: exact !important;
-                            print-color-adjust: exact !important;
+                            font-size: 12px;
                         }
-                        
+
                         .seccion {
                             page-break-inside: avoid;
+                            margin-bottom: 25px;
                         }
-                        
-                        .grafico-container {
-                            page-break-inside: avoid;
+
+                        table {
+                            font-size: 11px;
+                        }
+
+                        th, td {
+                            padding: 8px 10px;
                         }
                     }
+
                 </style>
             </head>
             <body>
-                <!-- ENCABEZADO -->
+                <!-- Encabezado Profesional -->
                 <div class="encabezado">
-                    <h1>📊 INFORME FINANCIERO</h1>
-                    <h2>${datosBasicos.nombre}</h2>
-                    <p>Cliente #${datosBasicos.numeroCliente} | ${datosBasicos.fecha}</p>
+                    <h1>INFORME FINANCIERO</h1>
+                    <h2>Cliente: ${datosBasicos.nombre}</h2>
+                    <p>Número: ${datosBasicos.numeroCliente} | Fecha: ${datosBasicos.fecha}</p>
                 </div>
 
-                <!-- RESUMEN EJECUTIVO -->
+                <!-- Sección de Resumen Ejecutivo -->
                 <div class="seccion">
-                    <div class="titulo-seccion">Resumen Ejecutivo</div>
+                    <div class="titulo-seccion">📊 Resumen Ejecutivo</div>
+
                     <div class="resumen-grid">
                         <div class="resumen-item">
-                            <div class="resumen-label">Inversión Inicial</div>
-                            <div class="resumen-value">€${estadisticas.inversionInicial.toLocaleString()}</div>
-                        </div>
-                        <div class="resumen-item">
                             <div class="resumen-label">Saldo Actual</div>
-                            <div class="resumen-value">€${estadisticas.saldoActual.toLocaleString()}</div>
+                            <div class="resumen-valor ${estadisticas.saldoActual >= 0 ? 'positivo' : 'negativo'}">
+                                ${this.formatearMoneda(estadisticas.saldoActual)}
+                            </div>
+                            <div class="resumen-sub">Capital total disponible</div>
                         </div>
+
                         <div class="resumen-item">
                             <div class="resumen-label">Beneficio Total</div>
-                            <div class="resumen-value ${estadisticas.beneficioTotal >= 0 ? 'positivo' : 'negativo'}">
-                                €${estadisticas.beneficioTotal.toLocaleString()}
+                            <div class="resumen-valor ${estadisticas.beneficioTotal >= 0 ? 'positivo' : 'negativo'}">
+                                ${this.formatearMoneda(estadisticas.beneficioTotal)}
                             </div>
+                            <div class="resumen-sub">Ganancia/Perdida acumulada</div>
                         </div>
+
                         <div class="resumen-item">
                             <div class="resumen-label">Rentabilidad Total</div>
-                            <div class="resumen-value ${estadisticas.rentabilidadTotal >= 0 ? 'positivo' : 'negativo'}">
-                                ${estadisticas.rentabilidadTotal.toFixed(2)}%
+                            <div class="resumen-valor ${estadisticas.rentabilidadTotal >= 0 ? 'positivo' : 'negativo'}">
+                                ${this.formatearPorcentaje(estadisticas.rentabilidadTotal)}
                             </div>
+                            <div class="resumen-sub">Retorno de la inversión</div>
+                        </div>
+
+                        <div class="resumen-item">
+                            <div class="resumen-label">Meses con Datos</div>
+                            <div class="resumen-valor neutro">${estadisticas.mesesConDatos}</div>
+                            <div class="resumen-sub">Periodo de análisis</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- DATOS DEL CLIENTE -->
+                <!-- Sección de Información del Cliente -->
                 <div class="seccion">
-                    <div class="titulo-seccion">Datos del Cliente</div>
-                    <table>
-                        <tr>
-                            <th>Número de Cliente</th>
-                            <td>${datosBasicos.numeroCliente}</td>
-                        </tr>
-                        <tr>
-                            <th>Nombre Completo</th>
-                            <td>${datosBasicos.nombre}</td>
-                        </tr>
-                        <tr>
-                            <th>Email</th>
-                            <td>${datosBasicos.email}</td>
-                        </tr>
-                        <tr>
-                            <th>Teléfono</th>
-                            <td>${datosBasicos.telefono}</td>
-                        </tr>
-                    </table>
-                </div>
+                    <div class="titulo-seccion">👤 Información del Cliente</div>
 
-                <!-- EVOLUCIÓN MENSUAL -->
-                <div class="seccion">
-                    <div class="titulo-seccion">Evolución Mensual</div>
                     <table>
                         <thead>
                             <tr>
-                                <th>Mes</th>
-                                <th>Incrementos</th>
-                                <th>Decrementos</th>
-                                <th>Beneficio</th>
-                                <th>Saldo Final</th>
-                                <th>Rentabilidad</th>
+                                <th style="width: 30%;">Campo</th>
+                                <th style="width: 70%;">Valor</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${evolucionMensual.map(mes => `
-                                <tr>
-                                    <td><strong>${mes.nombre}</strong></td>
-                                    <td class="positivo">€${mes.incrementos.toLocaleString()}</td>
-                                    <td class="negativo">€${mes.decrementos.toLocaleString()}</td>
-                                    <td class="${mes.beneficio >= 0 ? 'positivo' : 'negativo'}">
-                                        €${mes.beneficio.toLocaleString()}
-                                    </td>
-                                    <td><strong>€${mes.saldoFinal.toLocaleString()}</strong></td>
-                                    <td class="${mes.rentabilidad >= 0 ? 'positivo' : 'negativo'}">
-                                        ${mes.rentabilidad.toFixed(2)}%
-                                    </td>
-                                </tr>
-                            `).join('')}
+                            <tr>
+                                <td><strong>Nombre Completo</strong></td>
+                                <td class="numero">${datosBasicos.nombre}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Número de Cliente</strong></td>
+                                <td class="numero">${datosBasicos.numeroCliente}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Email</strong></td>
+                                <td>${datosBasicos.email}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Teléfono</strong></td>
+                                <td>${datosBasicos.telefono}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Fecha del Informe</strong></td>
+                                <td class="fecha">${datosBasicos.fecha}</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- MOVIMIENTOS DETALLADOS -->
+                <!-- Sección de Estadísticas Financieras -->
                 <div class="seccion">
-                    <div class="titulo-seccion">Movimientos Detallados</div>
+                    <div class="titulo-seccion">💰 Estadísticas Financieras</div>
+
                     <table>
                         <thead>
                             <tr>
-                                <th>Fecha</th>
-                                <th>Tipo</th>
-                                <th>Importe</th>
-                                <th>Mes</th>
+                                <th style="width: 40%;">Indicador</th>
+                                <th style="width: 30%;">Valor</th>
+                                <th style="width: 30%;">Descripción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Inversión Inicial</strong></td>
+                                <td class="numero destacado">${this.formatearMoneda(estadisticas.inversionInicial)}</td>
+                                <td>Capital inicial invertido</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Saldo Actual</strong></td>
+                                <td class="numero ${estadisticas.saldoActual >= 0 ? 'positivo' : 'negativo'}">${this.formatearMoneda(estadisticas.saldoActual)}</td>
+                                <td>Capital disponible actualmente</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Beneficio Total</strong></td>
+                                <td class="numero ${estadisticas.beneficioTotal >= 0 ? 'positivo' : 'negativo'}">${this.formatearMoneda(estadisticas.beneficioTotal)}</td>
+                                <td>Ganancia o pérdida acumulada</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Rentabilidad Total</strong></td>
+                                <td class="numero ${estadisticas.rentabilidadTotal >= 0 ? 'positivo' : 'negativo'}">${this.formatearPorcentaje(estadisticas.rentabilidadTotal)}</td>
+                                <td>Retorno porcentual de la inversión</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total Incrementos</strong></td>
+                                <td class="numero positivo">${this.formatearMoneda(estadisticas.totalIncrementos)}</td>
+                                <td>Suma de todas las entradas</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total Decrementos</strong></td>
+                                <td class="numero negativo">${this.formatearMoneda(estadisticas.totalDecrementos)}</td>
+                                <td>Suma de todas las salidas</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Sección de Movimientos Recientes -->
+                ${movimientos && movimientos.length > 0 ? `
+                <div class="seccion">
+                    <div class="titulo-seccion">📈 Movimientos Recientes</div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 20%;">Fecha</th>
+                                <th style="width: 25%;">Tipo</th>
+                                <th style="width: 25%;">Importe</th>
+                                <th style="width: 30%;">Mes</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${movimientos.slice(0, 20).map(mov => `
                                 <tr>
-                                    <td>${mov.fecha}</td>
-                                    <td class="${mov.tipo === 'Ingreso' ? 'positivo' : 'negativo'}">
-                                        <strong>${mov.tipo}</strong>
-                                    </td>
-                                    <td class="${mov.tipo === 'Ingreso' ? 'positivo' : 'negativo'}">
-                                        <strong>€${mov.importe.toLocaleString()}</strong>
-                                    </td>
+                                    <td class="fecha">${this.formatearFecha(mov.fecha)}</td>
+                                    <td class="${mov.tipo === 'Ingreso' ? 'positivo' : 'negativo'}">${mov.tipo}</td>
+                                    <td class="numero moneda ${mov.tipo === 'Ingreso' ? 'positivo' : 'negativo'}">${this.formatearMoneda(mov.importe)}</td>
                                     <td>${mov.mes}</td>
                                 </tr>
                             `).join('')}
-                            ${movimientos.length > 20 ? `
+                        </tbody>
+                    </table>
+
+                    ${movimientos.length > 20 ? `<p style="font-size: 12px; color: #666; text-align: center; margin-top: 15px;">Mostrando los 20 movimientos más recientes de un total de ${movimientos.length}</p>` : ''}
+                </div>
+                ` : ''}
+
+                <!-- Sección de Evolución Mensual -->
+                ${evolucionMensual && evolucionMensual.length > 0 ? `
+                <div class="seccion">
+                    <div class="titulo-seccion">📅 Evolución Mensual</div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 20%;">Mes</th>
+                                <th style="width: 20%;">Incrementos</th>
+                                <th style="width: 20%;">Decrementos</th>
+                                <th style="width: 20%;">Beneficio</th>
+                                <th style="width: 20%;">Saldo Final</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${evolucionMensual.map(mes => `
                                 <tr>
-                                    <td colspan="4" style="text-align: center; font-style: italic;">
-                                        ... y ${movimientos.length - 20} movimientos más
-                                    </td>
+                                    <td class="fecha"><strong>${mes.nombre}</strong></td>
+                                    <td class="numero positivo">${this.formatearMoneda(mes.incrementos)}</td>
+                                    <td class="numero negativo">${this.formatearMoneda(mes.decrementos)}</td>
+                                    <td class="numero ${mes.beneficio >= 0 ? 'positivo' : 'negativo'}">${this.formatearMoneda(mes.beneficio)}</td>
+                                    <td class="numero destacado">${this.formatearMoneda(mes.saldoFinal)}</td>
                                 </tr>
-                            ` : ''}
+                            `).join('')}
                         </tbody>
                     </table>
                 </div>
+                ` : ''}
 
-                <!-- GRÁFICOS -->
-                <div class="seccion">
-                    <div class="titulo-seccion">Análisis Gráfico</div>
-                    <div class="grafico-container">
-                        <div class="grafico-titulo">Rentabilidad Mensual (%)</div>
-                        <canvas id="chartRentabilidad" width="800" height="250"></canvas>
-                    </div>
-                    <div class="grafico-container">
-                        <div class="grafico-titulo">Evolución del Patrimonio</div>
-                        <canvas id="chartEvolucion" width="800" height="250"></canvas>
-                    </div>
-                </div>
-
-                <!-- PIE DE PÁGINA -->
+                <!-- Pie de página profesional -->
                 <div class="pie-pagina">
-                    <p><strong>Portfolio Manager</strong> - Sistema de Gestión de Inversiones</p>
-                    <p>Informe generado automáticamente | Confidencial | ${datosBasicos.fecha}</p>
+                    <strong>Informe generado automáticamente por Portfolio Manager</strong><br>
+                    Sistema de gestión financiera profesional | Fecha de generación: ${new Date().toLocaleString('es-ES')}
                 </div>
             </body>
-            </html>
+            </html>`;
         `;
     }
 
@@ -794,70 +1235,201 @@ class SistemaInformes {
     // =============================================================================
     async convertirHTMLaPDF(html) {
         console.log('🔄 Convirtiendo HTML a PDF...');
-        
-        return new Promise((resolve, reject) => {
-            // Crear contenedor temporal
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = html;
-            tempDiv.style.position = 'absolute';
-            tempDiv.style.left = '-9999px';
-            tempDiv.style.width = '210mm';
-            tempDiv.style.background = '#FFFFFF';
-            document.body.appendChild(tempDiv);
-            
-            setTimeout(async () => {
-                try {
-                    // Renderizar gráficos
-                    await this.renderizarGraficos(tempDiv);
-                    
-                    // Capturar con html2canvas
-                    const canvas = await html2canvas(tempDiv, {
-                        scale: 3,
-                        backgroundColor: '#FFFFFF',
-                        useCORS: true,
-                        allowTaint: true,
-                        logging: false,
-                        width: 794,
-                        height: 1123,
-                        foreignObjectRendering: true
-                    });
-                    
-                    // Generar PDF
-                    const pdf = new jspdf.jsPDF({
-                        orientation: 'portrait',
-                        unit: 'mm',
-                        format: 'a4',
-                        compress: true
-                    });
-                    
-                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                    
-                    // Calcular dimensiones
-                    const pdfWidth = pdf.internal.pageSize.getWidth();
-                    const pdfHeight = pdf.internal.pageSize.getHeight();
-                    const imgWidth = canvas.width;
-                    const imgHeight = canvas.height;
-                    const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-                    const imgX = (pdfWidth - imgWidth * ratio) / 2;
-                    const imgY = 0;
-                    
-                    pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-                    
-                    // Limpiar
-                    document.body.removeChild(tempDiv);
-                    
-                    console.log('✅ PDF generado correctamente');
-                    resolve(pdf);
-                    
-                } catch (error) {
-                    console.error('❌ Error al convertir a PDF:', error);
-                    if (document.body.contains(tempDiv)) {
-                        document.body.removeChild(tempDiv);
-                    }
-                    reject(error);
+
+        return new Promise(async (resolve, reject) => {
+            try {
+                // Crear contenedor temporal con mejor configuración
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                tempDiv.style.position = 'absolute';
+                tempDiv.style.left = '-9999px';
+                tempDiv.style.top = '-9999px';
+                tempDiv.style.width = '210mm'; // Ancho A4
+                tempDiv.style.minHeight = '297mm'; // Alto A4 mínimo
+                tempDiv.style.background = '#FFFFFF';
+                tempDiv.style.color = '#000000';
+                tempDiv.style.fontFamily = 'Helvetica Neue, Arial, sans-serif';
+                tempDiv.style.fontSize = '14px';
+                tempDiv.style.lineHeight = '1.5';
+                tempDiv.style.padding = '0';
+                tempDiv.style.margin = '0';
+                tempDiv.style.boxSizing = 'border-box';
+
+                // Forzar carga de fuentes antes de renderizar
+                await this.esperarFuentes();
+
+                document.body.appendChild(tempDiv);
+
+                // Esperar a que el contenido se renderice completamente
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Verificar que el contenido se ha cargado
+                if (!tempDiv.offsetHeight) {
+                    throw new Error('El contenido HTML no se ha renderizado correctamente');
                 }
-            }, 2000);
+
+                console.log('📏 Dimensiones del contenido:', {
+                    width: tempDiv.offsetWidth,
+                    height: tempDiv.offsetHeight,
+                    scrollHeight: tempDiv.scrollHeight
+                });
+
+                // Configurar html2canvas con mejores opciones para PDF
+                const canvas = await html2canvas(tempDiv, {
+                    scale: 2, // Mejor balance calidad/rendimiento
+                    backgroundColor: '#FFFFFF',
+                    useCORS: true,
+                    allowTaint: false, // Mejor seguridad
+                    logging: false,
+                    width: tempDiv.offsetWidth,
+                    height: tempDiv.offsetHeight,
+                    foreignObjectRendering: false, // Mejor compatibilidad
+                    removeContainer: false,
+                    imageTimeout: 0,
+                    onclone: (clonedDoc) => {
+                        // Asegurar que los estilos se copien correctamente
+                        const clonedElement = clonedDoc.body.querySelector('div');
+                        if (clonedElement) {
+                            clonedElement.style.width = '210mm';
+                            clonedElement.style.minHeight = '297mm';
+                            clonedElement.style.background = '#FFFFFF';
+                        }
+                    }
+                });
+
+                console.log('🖼️ Canvas generado:', {
+                    width: canvas.width,
+                    height: canvas.height
+                });
+
+                // Crear PDF con configuración optimizada
+                const pdf = new jspdf.jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4',
+                    compress: true,
+                    putOnlyUsedFonts: true,
+                    floatPrecision: 16
+                });
+
+                // Usar PNG para mejor calidad que JPEG
+                const imgData = canvas.toDataURL('image/png', 1.0);
+
+                // Calcular dimensiones óptimas para el PDF
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+                const imgWidth = canvas.width * 0.264583; // Convertir px a mm (1px = 0.264583mm a 96dpi)
+                const imgHeight = canvas.height * 0.264583;
+
+                console.log('📐 Dimensiones calculadas:', {
+                    pdfWidth, pdfHeight, imgWidth, imgHeight
+                });
+
+                // Si el contenido es más alto que una página A4, dividir en múltiples páginas
+                const maxHeightPerPage = pdfHeight;
+                let remainingHeight = imgHeight;
+                let currentY = 0;
+
+                while (remainingHeight > 0) {
+                    const pageHeight = Math.min(remainingHeight, maxHeightPerPage);
+                    const sourceY = currentY;
+                    const sourceHeight = pageHeight;
+
+                    // Crear canvas temporal para esta página
+                    const pageCanvas = document.createElement('canvas');
+                    const pageCtx = pageCanvas.getContext('2d');
+                    pageCanvas.width = canvas.width;
+                    pageCanvas.height = Math.round(pageHeight / 0.264583); // Convertir mm a px
+
+                    // Dibujar la sección correspondiente
+                    pageCtx.drawImage(
+                        canvas,
+                        0, sourceY / 0.264583, // Origen en px
+                        canvas.width, pageCanvas.height, // Dimensiones en px
+                        0, 0, // Destino
+                        canvas.width, pageCanvas.height
+                    );
+
+                    const pageImgData = pageCanvas.toDataURL('image/png', 1.0);
+
+                    if (currentY > 0) {
+                        pdf.addPage();
+                    }
+
+                    // Calcular posición centrada
+                    const pageImgWidth = pageCanvas.width * 0.264583;
+                    const imgX = (pdfWidth - pageImgWidth) / 2;
+                    const imgY = 0;
+
+                    pdf.addImage(pageImgData, 'PNG', imgX, imgY, pageImgWidth, pageHeight);
+
+                    remainingHeight -= maxHeightPerPage;
+                    currentY += maxHeightPerPage;
+                }
+
+                // Limpiar recursos
+                document.body.removeChild(tempDiv);
+
+                console.log('✅ PDF generado correctamente con', pdf.getNumberOfPages(), 'páginas');
+                resolve(pdf);
+
+            } catch (error) {
+                console.error('❌ Error al convertir a PDF:', error);
+
+                // Intentar limpiar en caso de error
+                const tempDiv = document.querySelector('div[style*="position: absolute"][style*="left: -9999px"]');
+                if (tempDiv && document.body.contains(tempDiv)) {
+                    document.body.removeChild(tempDiv);
+                }
+
+                reject(error);
+            }
         });
+    }
+
+    // =============================================================================
+    // MÉTODOS DE FORMATEO PARA PDF
+    // =============================================================================
+    formatearMoneda(valor) {
+        if (valor === null || valor === undefined || isNaN(valor)) return '0,00 €';
+        return new Intl.NumberFormat('es-ES', {
+            style: 'currency',
+            currency: 'EUR',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(valor);
+    }
+
+    formatearPorcentaje(valor) {
+        if (valor === null || valor === undefined || isNaN(valor)) return '0,00%';
+        return new Intl.NumberFormat('es-ES', {
+            style: 'percent',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(valor / 100);
+    }
+
+    formatearFecha(fechaStr) {
+        if (!fechaStr) return 'Sin fecha';
+        try {
+            const fecha = new Date(fechaStr);
+            if (isNaN(fecha.getTime())) return 'Fecha inválida';
+            return fecha.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        } catch (error) {
+            return 'Fecha inválida';
+        }
+    }
+
+    formatearNumero(valor, decimales = 2) {
+        if (valor === null || valor === undefined || isNaN(valor)) return '0';
+        return new Intl.NumberFormat('es-ES', {
+            minimumFractionDigits: decimales,
+            maximumFractionDigits: decimales
+        }).format(valor);
     }
 
     // =============================================================================

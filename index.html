@@ -522,23 +522,17 @@
         }
     </script>
     
-    <!-- Script de Verificación de Datos (cargar primero) -->
+    <!-- Aplicación principal (CARGAR PRIMERO) -->
+    <script src="app.js?v=2.9.65"></script>
+    <script src="test_recalculo.js?v=2.9.18"></script>
+    
+    <!-- Script de Verificación de Datos (cargar antes que informes) -->
     <script src="ver-datos.js?v=1.0"></script>
     
-    <!-- Módulo de informes (cargar antes que app.js) -->
+    <!-- Módulo de informes (cargar DESPUÉS que app.js) -->
     <script src="reports.js?v=6"></script>
     
     <!-- Sistema de Informes 3.0 - Completamente reescrito desde cero -->
     <script src="informes-nuevo.js?v=3.0.0"></script>
-    
-    <!-- Script de Debug Completo para PDF -->
-    <script src="debug-pdf-completo.js?v=1.0"></script>
-    
-    <!-- Script de Debug para PDF -->
-    <script src="debug-pdf.js?v=1.0"></script>
-    
-    <!-- Aplicación principal -->
-    <script src="app.js?v=2.9.65"></script>
-    <script src="test_recalculo.js?v=2.9.18"></script>
 </body>
 </html>
