@@ -44,7 +44,7 @@ function esFilaValida(fila) {
 let datosCompletos = null;
 let datosEditados = null;
 let clientesAnuales = null; // Lista de clientes del año (independiente del mes)
-let hojaActual = 'Diario Xavi';
+let hojaActual = 'Diario WIND';
 let mesActual = null;
 let mesesDisponibles = {};
 let clienteActual = null;
