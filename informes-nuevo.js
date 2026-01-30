@@ -1,235 +1,463 @@
 // =============================================================================
-// SISTEMA DE INFORMES 2.0 - ESCRITO DESDE CERO
+// SISTEMA DE INFORMES PDF - VERSIÓN 3.0 - DESDE CERO
 // =============================================================================
+// AUTOR: Portfolio Manager
+// VERSIÓN: 3.0.0
+// DESCRIPCIÓN: Sistema completo de generación de informes PDF profesionales
+// =============================================================================
+
 class SistemaInformes {
     constructor() {
-        this.clientes = [];
+        console.log('🚀 Iniciando Sistema de Informes PDF v3.0...');
+        
+        // Variables del sistema
         this.datosEditados = null;
-        this.hojaActual = 'Diario STD';
-        this.informesHistory = [];
-        this.init();
+        this.hojaActual = null;
+        this.clienteActual = null;
+        
+        // Inicializar sistema
+        this.inicializar();
     }
 
-    // Inicialización del sistema
-    async init() {
-        console.log('🚀 Iniciando Sistema de Informes 2.0...');
-        await this.cargarDatos();
-        this.setupEventListeners();
-        this.llenarSelectorClientes();
-        console.log('✅ Sistema de Informes 2.0 listo');
+    // =============================================================================
+    // 1. INICIALIZACIÓN DEL SISTEMA
+    // =============================================================================
+    inicializar() {
+        console.log('📊 Configurando sistema de informes...');
+        
+        // Conectar con el sistema principal
+        this.conectarConSistemaPrincipal();
+        
+        // Configurar eventos
+        this.configurarEventos();
+        
+        // Inicializar interfaz
+        this.inicializarInterfaz();
     }
 
-    // Cargar datos desde las variables globales del sistema
-    async cargarDatos() {
-        try {
-            // Verificar que las variables globales del sistema existan
-            if (!window.datosEditados) {
-                throw new Error('No se encontraron datosEditados del sistema');
-            }
-            
-            if (!window.hojaActual) {
-                throw new Error('No se encontró hojaActual del sistema');
-            }
-            
-            // Usar las mismas variables que mostrarEstadisticasCliente()
-            this.datosEditados = window.datosEditados;
-            this.hojaActual = window.hojaActual;
-            
-            const hoja = this.datosEditados.hojas[this.hojaActual];
-            if (!hoja) {
-                throw new Error(`No se encontró la hoja ${this.hojaActual}`);
-            }
-            
-            // No necesitamos cargar clientes, usaremos los del sistema directamente
-            console.log(`📊 Conectado al sistema: hoja=${this.hojaActual}, clientes=${Object.keys(hoja.clientes || {}).length}`);
-            
-        } catch (error) {
-            console.error('❌ Error al conectar con el sistema:', error);
-            this.mostrarError('No se pudo conectar con el sistema de datos: ' + error.message);
+    // =============================================================================
+    // 2. CONEXIÓN CON SISTEMA PRINCIPAL
+    // =============================================================================
+    conectarConSistemaPrincipal() {
+        console.log('🔗 Conectando con sistema principal...');
+        
+        // Verificar que el sistema principal esté cargado
+        if (!window.datosEditados) {
+            throw new Error('❌ Sistema principal no encontrado - window.datosEditados no existe');
         }
+        
+        if (!window.hojaActual) {
+            throw new Error('❌ No hay hoja seleccionada - window.hojaActual no existe');
+        }
+        
+        // Conectar variables globales
+        this.datosEditados = window.datosEditados;
+        this.hojaActual = window.hojaActual;
+        this.clienteActual = window.clienteActual;
+        
+        console.log('✅ Conectado al sistema principal:', {
+            hojaActual: this.hojaActual,
+            clienteActual: this.clienteActual,
+            totalClientes: Object.keys(this.datosEditados.hojas[this.hojaActual].clientes || {}).length
+        });
     }
 
-    // Configurar event listeners
-    setupEventListeners() {
+    // =============================================================================
+    // 3. CONFIGURACIÓN DE EVENTOS
+    // =============================================================================
+    configurarEventos() {
+        console.log('⚙️ Configurando eventos...');
+        
         // Botón generar informe
         const btnGenerar = document.getElementById('generateReportBtn');
         if (btnGenerar) {
             btnGenerar.onclick = () => this.generarInforme();
+            console.log('✅ Botón generar informe configurado');
         }
         
-        // Botón recargar clientes
+        // Botón recargar
         const btnRecargar = document.getElementById('reloadClientsBtn');
         if (btnRecargar) {
-            btnRecargar.onclick = () => this.recargarClientes();
-        }
-
-        // Selector de cliente (ahora es solo informativo)
-        const selectorCliente = document.getElementById('reportClientSelect');
-        if (selectorCliente) {
-            selectorCliente.onchange = () => this.validarSeleccionCliente();
+            btnRecargar.onclick = () => this.recargarDatos();
+            console.log('✅ Botón recargar configurado');
         }
         
-        // ESCUCHAR CAMBIOS EN EL SELECTOR PRINCIPAL DEL SISTEMA
-        const selectorPrincipal = document.getElementById('selectorCliente');
-        if (selectorPrincipal) {
-            selectorPrincipal.addEventListener('change', () => {
-                console.log('🔄 Cambio detectado en selector principal, actualizando informes...');
-                setTimeout(() => {
-                    this.llenarSelectorClientes(); // Actualizar selector de informes
-                }, 100);
-            });
+        // Selector de cliente
+        const selector = document.getElementById('reportClientSelect');
+        if (selector) {
+            selector.onchange = () => this.actualizarClienteSeleccionado();
+            console.log('✅ Selector de cliente configurado');
         }
-        
-        // ESCUCHAR CAMBIOS EN clienteActual (cuando se navega entre clientes)
-        let lastClienteActual = window.clienteActual;
-        setInterval(() => {
-            if (window.clienteActual !== lastClienteActual) {
-                console.log('🔄 Cambio en clienteActual detectado, actualizando informes...');
-                lastClienteActual = window.clienteActual;
-                this.llenarSelectorClientes();
-            }
-        }, 1000);
     }
 
-    // Llenar selector de clientes - MOSTRAR CLIENTE ACTUAL DEL SISTEMA
-    llenarSelectorClientes() {
+    // =============================================================================
+    // 4. INICIALIZACIÓN DE INTERFAZ
+    // =============================================================================
+    inicializarInterfaz() {
+        console.log('🖥️ Inicializando interfaz...');
+        
+        // Cargar clientes disponibles
+        this.cargarClientesDisponibles();
+        
+        // Actualizar estado
+        this.actualizarEstado();
+    }
+
+    // =============================================================================
+    // 5. CARGAR CLIENTES DISPONIBLES
+    // =============================================================================
+    cargarClientesDisponibles() {
+        console.log('👥 Cargando clientes disponibles...');
+        
         const selector = document.getElementById('reportClientSelect');
         if (!selector) return;
-
-        // Si hay un cliente seleccionado en el sistema, mostrarlo
-        if (typeof window.clienteActual !== 'undefined' && window.clienteActual !== null) {
-            const hoja = window.datosEditados?.hojas?.[window.hojaActual];
-            if (hoja && hoja.clientes && hoja.clientes[window.clienteActual]) {
-                const cliente = hoja.clientes[window.clienteActual];
-                const nombre = this.obtenerNombreCliente(cliente);
-                
-                selector.innerHTML = `
-                    <option value="${window.clienteActual}" selected>
-                        ${cliente.numero_cliente} - ${nombre} (Seleccionado)
-                    </option>
-                `;
-                
-                // Actualizar contador
-                const clientesCount = document.getElementById('clientesCount');
-                if (clientesCount) {
-                    clientesCount.textContent = '1 cliente seleccionado';
-                }
-                
-                console.log(`📝 Selector mostrando cliente actual: ${nombre}`);
-                return;
-            }
-        }
-
-        // Si no hay cliente seleccionado, mostrar mensaje
-        selector.innerHTML = `
-            <option value="" disabled selected>
-                -- Selecciona un cliente en la vista principal --
-            </option>
-        `;
         
-        // Actualizar contador
-        const clientesCount = document.getElementById('clientesCount');
-        if (clientesCount) {
-            clientesCount.textContent = '0 clientes seleccionados';
+        // Obtener clientes de la hoja actual
+        const hoja = this.datosEditados.hojas[this.hojaActual];
+        const clientes = hoja.clientes || {};
+        
+        // Limpiar selector
+        selector.innerHTML = '';
+        
+        // Agregar opción por defecto
+        const opcionDefecto = document.createElement('option');
+        opcionDefecto.value = '';
+        opcionDefecto.textContent = '-- Selecciona un cliente --';
+        selector.appendChild(opcionDefecto);
+        
+        // Agregar clientes
+        Object.entries(clientes).forEach(([indice, cliente]) => {
+            const nombreCliente = this.obtenerNombreCliente(cliente);
+            const opcion = document.createElement('option');
+            opcion.value = indice;
+            opcion.textContent = `${cliente.numero_cliente} - ${nombreCliente}`;
+            selector.appendChild(opcion);
+        });
+        
+        // Seleccionar cliente actual si existe
+        if (this.clienteActual !== null && clientes[this.clienteActual]) {
+            selector.value = this.clienteActual;
+            console.log(`✅ Cliente actual seleccionado: ${this.obtenerNombreCliente(clientes[this.clienteActual])}`);
         }
         
-        console.log('⚠️ No hay cliente seleccionado en el sistema principal');
+        console.log(`✅ Cargados ${Object.keys(clientes).length} clientes`);
     }
 
-    // Obtener nombre formateado del cliente
+    // =============================================================================
+    // 6. OBTENER NOMBRE DE CLIENTE
+    // =============================================================================
     obtenerNombreCliente(cliente) {
+        // Extraer datos del cliente
         const datos = cliente.datos || {};
+        
+        // Intentar obtener nombre y apellidos
         const nombre = datos['NOMBRE']?.valor || '';
         const apellidos = datos['APELLIDOS']?.valor || '';
-        return nombre || apellidos ? `${nombre} ${apellidos}`.trim() : `Cliente ${cliente.numero_cliente}`;
+        
+        // Construir nombre completo
+        if (nombre || apellidos) {
+            return `${nombre} ${apellidos}`.trim();
+        }
+        
+        // Fallback: usar número de cliente
+        return `Cliente ${cliente.numero_cliente || 'Sin número'}`;
     }
 
-    // Validar selección de cliente
-    validarSeleccionCliente() {
+    // =============================================================================
+    // 7. ACTUALIZAR CLIENTE SELECCIONADO
+    // =============================================================================
+    actualizarClienteSeleccionado() {
         const selector = document.getElementById('reportClientSelect');
+        if (!selector) return;
+        
+        this.clienteActual = selector.value ? parseInt(selector.value) : null;
+        this.actualizarEstado();
+    }
+
+    // =============================================================================
+    // 8. ACTUALIZAR ESTADO
+    // =============================================================================
+    actualizarEstado() {
         const btnGenerar = document.getElementById('generateReportBtn');
+        const clientesCount = document.getElementById('clientesCount');
         
-        if (selector && btnGenerar) {
-            btnGenerar.disabled = !selector.value;
+        // Habilitar/deshabilitar botón
+        if (btnGenerar) {
+            btnGenerar.disabled = !this.clienteActual && this.clienteActual !== 0;
+        }
+        
+        // Actualizar contador
+        if (clientesCount) {
+            if (this.clienteActual !== null && this.clienteActual !== 0) {
+                clientesCount.textContent = '1 cliente seleccionado';
+            } else {
+                clientesCount.textContent = '0 clientes seleccionados';
+            }
         }
     }
 
-    // Recargar clientes
-    async recargarClientes() {
-        await this.cargarDatos();
-        this.llenarSelectorClientes();
-        this.mostrarExito('Clientes recargados correctamente');
+    // =============================================================================
+    // 9. RECARGAR DATOS
+    // =============================================================================
+    recargarDatos() {
+        console.log('🔄 Recargando datos...');
+        
+        try {
+            // Reconectar con sistema principal
+            this.conectarConSistemaPrincipal();
+            
+            // Recargar interfaz
+            this.inicializarInterfaz();
+            
+            // Mostrar éxito
+            this.mostrarNotificacion('✅ Datos recargados correctamente', 'success');
+        } catch (error) {
+            console.error('❌ Error al recargar datos:', error);
+            this.mostrarNotificacion('❌ Error al recargar datos: ' + error.message, 'error');
+        }
     }
 
-    // Generar informe principal
+    // =============================================================================
+    // 10. GENERAR INFORME PRINCIPAL
+    // =============================================================================
     async generarInforme() {
-        // USAR EL CLIENTE SELECCIONADO EN EL SISTEMA PRINCIPAL
-        if (typeof window.clienteActual === 'undefined' || window.clienteActual === null) {
-            this.mostrarError('Por favor selecciona un cliente en la vista principal primero');
+        console.log('📄 Iniciando generación de informe...');
+        
+        // Validar cliente seleccionado
+        if (this.clienteActual === null || this.clienteActual === undefined) {
+            this.mostrarNotificacion('❌ Por favor selecciona un cliente', 'error');
             return;
         }
-
-        // Obtener el cliente actual del sistema
-        const hoja = window.datosEditados?.hojas?.[window.hojaActual];
-        if (!hoja || !hoja.clientes || !hoja.clientes[window.clienteActual]) {
-            this.mostrarError('No hay datos del cliente seleccionado');
-            return;
-        }
-        
-        const cliente = hoja.clientes[window.clienteActual];
-        
-        console.log(`🎯 Generando informe usando cliente seleccionado en vista principal:`, {
-            clienteActual: window.clienteActual,
-            clienteNumero: cliente.numero_cliente,
-            hojaActual: window.hojaActual,
-            datosDiarios: cliente.datos_diarios?.length || 0,
-            nombre: this.obtenerNombreCliente(cliente)
-        });
         
         try {
             // Mostrar loading
             this.mostrarLoading(true);
             
-            // Generar HTML del informe
-            const htmlInforme = await this.generarHTMLInforme(cliente);
+            // Obtener cliente
+            const cliente = this.obtenerClienteActual();
+            if (!cliente) {
+                throw new Error('No se encontró el cliente seleccionado');
+            }
             
-            // Convertir a PDF
-            const pdf = await this.convertirHTMLaPDF(htmlInforme, cliente);
+            console.log('🎯 Generando informe para:', {
+                cliente: this.obtenerNombreCliente(cliente),
+                numero: cliente.numero_cliente,
+                hoja: this.hojaActual
+            });
             
-            // Descargar PDF
+            // PASO 1: Extraer datos del cliente
+            const datosInforme = await this.extraerDatosInforme(cliente);
+            
+            // PASO 2: Generar HTML del informe
+            const htmlInforme = this.generarHTMLInforme(datosInforme);
+            
+            // PASO 3: Convertir a PDF
+            const pdf = await this.convertirHTMLaPDF(htmlInforme);
+            
+            // PASO 4: Descargar PDF
             this.descargarPDF(pdf, cliente);
             
-            // Agregar al historial
-            this.agregarAlHistorial(cliente);
-            
-            this.mostrarExito('Informe generado correctamente');
+            // Mostrar éxito
+            this.mostrarNotificacion('✅ Informe generado correctamente', 'success');
             
         } catch (error) {
             console.error('❌ Error al generar informe:', error);
-            this.mostrarError('Error al generar el informe: ' + error.message);
+            this.mostrarNotificacion('❌ Error al generar informe: ' + error.message, 'error');
         } finally {
+            // Ocultar loading
             this.mostrarLoading(false);
         }
     }
 
-    // Generar HTML del informe desde cero
-    async generarHTMLInforme(cliente) {
-        const nombreCliente = this.obtenerNombreCliente(cliente);
-        const fecha = new Date().toLocaleDateString('es-ES');
+    // =============================================================================
+    // 11. OBTENER CLIENTE ACTUAL
+    // =============================================================================
+    obtenerClienteActual() {
+        const hoja = this.datosEditados.hojas[this.hojaActual];
+        return hoja.clientes[this.clienteActual];
+    }
+
+    // =============================================================================
+    // 12. EXTRAER DATOS DEL INFORME
+    // =============================================================================
+    async extraerDatosInforme(cliente) {
+        console.log('📊 Extrayendo datos del informe...');
         
-        // Calcular estadísticas reales
+        // DATOS BÁSICOS DEL CLIENTE
+        const datosBasicos = {
+            numeroCliente: cliente.numero_cliente,
+            nombre: this.obtenerNombreCliente(cliente),
+            email: this.obtenerDatoCliente(cliente, 'EMAIL'),
+            telefono: this.obtenerDatoCliente(cliente, 'TELEFONO'),
+            fecha: new Date().toLocaleDateString('es-ES')
+        };
+        
+        // ESTADÍSTICAS FINANCIERAS
         const estadisticas = await this.calcularEstadisticasCliente(cliente);
         
-        // Extraer movimientos
+        // MOVIMIENTOS DETALLADOS
         const movimientos = this.extraerMovimientos(cliente);
+        
+        // EVOLUCIÓN MENSUAL
+        const evolucionMensual = await this.calcularEvolucionMensual(cliente);
+        
+        console.log('✅ Datos extraídos:', {
+            cliente: datosBasicos.nombre,
+            meses: evolucionMensual.length,
+            movimientos: movimientos.length,
+            saldoActual: estadisticas.saldoActual
+        });
+        
+        return {
+            datosBasicos,
+            estadisticas,
+            movimientos,
+            evolucionMensual
+        };
+    }
+
+    // =============================================================================
+    // 13. OBTENER DATO ESPECÍFICO DEL CLIENTE
+    // =============================================================================
+    obtenerDatoCliente(cliente, campo) {
+        const datos = cliente.datos || {};
+        return datos[campo]?.valor || 'No especificado';
+    }
+
+    // =============================================================================
+    // 14. CALCULAR ESTADÍSTICAS DEL CLIENTE
+    // =============================================================================
+    async calcularEstadisticasCliente(cliente) {
+        console.log('📈 Calculando estadísticas del cliente...');
+        
+        // Usar las mismas funciones que el sistema principal
+        const hoja = this.datosEditados.hojas[this.hojaActual];
+        
+        // Calcular estadísticas mensuales
+        const datosMensuales = await window.calcularEstadisticasClienteTiempoReal(cliente, hoja);
+        
+        // Calcular KPIs totales
+        const kpisTotales = window.calcularKPIsTiempoReal(datosMensuales);
+        
+        // Extraer estadísticas principales
+        const estadisticas = {
+            inversionInicial: kpisTotales.inversionInicial || 0,
+            saldoActual: kpisTotales.saldoActual || 0,
+            beneficioTotal: kpisTotales.beneficioTotal || 0,
+            rentabilidadTotal: kpisTotales.rentabilidadTotal || 0,
+            totalIncrementos: kpisTotales.totalIncrementos || 0,
+            totalDecrementos: kpisTotales.totalDecrementos || 0,
+            mesesConDatos: datosMensuales.length
+        };
+        
+        console.log('✅ Estadísticas calculadas:', estadisticas);
+        return estadisticas;
+    }
+
+    // =============================================================================
+    // 15. EXTRAER MOVIMIENTOS
+    // =============================================================================
+    extraerMovimientos(cliente) {
+        console.log('💰 Extrayendo movimientos...');
+        
+        const movimientos = [];
+        const datosDiarios = cliente.datos_diarios || [];
+        
+        datosDiarios.forEach(fila => {
+            const incremento = typeof fila.incremento === 'number' ? fila.incremento : 0;
+            const decremento = typeof fila.decremento === 'number' ? fila.decremento : 0;
+            
+            // Movimiento de ingreso
+            if (incremento > 0) {
+                movimientos.push({
+                    fecha: fila.fecha || '',
+                    tipo: 'Ingreso',
+                    importe: incremento,
+                    mes: this.obtenerNombreMes(fila.fecha)
+                });
+            }
+            
+            // Movimiento de retirada
+            if (decremento > 0) {
+                movimientos.push({
+                    fecha: fila.fecha || '',
+                    tipo: 'Retirada',
+                    importe: decremento,
+                    mes: this.obtenerNombreMes(fila.fecha)
+                });
+            }
+        });
+        
+        // Ordenar por fecha
+        movimientos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+        
+        console.log(`✅ Extraídos ${movimientos.length} movimientos`);
+        return movimientos;
+    }
+
+    // =============================================================================
+    // 16. OBTENER NOMBRE DEL MES
+    // =============================================================================
+    obtenerNombreMes(fechaStr) {
+        if (!fechaStr || fechaStr === 'FECHA') return 'Sin fecha';
+        
+        try {
+            const fecha = new Date(fechaStr);
+            if (isNaN(fecha.getTime())) return 'Fecha inválida';
+            
+            return fecha.toLocaleDateString('es-ES', { 
+                month: 'long', 
+                year: 'numeric' 
+            });
+        } catch (error) {
+            return 'Fecha inválida';
+        }
+    }
+
+    // =============================================================================
+    // 17. CALCULAR EVOLUCIÓN MENSUAL
+    // =============================================================================
+    async calcularEvolucionMensual(cliente) {
+        console.log('📅 Calculando evolución mensual...');
+        
+        const hoja = this.datosEditados.hojas[this.hojaActual];
+        const datosMensuales = await window.calcularEstadisticasClienteTiempoReal(cliente, hoja);
+        
+        // Formatear datos para el informe
+        const evolucion = datosMensuales.map(mes => ({
+            nombre: mes.nombreMes || mes.mes || 'Sin mes',
+            incrementos: mes.incrementos || 0,
+            decrementos: mes.decrementos || 0,
+            beneficio: mes.beneficio || 0,
+            saldoFinal: mes.saldoFinal || 0,
+            rentabilidad: mes.rentabilidad || 0
+        }));
+        
+        console.log(`✅ Evolución calculada para ${evolucion.length} meses`);
+        return evolucion;
+    }
+
+    // =============================================================================
+    // 18. GENERAR HTML DEL INFORME
+    // =============================================================================
+    generarHTMLInforme(datos) {
+        console.log('📝 Generando HTML del informe...');
+        
+        const { datosBasicos, estadisticas, movimientos, evolucionMensual } = datos;
         
         return `
             <!DOCTYPE html>
             <html>
             <head>
                 <meta charset="UTF-8">
-                <title>Informe de ${nombreCliente}</title>
+                <title>Informe Financiero - ${datosBasicos.nombre}</title>
                 <style>
+                    /* ESTILOS PROFESIONALES PARA PDF */
+                    @page {
+                        size: A4;
+                        margin: 15mm;
+                    }
+                    
                     * {
                         margin: 0;
                         padding: 0;
@@ -237,18 +465,16 @@ class SistemaInformes {
                     }
                     
                     body {
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        font-family: 'Segoe UI', Arial, sans-serif;
                         font-size: 12px;
                         color: #000000 !important;
                         background: #FFFFFF !important;
                         line-height: 1.4;
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
-                        margin: 0;
-                        padding: 0;
                     }
                     
-                    .header {
+                    .encabezado {
                         text-align: center;
                         padding: 30px 0;
                         border-bottom: 3px solid #1F3A5F;
@@ -256,7 +482,7 @@ class SistemaInformes {
                         background: #F8F9FA !important;
                     }
                     
-                    .header h1 {
+                    .encabezado h1 {
                         color: #1F3A5F !important;
                         font-size: 28px;
                         font-weight: bold;
@@ -265,22 +491,26 @@ class SistemaInformes {
                         letter-spacing: 1px;
                     }
                     
-                    .header p {
+                    .encabezado h2 {
                         color: #333333 !important;
-                        font-size: 14px;
-                        margin: 5px 0;
+                        font-size: 18px;
+                        margin-bottom: 5px;
                     }
                     
-                    .section {
+                    .encabezado p {
+                        color: #666666 !important;
+                        font-size: 14px;
+                    }
+                    
+                    .seccion {
                         margin-bottom: 30px;
                         padding: 25px;
                         border: 2px solid #000000 !important;
                         background: #FFFFFF !important;
                         page-break-inside: avoid;
-                        border-radius: 0;
                     }
                     
-                    .section-title {
+                    .titulo-seccion {
                         background: #1F3A5F !important;
                         color: #FFFFFF !important;
                         padding: 15px 25px;
@@ -296,7 +526,6 @@ class SistemaInformes {
                         border-collapse: collapse;
                         margin-bottom: 20px;
                         font-size: 11px;
-                        border-spacing: 0;
                     }
                     
                     th, td {
@@ -304,14 +533,12 @@ class SistemaInformes {
                         padding: 10px 12px;
                         text-align: left;
                         vertical-align: top;
-                        font-weight: normal;
                     }
                     
                     th {
                         background: #E8EAED !important;
                         font-weight: bold;
                         color: #000000 !important;
-                        font-size: 11px;
                         text-transform: uppercase;
                         letter-spacing: 0.5px;
                     }
@@ -324,17 +551,45 @@ class SistemaInformes {
                         background: #FFFFFF !important;
                     }
                     
-                    .positive {
+                    .positivo {
                         color: #2E7D32 !important;
                         font-weight: bold;
                     }
                     
-                    .negative {
+                    .negativo {
                         color: #D32F2F !important;
                         font-weight: bold;
                     }
                     
-                    .chart-container {
+                    .resumen-grid {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 15px;
+                        margin-bottom: 20px;
+                    }
+                    
+                    .resumen-item {
+                        padding: 15px;
+                        border: 1px solid #E0E0E0;
+                        border-radius: 4px;
+                        background: #FAFAFA;
+                    }
+                    
+                    .resumen-label {
+                        font-size: 10px;
+                        color: #666666;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        margin-bottom: 5px;
+                    }
+                    
+                    .resumen-value {
+                        font-size: 16px;
+                        font-weight: bold;
+                        color: #000000;
+                    }
+                    
+                    .grafico-container {
                         margin: 25px 0;
                         padding: 20px;
                         border: 2px solid #000000 !important;
@@ -343,7 +598,7 @@ class SistemaInformes {
                         page-break-inside: avoid;
                     }
                     
-                    .chart-title {
+                    .grafico-titulo {
                         font-size: 14px;
                         font-weight: bold;
                         color: #1F3A5F !important;
@@ -358,7 +613,7 @@ class SistemaInformes {
                         height: 250px !important;
                     }
                     
-                    .footer {
+                    .pie-pagina {
                         text-align: center;
                         padding: 25px 0;
                         border-top: 2px solid #000000 !important;
@@ -368,276 +623,206 @@ class SistemaInformes {
                         background: #F8F9FA !important;
                     }
                     
-                    /* Para impresión */
                     @media print {
                         body {
                             -webkit-print-color-adjust: exact !important;
                             print-color-adjust: exact !important;
                         }
                         
-                        .section {
+                        .seccion {
                             page-break-inside: avoid;
                         }
                         
-                        .chart-container {
+                        .grafico-container {
                             page-break-inside: avoid;
                         }
                     }
                 </style>
             </head>
             <body>
-                <div class="header">
-                    <h1>INFORME DE CLIENTE</h1>
-                    <p>${nombreCliente}</p>
-                    <p>Fecha: ${fecha}</p>
+                <!-- ENCABEZADO -->
+                <div class="encabezado">
+                    <h1>📊 INFORME FINANCIERO</h1>
+                    <h2>${datosBasicos.nombre}</h2>
+                    <p>Cliente #${datosBasicos.numeroCliente} | ${datosBasicos.fecha}</p>
                 </div>
 
-                <div class="section">
-                    <div class="section-title">Resumen General</div>
-                    <table>
-                        <tr>
-                            <th>Métrica</th>
-                            <th>Valor</th>
-                        </tr>
-                        <tr>
-                            <td>Inversión Inicial</td>
-                            <td>€${estadisticas.inversionInicial.toLocaleString()}</td>
-                        </tr>
-                        <tr>
-                            <td>Saldo Actual</td>
-                            <td>€${estadisticas.saldoActual.toLocaleString()}</td>
-                        </tr>
-                        <tr>
-                            <td>Beneficio Total</td>
-                            <td class="${estadisticas.beneficioTotal >= 0 ? 'positive' : 'negative'}">
+                <!-- RESUMEN EJECUTIVO -->
+                <div class="seccion">
+                    <div class="titulo-seccion">Resumen Ejecutivo</div>
+                    <div class="resumen-grid">
+                        <div class="resumen-item">
+                            <div class="resumen-label">Inversión Inicial</div>
+                            <div class="resumen-value">€${estadisticas.inversionInicial.toLocaleString()}</div>
+                        </div>
+                        <div class="resumen-item">
+                            <div class="resumen-label">Saldo Actual</div>
+                            <div class="resumen-value">€${estadisticas.saldoActual.toLocaleString()}</div>
+                        </div>
+                        <div class="resumen-item">
+                            <div class="resumen-label">Beneficio Total</div>
+                            <div class="resumen-value ${estadisticas.beneficioTotal >= 0 ? 'positivo' : 'negativo'}">
                                 €${estadisticas.beneficioTotal.toLocaleString()}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Rentabilidad Total</td>
-                            <td class="${estadisticas.rentabilidadTotal >= 0 ? 'positive' : 'negative'}">
+                            </div>
+                        </div>
+                        <div class="resumen-item">
+                            <div class="resumen-label">Rentabilidad Total</div>
+                            <div class="resumen-value ${estadisticas.rentabilidadTotal >= 0 ? 'positivo' : 'negativo'}">
                                 ${estadisticas.rentabilidadTotal.toFixed(2)}%
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Meses con Datos</td>
-                            <td>${estadisticas.datosClienteMeses.length}</td>
-                        </tr>
-                    </table>
-                </div>
-
-                <div class="section">
-                    <div class="section-title">Detalle Mensual</div>
-                    <table>
-                        <tr>
-                            <th>Mes</th>
-                            <th>Incrementos</th>
-                            <th>Decrementos</th>
-                            <th>Beneficio</th>
-                            <th>Saldo Final</th>
-                            <th>Rentabilidad</th>
-                        </tr>
-                        ${estadisticas.datosClienteMeses.map(mes => `
-                            <tr>
-                                <td>${mes.nombreMes || mes.mes || 'Sin mes'}</td>
-                                <td class="positive">€${(mes.incrementos || 0).toLocaleString()}</td>
-                                <td class="negative">€${(mes.decrementos || 0).toLocaleString()}</td>
-                                <td class="${(mes.beneficio || 0) >= 0 ? 'positive' : 'negative'}">
-                                    €${(mes.beneficio || 0).toLocaleString()}
-                                </td>
-                                <td>€${(mes.saldoFinal || 0).toLocaleString()}</td>
-                                <td class="${(mes.rentabilidad || 0) >= 0 ? 'positive' : 'negative'}">
-                                    ${(mes.rentabilidad || 0).toFixed(2)}%
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </table>
-                </div>
-
-                <div class="section">
-                    <div class="section-title">Movimientos Detallados</div>
-                    <table>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Tipo</th>
-                            <th>Importe</th>
-                            <th>Mes</th>
-                        </tr>
-                        ${movimientos.map(mov => `
-                            <tr>
-                                <td>${mov.fecha}</td>
-                                <td class="${mov.tipo === 'Ingreso' ? 'positive' : 'negative'}">${mov.tipo}</td>
-                                <td class="${mov.tipo === 'Ingreso' ? 'positive' : 'negative'}">
-                                    €${mov.importe.toLocaleString()}
-                                </td>
-                                <td>${mov.mes}</td>
-                            </tr>
-                        `).join('')}
-                    </table>
-                </div>
-
-                <div class="section">
-                    <div class="section-title">Gráficos</div>
-                    <div class="chart-container">
-                        <div class="chart-title">Rentabilidad Mensual</div>
-                        <canvas id="chartRentabilidad" width="800" height="300"></canvas>
-                    </div>
-                    <div class="chart-container">
-                        <div class="chart-title">Evolución del Patrimonio</div>
-                        <canvas id="chartEvolucion" width="800" height="300"></canvas>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="footer">
-                    <p>Informe generado automáticamente por Sistema de Informes 2.0</p>
+                <!-- DATOS DEL CLIENTE -->
+                <div class="seccion">
+                    <div class="titulo-seccion">Datos del Cliente</div>
+                    <table>
+                        <tr>
+                            <th>Número de Cliente</th>
+                            <td>${datosBasicos.numeroCliente}</td>
+                        </tr>
+                        <tr>
+                            <th>Nombre Completo</th>
+                            <td>${datosBasicos.nombre}</td>
+                        </tr>
+                        <tr>
+                            <th>Email</th>
+                            <td>${datosBasicos.email}</td>
+                        </tr>
+                        <tr>
+                            <th>Teléfono</th>
+                            <td>${datosBasicos.telefono}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- EVOLUCIÓN MENSUAL -->
+                <div class="seccion">
+                    <div class="titulo-seccion">Evolución Mensual</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mes</th>
+                                <th>Incrementos</th>
+                                <th>Decrementos</th>
+                                <th>Beneficio</th>
+                                <th>Saldo Final</th>
+                                <th>Rentabilidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${evolucionMensual.map(mes => `
+                                <tr>
+                                    <td><strong>${mes.nombre}</strong></td>
+                                    <td class="positivo">€${mes.incrementos.toLocaleString()}</td>
+                                    <td class="negativo">€${mes.decrementos.toLocaleString()}</td>
+                                    <td class="${mes.beneficio >= 0 ? 'positivo' : 'negativo'}">
+                                        €${mes.beneficio.toLocaleString()}
+                                    </td>
+                                    <td><strong>€${mes.saldoFinal.toLocaleString()}</strong></td>
+                                    <td class="${mes.rentabilidad >= 0 ? 'positivo' : 'negativo'}">
+                                        ${mes.rentabilidad.toFixed(2)}%
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- MOVIMIENTOS DETALLADOS -->
+                <div class="seccion">
+                    <div class="titulo-seccion">Movimientos Detallados</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Importe</th>
+                                <th>Mes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${movimientos.slice(0, 20).map(mov => `
+                                <tr>
+                                    <td>${mov.fecha}</td>
+                                    <td class="${mov.tipo === 'Ingreso' ? 'positivo' : 'negativo'}">
+                                        <strong>${mov.tipo}</strong>
+                                    </td>
+                                    <td class="${mov.tipo === 'Ingreso' ? 'positivo' : 'negativo'}">
+                                        <strong>€${mov.importe.toLocaleString()}</strong>
+                                    </td>
+                                    <td>${mov.mes}</td>
+                                </tr>
+                            `).join('')}
+                            ${movimientos.length > 20 ? `
+                                <tr>
+                                    <td colspan="4" style="text-align: center; font-style: italic;">
+                                        ... y ${movimientos.length - 20} movimientos más
+                                    </td>
+                                </tr>
+                            ` : ''}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- GRÁFICOS -->
+                <div class="seccion">
+                    <div class="titulo-seccion">Análisis Gráfico</div>
+                    <div class="grafico-container">
+                        <div class="grafico-titulo">Rentabilidad Mensual (%)</div>
+                        <canvas id="chartRentabilidad" width="800" height="250"></canvas>
+                    </div>
+                    <div class="grafico-container">
+                        <div class="grafico-titulo">Evolución del Patrimonio</div>
+                        <canvas id="chartEvolucion" width="800" height="250"></canvas>
+                    </div>
+                </div>
+
+                <!-- PIE DE PÁGINA -->
+                <div class="pie-pagina">
+                    <p><strong>Portfolio Manager</strong> - Sistema de Gestión de Inversiones</p>
+                    <p>Informe generado automáticamente | Confidencial | ${datosBasicos.fecha}</p>
                 </div>
             </body>
             </html>
         `;
     }
 
-    // Calcular estadísticas reales del cliente - USAR CLIENTE ACTUAL DEL SISTEMA
-    async calcularEstadisticasCliente(cliente) {
-        console.log('🔥 USANDO CLIENTE ACTUAL DEL SISTEMA PRINCIPAL');
-        
-        // Verificar que clienteActual exista
-        if (typeof window.clienteActual === 'undefined' || window.clienteActual === null) {
-            throw new Error('clienteActual no está definido - selecciona un cliente en la vista principal');
-        }
-        
-        if (!window.hojaActual) {
-            throw new Error('hojaActual no está definida');
-        }
-        
-        if (!window.datosEditados) {
-            throw new Error('datosEditados no está definido');
-        }
-        
-        // Usar la hoja actual y el cliente actual
-        const hoja = window.datosEditados.hojas[window.hojaActual];
-        if (!hoja) {
-            throw new Error(`No se encontró la hoja ${window.hojaActual}`);
-        }
-        
-        // Usar exactamente la misma función que mostrarEstadisticasCliente()
-        const datosClienteMeses = await window.calcularEstadisticasClienteTiempoReal(cliente, hoja);
-        const kpisTotales = window.calcularKPIsTiempoReal(datosClienteMeses);
-        
-        // Guardar en las mismas variables globales que mostrarEstadisticasCliente()
-        const datosCompletosCliente = { kpisTotales, datosClienteMeses };
-        window._datosCliente = datosCompletosCliente;
-        window._datosEstadisticasCliente = datosCompletosCliente;
-        
-        console.log('📊 Datos obtenidos del cliente actual del sistema:', {
-            clienteActual: window.clienteActual,
-            clienteNumero: cliente.numero_cliente,
-            hojaActual: window.hojaActual,
-            meses: datosClienteMeses.length,
-            kpis: Object.keys(kpisTotales),
-            muestraDatos: datosClienteMeses.slice(0, 2)
-        });
-        
-        return {
-            datosClienteMeses,
-            kpisTotales,
-            inversionInicial: kpisTotales.inversionInicial || 0,
-            saldoActual: kpisTotales.saldoActual || 0,
-            beneficioTotal: kpisTotales.beneficioTotal || 0,
-            rentabilidadTotal: kpisTotales.rentabilidadTotal || 0
-        };
-    }
-
-    // Extraer movimientos del cliente
-    extraerMovimientos(cliente) {
-        const datosDiarios = cliente.datos_diarios || [];
-        const movimientos = [];
-        
-        datosDiarios.forEach(fila => {
-            const inc = typeof fila.incremento === 'number' ? fila.incremento : 0;
-            const dec = typeof fila.decremento === 'number' ? fila.decremento : 0;
-            
-            // Extraer mes de la fecha
-            let nombreMes = 'Sin mes';
-            if (fila.fecha && fila.fecha !== 'FECHA') {
-                const fecha = new Date(fila.fecha);
-                if (!isNaN(fecha.getTime())) {
-                    nombreMes = fecha.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-                }
-            }
-            
-            // Si hay incremento, añadir movimiento
-            if (inc > 0) {
-                movimientos.push({
-                    fecha: fila.fecha || '',
-                    importe: inc,
-                    tipo: 'Ingreso',
-                    mes: nombreMes
-                });
-            }
-            
-            // Si hay decremento, añadir movimiento
-            if (dec > 0) {
-                movimientos.push({
-                    fecha: fila.fecha || '',
-                    importe: dec,
-                    tipo: 'Retirada',
-                    mes: nombreMes
-                });
-            }
-        });
-        
-        console.log(`💰 Extraídos ${movimientos.length} movimientos`);
-        return movimientos;
-    }
-
-    // Convertir HTML a PDF - VERSIÓN PROFESIONAL
-    async convertirHTMLaPDF(html, cliente) {
-        console.log('🔄 Convirtiendo HTML a PDF con alta calidad...');
+    // =============================================================================
+    // 19. CONVERTIR HTML A PDF
+    // =============================================================================
+    async convertirHTMLaPDF(html) {
+        console.log('🔄 Convirtiendo HTML a PDF...');
         
         return new Promise((resolve, reject) => {
+            // Crear contenedor temporal
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = html;
             tempDiv.style.position = 'absolute';
             tempDiv.style.left = '-9999px';
             tempDiv.style.width = '210mm';
             tempDiv.style.background = '#FFFFFF';
-            tempDiv.style.fontFamily = "'Segoe UI', Arial, sans-serif";
             document.body.appendChild(tempDiv);
             
             setTimeout(async () => {
                 try {
-                    // Renderizar gráficos primero
-                    await this.renderizarGraficos(tempDiv, cliente);
+                    // Renderizar gráficos
+                    await this.renderizarGraficos(tempDiv);
                     
-                    // Configuración profesional para html2canvas
+                    // Capturar con html2canvas
                     const canvas = await html2canvas(tempDiv, {
-                        scale: 3, // Mayor escala para mejor calidad
+                        scale: 3,
                         backgroundColor: '#FFFFFF',
                         useCORS: true,
                         allowTaint: true,
                         logging: false,
-                        width: 794, // A4 width in pixels at 96dpi
-                        height: 1123, // A4 height in pixels at 96dpi
-                        windowWidth: 794,
-                        windowHeight: 1123,
-                        x: 0,
-                        y: 0,
-                        scrollX: 0,
-                        scrollY: 0,
-                        foreignObjectRendering: true, // Mejor renderizado de texto
-                        imageTimeout: 0, // Sin timeout para imágenes
-                        removeContainer: false, // No eliminar el contenedor
-                        onclone: (clonedDoc) => {
-                            // Asegurar estilos en el clon
-                            const clonedElement = clonedDoc.querySelector('body > div');
-                            if (clonedElement) {
-                                clonedElement.style.visibility = 'visible';
-                                clonedElement.style.display = 'block';
-                            }
-                        }
+                        width: 794,
+                        height: 1123,
+                        foreignObjectRendering: true
                     });
                     
-                    // Generar PDF con configuración profesional
+                    // Generar PDF
                     const pdf = new jspdf.jsPDF({
                         orientation: 'portrait',
                         unit: 'mm',
@@ -645,9 +830,9 @@ class SistemaInformes {
                         compress: true
                     });
                     
-                    const imgData = canvas.toDataURL('image/jpeg', 0.95); // JPEG para mejor calidad/size
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
                     
-                    // Calcular dimensiones correctas para A4
+                    // Calcular dimensiones
                     const pdfWidth = pdf.internal.pageSize.getWidth();
                     const pdfHeight = pdf.internal.pageSize.getHeight();
                     const imgWidth = canvas.width;
@@ -658,33 +843,35 @@ class SistemaInformes {
                     
                     pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
                     
+                    // Limpiar
                     document.body.removeChild(tempDiv);
                     
-                    console.log('✅ PDF profesional generado correctamente');
+                    console.log('✅ PDF generado correctamente');
                     resolve(pdf);
                     
                 } catch (error) {
-                    console.error('❌ Error en conversión PDF:', error);
+                    console.error('❌ Error al convertir a PDF:', error);
                     if (document.body.contains(tempDiv)) {
                         document.body.removeChild(tempDiv);
                     }
                     reject(error);
                 }
-            }, 2000); // Más tiempo para que se rendericen los gráficos
+            }, 2000);
         });
     }
 
-    // Renderizar gráficos
-    async renderizarGraficos(container, cliente) {
-        console.log('📊 Renderizando gráficos con datos reales...');
+    // =============================================================================
+    // 20. RENDERIZAR GRÁFICOS
+    // =============================================================================
+    async renderizarGraficos(container) {
+        console.log('📊 Renderizando gráficos...');
         
-        // Preparar datos usando las mismas funciones que estadísticas
-        const datosGraficos = await this.prepararDatosGraficos(cliente);
+        // Obtener datos para gráficos
+        const datosGraficos = await this.prepararDatosGraficos();
         
         // Gráfico de rentabilidad
         const canvasRentabilidad = container.querySelector('#chartRentabilidad');
         if (canvasRentabilidad && window.Chart) {
-            console.log('📊 Creando gráfico de rentabilidad con datos reales...');
             new Chart(canvasRentabilidad, {
                 type: 'bar',
                 data: {
@@ -707,36 +894,34 @@ class SistemaInformes {
                     },
                     scales: {
                         y: {
-                            ticks: { color: '#000000', font: { size: 11, weight: 'bold' } },
+                            ticks: { color: '#000000', font: { size: 11 } },
                             grid: { color: '#CCCCCC', borderColor: '#000000' }
                         },
                         x: {
-                            ticks: { color: '#000000', font: { size: 10, weight: 'bold' } },
+                            ticks: { color: '#000000', font: { size: 10 } },
                             grid: { display: false }
                         }
                     }
                 }
             });
-        } else {
-            console.warn('⚠️ No se encontró canvasRentabilidad o Chart.js no está disponible');
         }
         
         // Gráfico de evolución
         const canvasEvolucion = container.querySelector('#chartEvolucion');
         if (canvasEvolucion && window.Chart) {
-            console.log('📈 Creando gráfico de evolución con datos reales...');
             new Chart(canvasEvolucion, {
                 type: 'line',
                 data: {
                     labels: datosGraficos.labels,
                     datasets: [{
-                        label: 'Saldo',
-                        data: datosGraficos.saldos,
-                        borderColor: '#1F3A5F',
-                        backgroundColor: '#E3F2FD',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.1
+                        label: 'Saldo Acumulado',
+                        data: datosGraficos.saldo,
+                        backgroundColor: '#1976D2',
+                        borderColor: '#000000',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#1976D2',
+                        pointBorderColor: '#000000',
+                        pointBorderWidth: 2
                     }]
                 },
                 options: {
@@ -749,279 +934,120 @@ class SistemaInformes {
                     },
                     scales: {
                         y: {
-                            ticks: { color: '#000000', font: { size: 11, weight: 'bold' } },
+                            ticks: { color: '#000000', font: { size: 11 } },
                             grid: { color: '#CCCCCC', borderColor: '#000000' }
                         },
                         x: {
-                            ticks: { color: '#000000', font: { size: 10, weight: 'bold' } },
+                            ticks: { color: '#000000', font: { size: 10 } },
                             grid: { display: false }
                         }
                     }
                 }
             });
-        } else {
-            console.warn('⚠️ No se encontró canvasEvolucion o Chart.js no está disponible');
         }
-        
-        console.log('✅ Gráficos renderizados con datos reales');
     }
 
-    // Preparar datos para gráficos - USAR CLIENTE DIRECTO
-    async prepararDatosGraficos(cliente) {
-        console.log('📈 PREPARANDO GRÁFICOS CON CLIENTE DIRECTO');
+    // =============================================================================
+    // 21. PREPARAR DATOS PARA GRÁFICOS
+    // =============================================================================
+    async prepararDatosGraficos() {
+        const cliente = this.obtenerClienteActual();
+        const hoja = this.datosEditados.hojas[this.hojaActual];
+        const datosMensuales = await window.calcularEstadisticasClienteTiempoReal(cliente, hoja);
         
-        // Verificar variables globales necesarias
-        if (!window.hojaActual) {
-            throw new Error('hojaActual no está definida');
-        }
-        
-        if (!window.datosEditados) {
-            throw new Error('datosEditados no está definido');
-        }
-        
-        // Usar la hoja actual
-        const hoja = window.datosEditados.hojas[window.hojaActual];
-        if (!hoja) {
-            throw new Error(`No se encontró la hoja ${window.hojaActual}`);
-        }
-        
-        // Usar exactamente la misma función que mostrarEstadisticasCliente()
-        const datosClienteMeses = await window.calcularEstadisticasClienteTiempoReal(cliente, hoja);
-        
-        console.log('📊 Datos para gráficos con cliente directo:', {
-            clienteNumero: cliente.numero_cliente,
-            hojaActual: window.hojaActual,
-            mesesRecibidos: datosClienteMeses.length,
-            muestra: datosClienteMeses.slice(0, 2)
-        });
-        
-        // Preparar datos para gráficos usando la misma estructura que estadísticas
-        const labels = datosClienteMeses.map(m => m.nombreMes || m.mes || 'Sin mes');
-        const rentabilidad = datosClienteMeses.map(m => m.rentabilidad || 0);
-        const saldos = datosClienteMeses.map(m => m.saldoFinal || 0);
-        
-        console.log('📈 Datos de gráficos preparados:', {
-            labels: labels.length,
-            rentabilidad: rentabilidad.length,
-            saldos: saldos.length,
-            muestraRentabilidad: rentabilidad.slice(0, 3),
-            muestraSaldos: saldos.slice(0, 3)
-        });
-        
-        return { labels, rentabilidad, saldos };
-    }
-
-    // Descargar PDF
-    descargarPDF(pdf, cliente) {
-        const nombreCliente = this.obtenerNombreCliente(cliente);
-        const filename = `informe_${nombreCliente.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
-        
-        pdf.save(filename);
-        console.log(`💾 PDF descargado: ${filename}`);
-    }
-
-    // Agregar al historial
-    agregarAlHistorial(cliente) {
-        const nombreCliente = this.obtenerNombreCliente(cliente);
-        const informe = {
-            cliente: nombreCliente,
-            numero: cliente.numero_cliente,
-            fecha: new Date().toLocaleString('es-ES'),
-            timestamp: Date.now()
+        return {
+            labels: datosMensuales.map(m => m.nombreMes || m.mes || 'Sin mes'),
+            rentabilidad: datosMensuales.map(m => m.rentabilidad || 0),
+            saldo: datosMensuales.map(m => m.saldoFinal || 0)
         };
-        
-        this.informesHistory.unshift(informe);
-        if (this.informesHistory.length > 10) {
-            this.informesHistory.pop();
-        }
-        
-        this.actualizarHistorialUI();
     }
 
-    // Actualizar UI del historial
-    actualizarHistorialUI() {
-        const listaHistorial = document.getElementById('reportsHistoryList');
-        if (!listaHistorial) return;
+    // =============================================================================
+    // 22. DESCARGAR PDF
+    // =============================================================================
+    descargarPDF(pdf, cliente) {
+        console.log('💾 Descargando PDF...');
         
-        if (this.informesHistory.length === 0) {
-            listaHistorial.innerHTML = `
-                <li class="empty-state">
-                    <div class="empty-state-icon">📄</div>
-                    <div class="empty-state-text">No hay informes generados</div>
-                    <div class="empty-state-subtext">Selecciona un cliente y genera tu primer informe</div>
-                </li>
-            `;
-            return;
-        }
+        const nombreCliente = this.obtenerNombreCliente(cliente);
+        const fecha = new Date().toISOString().split('T')[0];
+        const nombreArchivo = `Informe_${nombreCliente.replace(/\s+/g, '_')}_${fecha}.pdf`;
         
-        listaHistorial.innerHTML = this.informesHistory.map(informe => `
-            <li class="report-item">
-                <div class="report-info">
-                    <div class="report-client">${informe.cliente}</div>
-                    <div class="report-date">${informe.fecha}</div>
-                </div>
-                <div class="report-status success">
-                    <i class="fas fa-check-circle"></i> Completado
-                </div>
-            </li>
-        `).join('');
+        pdf.save(nombreArchivo);
+        console.log(`✅ PDF descargado: ${nombreArchivo}`);
     }
 
-    // Utilidades de UI
+    // =============================================================================
+    // 23. UTILIDADES DE INTERFAZ
+    // =============================================================================
     mostrarLoading(mostrar) {
-        const btn = document.getElementById('generateReportBtn');
-        if (btn) {
-            if (mostrar) {
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando...';
-            } else {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-file-pdf"></i> Generar Informe PDF';
-            }
+        const loading = document.getElementById('reportLoading');
+        if (loading) {
+            loading.style.display = mostrar ? 'block' : 'none';
         }
-    }
-
-    mostrarExito(mensaje) {
-        this.mostrarNotificacion(mensaje, 'success');
-    }
-
-    mostrarError(mensaje) {
-        this.mostrarNotificacion(mensaje, 'error');
     }
 
     mostrarNotificacion(mensaje, tipo) {
-        // Crear notificación pequeña en esquina inferior izquierda
-        const notificacion = document.createElement('div');
-        notificacion.className = `notificacion ${tipo}`;
-        notificacion.innerHTML = `
-            <i class="fas fa-${tipo === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-            ${mensaje}
-        `;
+        console.log(`🔔 ${tipo.toUpperCase()}: ${mensaje}`);
         
-        // Estilos pequeños y en esquina inferior izquierda
+        // Crear notificación
+        const notificacion = document.createElement('div');
         notificacion.style.cssText = `
             position: fixed;
             bottom: 20px;
             left: 20px;
-            padding: 6px 10px;
-            border-radius: 3px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-            z-index: 10000;
-            font-size: 11px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            animation: slideUp 0.3s ease;
-            max-width: 250px;
-            background: ${tipo === 'success' ? '#2E7D32' : '#D32F2F'};
+            padding: 15px 20px;
+            background: ${tipo === 'success' ? '#4CAF50' : '#F44336'};
             color: white;
-            border: 1px solid ${tipo === 'success' ? '#1B5E20' : '#B71C1C'};
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transform: translateX(0);
+            transition: transform 0.3s ease;
         `;
+        notificacion.textContent = mensaje;
         
         document.body.appendChild(notificacion);
         
-        // Remover después de 1.5 segundos (más rápido)
+        // Animación de salida
         setTimeout(() => {
-            notificacion.style.animation = 'slideDown 0.3s ease';
+            notificacion.style.transform = 'translateX(-400px)';
             setTimeout(() => {
                 if (document.body.contains(notificacion)) {
                     document.body.removeChild(notificacion);
                 }
             }, 300);
-        }, 1500);
+        }, 3000);
     }
 }
 
-// Inicializar el sistema cuando el DOM esté listo Y la app principal esté cargada
+// =============================================================================
+// 24. INICIALIZACIÓN AUTOMÁTICA DEL SISTEMA
+// =============================================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Esperar a que la app principal se inicialice
+    console.log('🚀 Iniciando Sistema de Informes PDF v3.0...');
+    
+    // Esperar a que el sistema principal esté listo
     setTimeout(() => {
-        // Verificar que las variables globales existan antes de inicializar
         if (window.datosEditados && window.hojaActual) {
-            console.log('✅ App principal lista, inicializando sistema de informes...');
+            console.log('✅ Sistema principal listo, iniciando informes...');
             window.sistemaInformes = new SistemaInformes();
         } else {
-            console.log('⏳ App principal no está lista aún, reintentando en 1 segundo...');
+            console.log('⏳ Esperando sistema principal...');
             setTimeout(() => {
                 if (window.datosEditados && window.hojaActual) {
-                    console.log('✅ App principal lista (reintento), inicializando sistema de informes...');
+                    console.log('✅ Sistema principal listo (retry), iniciando informes...');
                     window.sistemaInformes = new SistemaInformes();
                 } else {
-                    console.error('❌ No se pudo inicializar el sistema de informes: la app principal no está disponible');
+                    console.error('❌ No se pudo inicializar el sistema de informes');
                 }
-            }, 1000);
+            }, 2000);
         }
-    }, 500); // Pequeño retraso para asegurar que app.js se inicialice primero
+    }, 1000);
 });
 
-// Añadir animaciones CSS
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideUp {
-        from { 
-            transform: translateY(100%); 
-            opacity: 0; 
-        }
-        to { 
-            transform: translateY(0); 
-            opacity: 1; 
-        }
-    }
-    
-    @keyframes slideDown {
-        from { 
-            transform: translateY(0); 
-            opacity: 1; 
-        }
-        to { 
-            transform: translateY(100%); 
-            opacity: 0; 
-        }
-    }
-    
-    .report-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 15px;
-        border: 1px solid #e0e0e0;
-        border-radius: 5px;
-        margin-bottom: 10px;
-        background: white;
-        transition: all 0.3s;
-    }
-    
-    .report-item:hover {
-        border-color: #1F3A5F;
-        box-shadow: 0 2px 8px rgba(31, 58, 95, 0.1);
-    }
-    
-    .report-info {
-        flex: 1;
-    }
-    
-    .report-client {
-        font-weight: bold;
-        color: #333;
-        font-size: 14px;
-    }
-    
-    .report-date {
-        font-size: 12px;
-        color: #666;
-        margin-top: 5px;
-    }
-    
-    .report-status {
-        padding: 5px 10px;
-        border-radius: 3px;
-        font-size: 12px;
-        font-weight: bold;
-    }
-    
-    .report-status.success {
-        background: #d4edda;
-        color: #155724;
-    }
-`;
-document.head.appendChild(style);
+// =============================================================================
+// 25. EXPORTACIONES GLOBALES
+// =============================================================================
+window.SistemaInformes = SistemaInformes;
