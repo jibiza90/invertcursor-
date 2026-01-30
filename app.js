@@ -44,13 +44,34 @@ function esFilaValida(fila) {
 let datosCompletos = null;
 let datosEditados = null;
 let clientesAnuales = null; // Lista de clientes del año (independiente del mes)
-let hojaActual = 'Diario WIND';
+let hojaActual = 'Diario Xavi';
 let mesActual = null;
 let mesesDisponibles = {};
 let clienteActual = null;
 let hojaInfoClientes = 'Diario STD'; // Hoja seleccionada en Info Clientes
 let vistaActual = 'general';
 let requiereRecalculoImpInicial = false;
+
+// -----------------------------------------------------------------------------
+// Compatibilidad: exponer estado clave en window para scripts auxiliares (informes/debug)
+// Nota: usamos una función para mantenerlo sincronizado cuando cambian las variables.
+function syncWindowState() {
+    try {
+        window.datosCompletos = datosCompletos;
+        window.datosEditados = datosEditados;
+        window.clientesAnuales = clientesAnuales;
+        window.hojaActual = hojaActual;
+        window.mesActual = mesActual;
+        window.clienteActual = clienteActual;
+        window.vistaActual = vistaActual;
+    } catch (e) {
+        // No hacer nada: en entornos sin window (tests) esto puede fallar
+    }
+}
+// Ejecutar una primera sincronización
+syncWindowState();
+// -----------------------------------------------------------------------------
+
 
 // Hojas anuales (sin selector de meses, todo el año en un solo JSON)
 const HOJAS_ANUALES = ['Diario Xavi'];
@@ -1822,6 +1843,7 @@ async function cargarDatos() {
         // Inicializar estructuras si no existen
         if (!datosCompletos) datosCompletos = { hojas: {} };
         if (!datosEditados) datosEditados = { hojas: {} };
+        syncWindowState();
         
         // OPTIMIZACIÓN: Usar structuredClone en lugar de JSON.parse(JSON.stringify)
         // Es mucho más rápido y eficiente para objetos grandes
@@ -2556,6 +2578,8 @@ async function cambiarHoja() {
         // Obtener primer mes disponible para la nueva hoja
         const mesesNuevaHoja = mesesDisponibles[hojaActual] || [];
         mesActual = mesesNuevaHoja.length > 0 ? mesesNuevaHoja[0] : null;
+        // Mantener estado accesible para pestaña de informes y utilidades
+        syncWindowState();
         
         actualizarSelectorMes();
         await cargarDatos();
@@ -2587,6 +2611,7 @@ async function cambiarMes() {
     try {
         const selectorMes = document.getElementById('selectorMes');
         mesActual = selectorMes ? selectorMes.value : mesActual;
+        syncWindowState();
         
         // Guardar vista y cliente actual ANTES de cambiar
         const vistaAnterior = vistaActual;
@@ -6569,6 +6594,7 @@ async function eliminarClienteActualDesdeUI() {
 function renderDetalleCliente(index) {
     vistaActual = 'detalle';
     clienteActual = index;
+        syncWindowState();
     
     document.getElementById('vistaGeneral').classList.remove('active');
     document.getElementById('vistaClientes').classList.remove('active');

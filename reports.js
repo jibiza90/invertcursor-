@@ -234,12 +234,114 @@ class ReportsSystem {
         }
     }
 
-    // Generar informe básico
+    // Generar informe PDF (básico pero funcional)
     generateReport() {
         if (!this.currentClient) {
             alert('Selecciona un cliente primero');
             return;
         }
+
+        // Validar que hay datos
+        const datos = this.currentClient.datos || {};
+        const nombre = this.getClientName(this.currentClient);
+        const numero = this.currentClient.numero_cliente || 'SIN_NUM';
+        const fecha = new Date();
+        const fechaStr = fecha.toISOString().slice(0, 10);
+
+        try {
+            // jsPDF se expone como window.jspdf.jsPDF cuando se carga desde CDN
+            const jsPDF = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : null;
+            if (!jsPDF) {
+                alert('No se encontró jsPDF. Revisa que la librería esté cargada.');
+                this.logDebug('❌ jsPDF no está disponible en window.jspdf.jsPDF');
+                return;
+            }
+
+            const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+            const marginX = 50;
+            let y = 60;
+
+            const addLine = (text, size = 11, gap = 16) => {
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(size);
+                const maxWidth = 595 - marginX * 2; // A4 width in pt ~595
+                const lines = doc.splitTextToSize(String(text ?? ''), maxWidth);
+                doc.text(lines, marginX, y);
+                y += gap * lines.length;
+                if (y > 780) { // near bottom
+                    doc.addPage();
+                    y = 60;
+                }
+            };
+
+            // Cabecera
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(18);
+            doc.text('Informe de Cliente', marginX, y);
+            y += 26;
+
+            addLine(`Fecha: ${fechaStr}`, 11, 16);
+            addLine(`Número de cliente: ${numero}`, 11, 16);
+            addLine(`Nombre: ${nombre}`, 11, 16);
+            y += 10;
+
+            doc.setDrawColor(180);
+            doc.line(marginX, y, 595 - marginX, y);
+            y += 20;
+
+            // Datos principales (los más típicos)
+            const camposPreferidos = [
+                'NOMBRE','APELLIDOS','DNI','NIF','EMAIL','TELEFONO','DIRECCION',
+                'POBLACION','PROVINCIA','CP','PAIS'
+            ];
+
+            const filas = [];
+            camposPreferidos.forEach(k => {
+                if (datos[k]?.valor) filas.push([k, datos[k].valor]);
+            });
+
+            // Si no hay nada de lo preferido, listar todo lo que haya
+            if (filas.length === 0) {
+                Object.keys(datos).forEach(k => {
+                    const v = datos[k]?.valor;
+                    if (v !== undefined && v !== null && String(v).trim() !== '') {
+                        filas.push([k, v]);
+                    }
+                });
+            }
+
+            if (filas.length === 0) {
+                addLine('⚠️ No se encontraron datos del cliente para incluir en el informe.', 11, 16);
+                this.logDebug('⚠️ Cliente sin datos: no hay campos con valor en cliente.datos');
+            } else {
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(13);
+                doc.text('Datos del cliente', marginX, y);
+                y += 18;
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(11);
+
+                filas.forEach(([k, v]) => {
+                    addLine(`${k}: ${v}`, 11, 16);
+                });
+            }
+
+            // Guardar
+            const safeName = String(nombre).replace(/[\/:*?"<>|]+/g, '').slice(0, 60).trim() || `Cliente_${numero}`;
+            const fileName = `informe_${safeName}_${fechaStr}.pdf`;
+            doc.save(fileName);
+
+            this.logDebug(`✅ PDF generado: ${fileName}`);
+            console.log('✅ PDF generado:', fileName);
+
+        } catch (error) {
+            console.error('❌ Error al generar PDF:', error);
+            this.logDebug('❌ Error al generar PDF: ' + error.message);
+            alert('Error al generar el PDF. Mira la consola para más detalles.');
+        }
+    }
+
 
         console.log('📄 Generando informe para:', this.getClientName(this.currentClient));
 
