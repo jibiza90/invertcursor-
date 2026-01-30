@@ -779,7 +779,7 @@ class SistemaInformes {
     }
 
     mostrarNotificacion(mensaje, tipo) {
-        // Crear notificación pequeña
+        // Crear notificación pequeña en esquina inferior izquierda
         const notificacion = document.createElement('div');
         notificacion.className = `notificacion ${tipo}`;
         notificacion.innerHTML = `
@@ -787,34 +787,37 @@ class SistemaInformes {
             ${mensaje}
         `;
         
-        // Estilos pequeños y compactos
+        // Estilos pequeños y en esquina inferior izquierda
         notificacion.style.cssText = `
             position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 8px 12px;
-            border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            bottom: 20px;
+            left: 20px;
+            padding: 6px 10px;
+            border-radius: 3px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
             z-index: 10000;
-            font-size: 12px;
+            font-size: 11px;
             display: flex;
             align-items: center;
-            gap: 6px;
-            animation: slideIn 0.3s ease;
-            max-width: 300px;
+            gap: 5px;
+            animation: slideUp 0.3s ease;
+            max-width: 250px;
+            background: ${tipo === 'success' ? '#2E7D32' : '#D32F2F'};
+            color: white;
+            border: 1px solid ${tipo === 'success' ? '#1B5E20' : '#B71C1C'};
         `;
         
         document.body.appendChild(notificacion);
         
-        // Remover después de 2 segundos (más rápido)
+        // Remover después de 1.5 segundos (más rápido)
         setTimeout(() => {
-            notificacion.style.animation = 'slideOut 0.3s ease';
+            notificacion.style.animation = 'slideDown 0.3s ease';
             setTimeout(() => {
                 if (document.body.contains(notificacion)) {
                     document.body.removeChild(notificacion);
                 }
             }, 300);
-        }, 2000);
+        }, 1500);
     }
 }
 
@@ -826,14 +829,26 @@ document.addEventListener('DOMContentLoaded', () => {
 // Añadir animaciones CSS
 const style = document.createElement('style');
 style.textContent = `
-    @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
+    @keyframes slideUp {
+        from { 
+            transform: translateY(100%); 
+            opacity: 0; 
+        }
+        to { 
+            transform: translateY(0); 
+            opacity: 1; 
+        }
     }
     
-    @keyframes slideOut {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(100%); opacity: 0; }
+    @keyframes slideDown {
+        from { 
+            transform: translateY(0); 
+            opacity: 1; 
+        }
+        to { 
+            transform: translateY(100%); 
+            opacity: 0; 
+        }
     }
     
     .report-item {
@@ -841,10 +856,16 @@ style.textContent = `
         justify-content: space-between;
         align-items: center;
         padding: 15px;
-        border: 1px solid #ddd;
+        border: 1px solid #e0e0e0;
         border-radius: 5px;
         margin-bottom: 10px;
         background: white;
+        transition: all 0.3s;
+    }
+    
+    .report-item:hover {
+        border-color: #1F3A5F;
+        box-shadow: 0 2px 8px rgba(31, 58, 95, 0.1);
     }
     
     .report-info {
@@ -854,11 +875,13 @@ style.textContent = `
     .report-client {
         font-weight: bold;
         color: #333;
+        font-size: 14px;
     }
     
     .report-date {
         font-size: 12px;
         color: #666;
+        margin-top: 5px;
     }
     
     .report-status {
@@ -869,8 +892,8 @@ style.textContent = `
     }
     
     .report-status.success {
-        background: #e8f5e8;
-        color: #2E7D32;
+        background: #d4edda;
+        color: #155724;
     }
 `;
 document.head.appendChild(style);
