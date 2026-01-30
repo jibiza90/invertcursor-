@@ -25,14 +25,98 @@ class SistemaInformes {
     inicializar() {
         console.log('📊 Configurando sistema de informes...');
         
-        // Conectar con el sistema principal
-        this.conectarConSistemaPrincipal();
+        try {
+            // Conectar con el sistema principal
+            this.conectarConSistemaPrincipal();
+            
+            // Configurar eventos
+            this.configurarEventos();
+            
+            // Inicializar interfaz
+            this.inicializarInterfaz();
+            
+            console.log('✅ Sistema de informes configurado correctamente');
+        } catch (error) {
+            console.error('❌ Error en inicialización del sistema de informes:', error);
+            
+            // Modo de emergencia: inicializar con valores por defecto
+            console.log('🔧 Activando modo de emergencia...');
+            this.inicializarModoEmergencia();
+        }
+    }
+    
+    // =============================================================================
+    // MODO DE EMERGENCIA (cuando no hay datos del sistema principal)
+    // =============================================================================
+    inicializarModoEmergencia() {
+        console.log('🚨 Inicializando sistema de informes en modo de emergencia');
         
-        // Configurar eventos
+        // Valores por defecto
+        this.datosEditados = { hojas: {} };
+        this.hojaActual = null;
+        this.clienteActual = null;
+        
+        // Configurar eventos básicos
         this.configurarEventos();
         
-        // Inicializar interfaz
-        this.inicializarInterfaz();
+        // Inicializar interfaz con mensaje
+        this.inicializarInterfazEmergencia();
+        
+        console.log('✅ Modo de emergencia inicializado');
+    }
+    
+    // =============================================================================
+    // INICIALIZAR INTERFAZ DE EMERGENCIA
+    // =============================================================================
+    inicializarInterfazEmergencia() {
+        console.log('🖥️ Inicializando interfaz de emergencia...');
+        
+        // Mostrar mensaje en el selector de clientes
+        const selector = document.getElementById('reportClientSelect');
+        if (selector) {
+            selector.innerHTML = `
+                <option value="" disabled selected>
+                    -- Sistema principal no cargado --
+                </option>
+            `;
+        }
+        
+        // Actualizar estado
+        this.actualizarEstado();
+        
+        // Mostrar notificación
+        this.mostrarNotificacion('⚠️ Sistema de informes en modo emergencia. Esperando datos del sistema principal...', 'warning');
+    }
+
+    // =============================================================================
+    // VERIFICAR SISTEMA LISTO Y REINICIAR
+    // =============================================================================
+    verificarSistemaListoYReiniciar() {
+        console.log('🔍 Verificando si el sistema principal está listo...');
+        
+        if (window.datosEditados && window.hojaActual && window.calcularEstadisticasClienteTiempoReal) {
+            console.log('✅ Sistema principal detectado, reiniciando sistema de informes...');
+            
+            try {
+                // Reconectar con el sistema principal
+                this.conectarConSistemaPrincipal();
+                
+                // Reconfigurar eventos
+                this.configurarEventos();
+                
+                // Reinicializar interfaz
+                this.inicializarInterfaz();
+                
+                this.mostrarNotificacion('✅ Sistema de informes conectado correctamente', 'success');
+                return true;
+            } catch (error) {
+                console.error('❌ Error al reiniciar sistema de informes:', error);
+                return false;
+            }
+        } else {
+            console.log('⏳ Sistema principal aún no listo...');
+            return false;
+        }
     }
 
     // =============================================================================
@@ -1028,26 +1112,86 @@ class SistemaInformes {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Iniciando Sistema de Informes PDF v3.0...');
     
-    // Esperar a que el sistema principal esté listo
-    setTimeout(() => {
-        if (window.datosEditados && window.hojaActual) {
+    // Función para intentar inicializar el sistema de informes
+    function intentarInicializarInformes(intento = 1) {
+        console.log(`🔄 Intento ${intento} de inicialización de informes...`);
+        
+        // Verificar que el sistema principal esté listo
+        if (window.datosEditados && window.hojaActual && window.calcularEstadisticasClienteTiempoReal) {
             console.log('✅ Sistema principal listo, iniciando informes...');
-            window.sistemaInformes = new SistemaInformes();
+            
+            try {
+                window.sistemaInformes = new SistemaInformes();
+                console.log('✅ Sistema de informes inicializado correctamente');
+                return true;
+            } catch (error) {
+                console.error('❌ Error al inicializar sistema de informes:', error);
+                return false;
+            }
         } else {
-            console.log('⏳ Esperando sistema principal...');
-            setTimeout(() => {
-                if (window.datosEditados && window.hojaActual) {
-                    console.log('✅ Sistema principal listo (retry), iniciando informes...');
+            console.log(`⏳ Sistema principal no listo (intento ${intento}):`, {
+                datosEditados: !!window.datosEditados,
+                hojaActual: !!window.hojaActual,
+                calcularEstadisticas: !!window.calcularEstadisticasClienteTiempoReal
+            });
+            
+            // Reintentar con delay progresivo
+            if (intento < 5) {
+                const delay = 1000 * intento; // 1s, 2s, 3s, 4s
+                setTimeout(() => intentarInicializarInformes(intento + 1), delay);
+            } else {
+                console.error('❌ No se pudo inicializar el sistema de informes después de 5 intentos');
+                
+                // Crear sistema de informes manualmente para debug
+                console.log('🔧 Creando sistema de informes manualmente para debug...');
+                try {
                     window.sistemaInformes = new SistemaInformes();
-                } else {
-                    console.error('❌ No se pudo inicializar el sistema de informes');
+                    console.log('✅ Sistema de informes creado manualmente (modo debug)');
+                } catch (error) {
+                    console.error('❌ Error crítico: no se puede crear el sistema de informes:', error);
                 }
-            }, 2000);
+            }
+            return false;
         }
-    }, 1000);
+    }
+    
+    // Iniciar el primer intento después de 2 segundos
+    setTimeout(() => intentarInicializarInformes(1), 2000);
 });
 
 // =============================================================================
 // 25. EXPORTACIONES GLOBALES
 // =============================================================================
 window.SistemaInformes = SistemaInformes;
+
+// Función global para reiniciar el sistema de informes manualmente
+window.reiniciarSistemaInformes = function() {
+    console.log('🔄 Reiniciando sistema de informes manualmente...');
+    
+    if (window.sistemaInformes) {
+        const resultado = window.sistemaInformes.verificarSistemaListoYReiniciar();
+        if (resultado) {
+            console.log('✅ Sistema de informes reiniciado correctamente');
+        } else {
+            console.log('⏳ El sistema principal aún no está listo');
+        }
+    } else {
+        console.log('❌ Sistema de informes no existe');
+    }
+};
+
+// Función global para verificar estado del sistema de informes
+window.verificarEstadoSistemaInformes = function() {
+    console.log('🔍 Estado del sistema de informes:');
+    console.log('- sistemaInformes existe:', !!window.sistemaInformes);
+    console.log('- datosEditados:', !!window.datosEditados);
+    console.log('- hojaActual:', !!window.hojaActual);
+    console.log('- clienteActual:', window.clienteActual);
+    console.log('- calcularEstadisticasClienteTiempoReal:', !!window.calcularEstadisticasClienteTiempoReal);
+    
+    if (window.sistemaInformes) {
+        console.log('- datosEditados (sistema):', !!window.sistemaInformes.datosEditados);
+        console.log('- hojaActual (sistema):', !!window.sistemaInformes.hojaActual);
+        console.log('- clienteActual (sistema):', window.sistemaInformes.clienteActual);
+    }
+};
