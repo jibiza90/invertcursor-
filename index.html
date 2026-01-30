@@ -337,101 +337,46 @@
                     </div>
                 </div>
 
-                <!-- Vista Informes 2.0 -->
+                <!-- Nueva Pestaña de Informes - Creada desde cero -->
                 <div id="vistaReports" class="view">
                     <div class="reports-header">
-                        <h1><i class="fas fa-file-pdf"></i> Sistema de Informes 2.0</h1>
-                        <p>Generación avanzada de informes PDF con datos reales y gráficos precisos</p>
+                        <h1>📄 Generador de Informes</h1>
+                        <p>Sistema básico para generar informes PDF de clientes</p>
                     </div>
 
-                    <!-- Panel de Control -->
-                    <div class="control-panel">
-                        <div class="control-section">
-                            <h3><i class="fas fa-user"></i> Selección de Cliente</h3>
-                            <div class="client-controls">
-                                <select id="reportClientSelect" class="client-dropdown">
-                                    <option value="">Selecciona un cliente...</option>
-                                </select>
-                                <div class="button-group">
-                                    <button id="generateReportBtn" class="btn btn-primary btn-lg" disabled>
-                                        <i class="fas fa-file-pdf"></i> Generar Informe PDF
-                                    </button>
-                                    <button id="reloadClientsBtn" class="btn btn-secondary">
-                                        <i class="fas fa-sync-alt"></i> Recargar
-                                    </button>
-                                </div>
-                            </div>
+                    <div class="reports-content">
+                        <!-- Selector de cliente -->
+                        <div class="reports-section">
+                            <h3>Seleccionar Cliente</h3>
+                            <select id="reportsClientSelect">
+                                <option value="">-- Selecciona un cliente --</option>
+                            </select>
                         </div>
 
-                        <div class="control-section">
-                            <h3><i class="fas fa-cog"></i> Opciones de Informe</h3>
-                            <div class="options-grid">
-                                <label class="option-item">
-                                    <input type="checkbox" id="includeCharts" checked>
-                                    <span>Incluir Gráficos</span>
-                                </label>
-                                <label class="option-item">
-                                    <input type="checkbox" id="includeMovements" checked>
-                                    <span>Detalle de Movimientos</span>
-                                </label>
-                                <label class="option-item">
-                                    <input type="checkbox" id="highQuality" checked>
-                                    <span>Alta Calidad</span>
-                                </label>
-                                <label class="option-item">
-                                    <input type="checkbox" id="includeSummary" checked>
-                                    <span>Resumen Ejecutivo</span>
-                                </label>
-                            </div>
+                        <!-- Información del cliente seleccionado -->
+                        <div class="reports-section" id="clientInfo" style="display: none;">
+                            <h3>Información del Cliente</h3>
+                            <div id="clientDetails"></div>
                         </div>
-                    </div>
 
-                    <!-- Estado del Sistema -->
-                    <div class="system-status">
-                        <div class="status-item">
-                            <i class="fas fa-users"></i>
-                            <span class="status-label">Clientes Cargados:</span>
-                            <span class="status-value" id="clientesCount">0</span>
+                        <!-- Botones de acción -->
+                        <div class="reports-section">
+                            <h3>Acciones</h3>
+                            <button id="generateReportBtn" class="btn btn-primary" disabled>
+                                Generar Informe PDF
+                            </button>
+                            <button id="testDataBtn" class="btn btn-secondary">
+                                Probar Lectura de Datos
+                            </button>
                         </div>
-                        <div class="status-item">
-                            <i class="fas fa-file-alt"></i>
-                            <span class="status-label">Informes Generados:</span>
-                            <span class="status-value" id="informesCount">0</span>
-                        </div>
-                        <div class="status-item">
-                            <i class="fas fa-clock"></i>
-                            <span class="status-label">Último Informe:</span>
-                            <span class="status-value" id="ultimoInforme">N/A</span>
-                        </div>
-                    </div>
 
-                    <!-- Historial de Informes -->
-                    <div class="reports-history-container">
-                        <h3><i class="fas fa-history"></i> Historial de Informes</h3>
-                        <div id="reportsHistoryList" class="reports-list">
-                            <div class="empty-state">
-                                <div class="empty-state-icon">📄</div>
-                                <div class="empty-state-text">No hay informes generados</div>
-                                <div class="empty-state-subtext">Selecciona un cliente y genera tu primer informe</div>
-                            </div>
+                        <!-- Área de debug -->
+                        <div class="reports-section">
+                            <h3>Debug de Datos</h3>
+                            <div id="debugOutput" class="debug-area"></div>
                         </div>
-                    </div>
-
-                    <!-- Panel de Información -->
-                    <div class="info-panel">
-                        <h3><i class="fas fa-info-circle"></i> Características del Sistema</h3>
-                        <ul class="features-list">
-                            <li><i class="fas fa-check text-success"></i> Datos reales de clientes</li>
-                            <li><i class="fas fa-check text-success"></i> Gráficos con información actualizada</li>
-                            <li><i class="fas fa-check text-success"></i> Detección automática de incrementos/decrementos</li>
-                            <li><i class="fas fa-check text-success"></i> PDF de alta calidad y legibilidad</li>
-                            <li><i class="fas fa-check text-success"></i> Interfaz moderna y responsive</li>
-                            <li><i class="fas fa-check text-success"></i> Historial de informes generados</li>
-                        </ul>
                     </div>
                 </div>
-
-                            </main>
         </div>
 
         <!-- Modal de confirmación -->
@@ -532,7 +477,6 @@
     <!-- Módulo de informes (cargar DESPUÉS que app.js) -->
     <script src="reports.js?v=6"></script>
     
-    <!-- Sistema de Informes 3.0 - Completamente reescrito desde cero -->
-    <script src="informes-nuevo.js?v=3.0.0"></script>
+    <!-- Sistema de Informes - Será creado desde cero -->
 </body>
 </html>
