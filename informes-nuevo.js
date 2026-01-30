@@ -56,56 +56,84 @@ class SistemaInformes {
         if (btnGenerar) {
             btnGenerar.onclick = () => this.generarInforme();
         }
-
+        
         // Botón recargar clientes
         const btnRecargar = document.getElementById('reloadClientsBtn');
         if (btnRecargar) {
             btnRecargar.onclick = () => this.recargarClientes();
         }
 
-        // Selector de cliente
+        // Selector de cliente (ahora es solo informativo)
         const selectorCliente = document.getElementById('reportClientSelect');
         if (selectorCliente) {
             selectorCliente.onchange = () => this.validarSeleccionCliente();
         }
+        
+        // ESCUCHAR CAMBIOS EN EL SELECTOR PRINCIPAL DEL SISTEMA
+        const selectorPrincipal = document.getElementById('selectorCliente');
+        if (selectorPrincipal) {
+            selectorPrincipal.addEventListener('change', () => {
+                console.log('🔄 Cambio detectado en selector principal, actualizando informes...');
+                setTimeout(() => {
+                    this.llenarSelectorClientes(); // Actualizar selector de informes
+                }, 100);
+            });
+        }
+        
+        // ESCUCHAR CAMBIOS EN clienteActual (cuando se navega entre clientes)
+        let lastClienteActual = window.clienteActual;
+        setInterval(() => {
+            if (window.clienteActual !== lastClienteActual) {
+                console.log('🔄 Cambio en clienteActual detectado, actualizando informes...');
+                lastClienteActual = window.clienteActual;
+                this.llenarSelectorClientes();
+            }
+        }, 1000);
     }
 
-    // Llenar selector de clientes - USAR CLIENTES DEL SISTEMA ACTUAL
+    // Llenar selector de clientes - MOSTRAR CLIENTE ACTUAL DEL SISTEMA
     llenarSelectorClientes() {
         const selector = document.getElementById('reportClientSelect');
         if (!selector) return;
 
-        selector.innerHTML = '<option value="">Selecciona un cliente...</option>';
-        
-        // Usar los mismos clientes que el sistema actual (como mostrarEstadisticasCliente)
-        if (!window.datosEditados || !window.datosEditados.hojas || !window.hojaActual) {
-            console.warn('⚠️ No hay datos del sistema disponibles para el selector');
-            return;
+        // Si hay un cliente seleccionado en el sistema, mostrarlo
+        if (typeof window.clienteActual !== 'undefined' && window.clienteActual !== null) {
+            const hoja = window.datosEditados?.hojas?.[window.hojaActual];
+            if (hoja && hoja.clientes && hoja.clientes[window.clienteActual]) {
+                const cliente = hoja.clientes[window.clienteActual];
+                const nombre = this.obtenerNombreCliente(cliente);
+                
+                selector.innerHTML = `
+                    <option value="${window.clienteActual}" selected>
+                        ${cliente.numero_cliente} - ${nombre} (Seleccionado)
+                    </option>
+                `;
+                
+                // Actualizar contador
+                const clientesCount = document.getElementById('clientesCount');
+                if (clientesCount) {
+                    clientesCount.textContent = '1 cliente seleccionado';
+                }
+                
+                console.log(`📝 Selector mostrando cliente actual: ${nombre}`);
+                return;
+            }
         }
+
+        // Si no hay cliente seleccionado, mostrar mensaje
+        selector.innerHTML = `
+            <option value="" disabled selected>
+                -- Selecciona un cliente en la vista principal --
+            </option>
+        `;
         
-        const hoja = window.datosEditados.hojas[window.hojaActual];
-        if (!hoja || !hoja.clientes) {
-            console.warn('⚠️ No hay clientes en la hoja actual');
-            return;
-        }
-        
-        // Iterar sobre los clientes como lo hace el sistema
-        Object.keys(hoja.clientes).forEach(clienteIndex => {
-            const cliente = hoja.clientes[clienteIndex];
-            const nombre = this.obtenerNombreCliente(cliente);
-            const option = document.createElement('option');
-            option.value = clienteIndex;
-            option.textContent = `${cliente.numero_cliente} - ${nombre}`;
-            selector.appendChild(option);
-        });
-        
-        console.log(`📝 Selector llenado con ${Object.keys(hoja.clientes).length} clientes del sistema actual`);
-        
-        // Actualizar contador de clientes
+        // Actualizar contador
         const clientesCount = document.getElementById('clientesCount');
         if (clientesCount) {
-            clientesCount.textContent = Object.keys(hoja.clientes).length;
+            clientesCount.textContent = '0 clientes seleccionados';
         }
+        
+        console.log('⚠️ No hay cliente seleccionado en el sistema principal');
     }
 
     // Obtener nombre formateado del cliente
@@ -135,29 +163,27 @@ class SistemaInformes {
 
     // Generar informe principal
     async generarInforme() {
-        const selector = document.getElementById('reportClientSelect');
-        const clienteIndex = parseInt(selector.value);
-        
-        if (isNaN(clienteIndex)) {
-            this.mostrarError('Por favor selecciona un cliente');
+        // USAR EL CLIENTE SELECCIONADO EN EL SISTEMA PRINCIPAL
+        if (typeof window.clienteActual === 'undefined' || window.clienteActual === null) {
+            this.mostrarError('Por favor selecciona un cliente en la vista principal primero');
             return;
         }
 
-        // USAR EL CLIENTE DEL SELECTOR, NO clienteActual
+        // Obtener el cliente actual del sistema
         const hoja = window.datosEditados?.hojas?.[window.hojaActual];
-        if (!hoja || !hoja.clientes || !hoja.clientes[clienteIndex]) {
+        if (!hoja || !hoja.clientes || !hoja.clientes[window.clienteActual]) {
             this.mostrarError('No hay datos del cliente seleccionado');
             return;
         }
         
-        // Obtener el cliente directamente del selector
-        const cliente = hoja.clientes[clienteIndex];
+        const cliente = hoja.clientes[window.clienteActual];
         
-        console.log(`🎯 Generando informe usando cliente del selector:`, {
-            clienteIndex: clienteIndex,
+        console.log(`🎯 Generando informe usando cliente seleccionado en vista principal:`, {
+            clienteActual: window.clienteActual,
             clienteNumero: cliente.numero_cliente,
             hojaActual: window.hojaActual,
-            datosDiarios: cliente.datos_diarios?.length || 0
+            datosDiarios: cliente.datos_diarios?.length || 0,
+            nombre: this.obtenerNombreCliente(cliente)
         });
         
         try {
@@ -425,11 +451,15 @@ class SistemaInformes {
         `;
     }
 
-    // Calcular estadísticas reales del cliente - USAR CLIENTE DEL SELECTOR
+    // Calcular estadísticas reales del cliente - USAR CLIENTE ACTUAL DEL SISTEMA
     async calcularEstadisticasCliente(cliente) {
-        console.log('🔥 USANDO CLIENTE DEL SELECTOR, NO clienteActual');
+        console.log('🔥 USANDO CLIENTE ACTUAL DEL SISTEMA PRINCIPAL');
         
-        // Verificar variables globales necesarias
+        // Verificar que clienteActual exista
+        if (typeof window.clienteActual === 'undefined' || window.clienteActual === null) {
+            throw new Error('clienteActual no está definido - selecciona un cliente en la vista principal');
+        }
+        
         if (!window.hojaActual) {
             throw new Error('hojaActual no está definida');
         }
@@ -438,7 +468,7 @@ class SistemaInformes {
             throw new Error('datosEditados no está definido');
         }
         
-        // Usar la hoja actual
+        // Usar la hoja actual y el cliente actual
         const hoja = window.datosEditados.hojas[window.hojaActual];
         if (!hoja) {
             throw new Error(`No se encontró la hoja ${window.hojaActual}`);
@@ -453,7 +483,8 @@ class SistemaInformes {
         window._datosCliente = datosCompletosCliente;
         window._datosEstadisticasCliente = datosCompletosCliente;
         
-        console.log('📊 Datos obtenidos con cliente del selector:', {
+        console.log('📊 Datos obtenidos del cliente actual del sistema:', {
+            clienteActual: window.clienteActual,
             clienteNumero: cliente.numero_cliente,
             hojaActual: window.hojaActual,
             meses: datosClienteMeses.length,
